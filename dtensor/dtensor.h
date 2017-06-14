@@ -3,6 +3,7 @@
 
 #include "../util/types_and_headers.h"
 #include "tensor_index.h"
+#include "tensor_index_op.h"
 
 //---------------------------------------------------------------------------
 // Type definitions
@@ -87,7 +88,11 @@ public:
   // Overloaded operator
   dtensor& operator = (const dtensor<T>& other); // copy assignment
   dtensor& operator = (dtensor<T>&& other);      // move assignment
-  dtensor operator * (dtensor<T>& A);      // repeated indices are summed over
+  dtensor operator * (dtensor<T>& A);            // repeated indices are summed over
+  dtensor& operator += (dtensor<T>& A);           //
+  dtensor& operator -= (dtensor<T>& A);           //
+  dtensor operator + (dtensor<T>& A);            //
+  dtensor operator - (dtensor<T>& A);            //
   dtensor& operator *= (const T c);              // scaling
   dtensor& operator /= (const T c);              // scaling
   dtensor operator * (const T c);                // scaling
@@ -111,6 +116,7 @@ public:
   void primeSite();
   void mapPrime(unsigned from, unsigned to);
   void mapPrime(unsigned from, unsigned to, index_type type);
+  void dag();
 
   //---------------------------------------------------------------------------
   // Save/Load

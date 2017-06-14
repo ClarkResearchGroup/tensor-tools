@@ -312,71 +312,157 @@ template <typename T>
 dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
-  int_vec new_idx_sizes(rank+A.rank);
-  str_vec new_idx_names(rank+A.rank);
-  typ_vec new_idx_types(rank+A.rank);
-  int_vec new_idx_levels(rank+A.rank);
+  vector<tensor_index> res_index_set;
+  index_sets_difference(idx_set, A.idx_set, res_index_set);
+  assert(res_index_set.size()>0); // result cannnot be a scalar
   lab_vec this_labels;
   lab_vec A_labels;
-  lab_vec new_labels(rank+A.rank);
-  int_vec to_remove;
-  unsigned num_shared_idx = 0;
-  char ch='a';
+  lab_vec res_labels;
+  char ch = 'a';
+  unordered_map<string,char> labels_map;
   for (size_t i = 0; i < rank; i++) {
-    this_labels.push_back(ch);
-    ch += 1;
+    if(labels_map.find(idx_set[i]._tag) == labels_map.end()){
+      this_labels.push_back(ch);
+      labels_map[idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      this_labels.push_back(labels_map.at(idx_set[i]._tag));
+    }
   }
   for (size_t i = 0; i < A.rank; i++) {
-    bool is_shared = false;
-    for (size_t j = 0; j < rank; j++) {
-      if(A.idx_set[i] == idx_set[j]){
-        is_shared = true;
-        A_labels.push_back(this_labels[j]);
-        ++num_shared_idx;
-        to_remove.push_back(j);
-        to_remove.push_back(i+rank);
-        break;
-      }
-    }
-    if(!is_shared){
+    if(labels_map.find(A.idx_set[i]._tag) == labels_map.end()){
       A_labels.push_back(ch);
-      ch += 1;
+      labels_map[A.idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      A_labels.push_back(labels_map.at(A.idx_set[i]._tag));
     }
   }
-  std::sort(to_remove.begin(),to_remove.end());
-  for (size_t i = 0; i < rank; i++) {
-    new_idx_sizes[i] = idx_set[i]._size;
-    new_idx_names[i] = idx_set[i]._name;
-    new_idx_types[i] = idx_set[i]._type;
-    new_idx_levels[i] = idx_set[i]._level;
-    new_labels[i] = this_labels[i];
+  for (size_t i = 0; i < res_index_set.size(); i++) {
+    if(labels_map.find(res_index_set[i]._tag) == labels_map.end()){
+      res_labels.push_back(ch);
+      labels_map[res_index_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      res_labels.push_back(labels_map.at(res_index_set[i]._tag));
+    }
   }
-  for (size_t i = 0; i < A.rank; i++) {
-    new_idx_sizes[i+rank] = A.idx_set[i]._size;
-    new_idx_names[i+rank] = A.idx_set[i]._name;
-    new_idx_types[i+rank] = A.idx_set[i]._type;
-    new_idx_levels[i+rank] = A.idx_set[i]._level;
-    new_labels[i+rank] = A_labels[i];
-  }
-  while(to_remove.size()>0){
-    int idx = to_remove.back();
-    to_remove.pop_back();
-    new_idx_sizes.erase(new_idx_sizes.begin()+idx);
-    new_idx_names.erase(new_idx_names.begin()+idx);
-    new_idx_types.erase(new_idx_types.begin()+idx);
-    new_idx_levels.erase(new_idx_levels.begin()+idx);
-    new_labels.erase(new_labels.begin()+idx);
-  }
-  // does not deal with full contraction
-  // because it ends in a scalar rather than
-  // a tensor
-  assert(rank+A.rank-2*num_shared_idx>0);
-  dtensor<T> B(new_idx_sizes,new_idx_names,new_idx_types,new_idx_levels);
-  tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),B._T,new_labels.data());
-  return B;
+  dtensor<T> res(res_index_set);
+  tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
+  return res;
 }
 template dtensor<double> dtensor<double>::operator * (dtensor<double>& A);
 template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator * (dtensor< std::complex<double> >& A);
+
+
+template <typename T>
+dtensor<T> dtensor<T>::operator + (dtensor<T>& A){
+  assert(_initted && A._initted);
+  assert(rank==A.rank);
+  lab_vec this_labels;
+  lab_vec A_labels;
+  char ch = 'a';
+  unordered_map<string,char> labels_map;
+  for (size_t i = 0; i < rank; i++) {
+    if(labels_map.find(idx_set[i]._tag) == labels_map.end()){
+      this_labels.push_back(ch);
+      labels_map[idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      this_labels.push_back(labels_map.at(idx_set[i]._tag));
+    }
+  }
+  for (size_t i = 0; i < A.rank; i++) {
+    A_labels.push_back(labels_map.at(A.idx_set[i]._tag));
+  }
+  dtensor<T> res = *this;
+  tblis::add(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
+  return res;
+}
+template dtensor<double> dtensor<double>::operator + (dtensor<double>& A);
+template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator + (dtensor< std::complex<double> >& A);
+
+
+template <typename T>
+dtensor<T> dtensor<T>::operator - (dtensor<T>& A){
+  assert(_initted && A._initted);
+  assert(rank==A.rank);
+  lab_vec this_labels;
+  lab_vec A_labels;
+  char ch = 'a';
+  unordered_map<string,char> labels_map;
+  for (size_t i = 0; i < rank; i++) {
+    if(labels_map.find(idx_set[i]._tag) == labels_map.end()){
+      this_labels.push_back(ch);
+      labels_map[idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      this_labels.push_back(labels_map.at(idx_set[i]._tag));
+    }
+  }
+  for (size_t i = 0; i < A.rank; i++) {
+    A_labels.push_back(labels_map.at(A.idx_set[i]._tag));
+  }
+  dtensor<T> res = *this;
+  tblis::add(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
+  return res;
+}
+template dtensor<double> dtensor<double>::operator - (dtensor<double>& A);
+template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator - (dtensor< std::complex<double> >& A);
+
+
+template <typename T>
+dtensor<T>& dtensor<T>::operator += (dtensor<T>& A){
+  assert(_initted && A._initted);
+  assert(rank==A.rank);
+  lab_vec this_labels;
+  lab_vec A_labels;
+  char ch = 'a';
+  unordered_map<string,char> labels_map;
+  for (size_t i = 0; i < rank; i++) {
+    if(labels_map.find(idx_set[i]._tag) == labels_map.end()){
+      this_labels.push_back(ch);
+      labels_map[idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      this_labels.push_back(labels_map.at(idx_set[i]._tag));
+    }
+  }
+  for (size_t i = 0; i < A.rank; i++) {
+    A_labels.push_back(labels_map.at(A.idx_set[i]._tag));
+  }
+  tblis::add(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
+  return *this;
+}
+template dtensor<double>& dtensor<double>::operator += (dtensor<double>& A);
+template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator += (dtensor< std::complex<double> >& A);
+
+
+template <typename T>
+dtensor<T>& dtensor<T>::operator -= (dtensor<T>& A){
+  assert(_initted && A._initted);
+  assert(rank==A.rank);
+  lab_vec this_labels;
+  lab_vec A_labels;
+  char ch = 'a';
+  unordered_map<string,char> labels_map;
+  for (size_t i = 0; i < rank; i++) {
+    if(labels_map.find(idx_set[i]._tag) == labels_map.end()){
+      this_labels.push_back(ch);
+      labels_map[idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      this_labels.push_back(labels_map.at(idx_set[i]._tag));
+    }
+  }
+  for (size_t i = 0; i < A.rank; i++) {
+    A_labels.push_back(labels_map.at(A.idx_set[i]._tag));
+  }
+  tblis::add(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
+  return *this;
+}
+template dtensor<double>& dtensor<double>::operator -= (dtensor<double>& A);
+template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator -= (dtensor< std::complex<double> >& A);
 
 template <typename T>
 dtensor<T>& dtensor<T>::operator *= (const T c){
@@ -448,34 +534,32 @@ template <typename T>
 T dtensor<T>::contract(dtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
+  vector<tensor_index> res_index_set;
+  index_sets_difference(idx_set, A.idx_set, res_index_set);
+  assert(res_index_set.size()==0); // contract to a scalar
   lab_vec this_labels;
   lab_vec A_labels;
-  unsigned num_shared_idx = 0;
-  char ch='a';
+  char ch = 'a';
+  unordered_map<string,char> labels_map;
   for (size_t i = 0; i < rank; i++) {
-    this_labels.push_back(ch);
-    ch += 1;
+    if(labels_map.find(idx_set[i]._tag) == labels_map.end()){
+      this_labels.push_back(ch);
+      labels_map[idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      this_labels.push_back(labels_map.at(idx_set[i]._tag));
+    }
   }
   for (size_t i = 0; i < A.rank; i++) {
-    bool is_shared = false;
-    for (size_t j = 0; j < rank; j++) {
-      if(A.idx_set[i] == idx_set[j]){
-        is_shared = true;
-        A_labels.push_back(this_labels[j]);
-        ++num_shared_idx;
-        break;
-      }
-    }
-    if(!is_shared){
+    if(labels_map.find(A.idx_set[i]._tag) == labels_map.end()){
       A_labels.push_back(ch);
-      ch += 1;
+      labels_map[A.idx_set[i]._tag] = ch;
+      ++ch;
+    }else{
+      A_labels.push_back(labels_map.at(A.idx_set[i]._tag));
     }
   }
-  // does not deal with full contraction
-  // because it ends in a scalar rather than
-  // a tensor
-  assert(rank+A.rank-2*num_shared_idx==0);
-  T res;
+  T res = 0;
   tblis::dot(_T,this_labels.data(),A._T,A_labels.data(),res);
   return res;
 }
@@ -615,7 +699,7 @@ void dtensor<T>::print(unsigned print_level){
   std::cout<<"-------------------------------------"<<'\n';
   std::cout<<"(1) Tensor's rank = "<<rank<<'\n';
   std::cout<<"(2) Tensor's index (size, name, type, prime level)"<<'\n';
-  for (int i = 0; i < rank; i++) {
+  for (size_t i = 0; i < rank; i++) {
     std::cout<<"                   ("<<idx_set[i]._size<<", "<<idx_set[i]._name<<", ";
     if(idx_set[i]._type==Link){
       std::cout<<"Link"<<", ";
@@ -625,7 +709,7 @@ void dtensor<T>::print(unsigned print_level){
     std::cout<<idx_set[i]._level<<")"<<'\n';
   }
   if (print_level>0) {
-    std::cout<<"(3) Matricized tensor:"<<'\n';
+    std::cout<<"(3) Tensor data:"<<'\n';
     for (size_t i = 0; i < size; i++) {
       std::cout<<_T.data()[i]<<" ";
     }
@@ -661,7 +745,7 @@ void dtensor<T>::save(string fn){
   fh5W["idx_sizes"] = idx_sizes;
   fh5W["idx_types"] = idx_types;
   fh5W["idx_levels"] = idx_levels;
-  for (int i = 0; i < rank; i++) {
+  for (size_t i = 0; i < rank; i++) {
     std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
     fh5W[idx_name_pref+std::to_string(i)] = vec;
   }
@@ -686,7 +770,7 @@ void dtensor<T>::load(string fn){
   fh5R["idx_sizes"] >> idx_sizes;
   fh5R["idx_types"] >> idx_types_int;
   fh5R["idx_levels"] >> idx_levels;
-  for (int i = 0; i < rank; i++) {
+  for (size_t i = 0; i < rank; i++) {
     std::vector<char> vec;
     fh5R[idx_name_pref+std::to_string(i)] >> vec;
     std::string s = std::string(vec.begin(),vec.end());
@@ -755,6 +839,19 @@ void dtensor<T>::mapPrime(unsigned from, unsigned to, index_type type){
 }
 template void dtensor<double>::mapPrime(unsigned from, unsigned to, index_type type);
 template void dtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to, index_type type);
+
+template <typename T>
+void dtensor<T>::dag(){
+  prime();
+  if(std::is_same< T, std::complex<double> >::value){
+    #pragma omp parallel for default(shared)
+    for (size_t i = 0; i < size; i++) {
+      if(_T.data()[i]!=T(0)) _T.data()[i] = std::abs(_T.data()[i])*std::abs(_T.data()[i])/_T.data()[i];
+    }
+  }
+}
+template void dtensor<double>::dag();
+template void dtensor< std::complex<double> >::dag();
 //---------------------------------------------------------------------------
 
 

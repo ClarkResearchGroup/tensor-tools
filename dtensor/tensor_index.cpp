@@ -8,6 +8,7 @@ tensor_index::tensor_index(unsigned size){
   _level = 0;
   _name = "i"+to_string(int(1e8*drand48()+1e5*drand48()));
   _type = Link;
+  _tag = to_string(_size)+" "+_name+" "+to_string(_type)+" "+to_string(_level);
 }
 
 tensor_index::tensor_index(unsigned size, string name){
@@ -15,6 +16,7 @@ tensor_index::tensor_index(unsigned size, string name){
   _level = 0;
   _name = name;
   _type = Link;
+  _tag = to_string(_size)+" "+_name+" "+to_string(_type)+" "+to_string(_level);
 }
 
 tensor_index::tensor_index(unsigned size, string name, index_type type){
@@ -22,6 +24,7 @@ tensor_index::tensor_index(unsigned size, string name, index_type type){
   _level = 0;
   _name = name;
   _type = type;
+  _tag = to_string(_size)+" "+_name+" "+to_string(_type)+" "+to_string(_level);
 }
 
 tensor_index::tensor_index(unsigned size, string name, index_type type, unsigned level){
@@ -29,6 +32,7 @@ tensor_index::tensor_index(unsigned size, string name, index_type type, unsigned
   _level = level;
   _name = name;
   _type = type;
+  _tag = to_string(_size)+" "+_name+" "+to_string(_type)+" "+to_string(_level);
 }
 
 tensor_index::tensor_index(const tensor_index& other){
@@ -36,14 +40,21 @@ tensor_index::tensor_index(const tensor_index& other){
   _level = other._level;
   _name = other._name;
   _type = other._type;
+  _tag = other._tag;
 }
 
 bool tensor_index::operator == (const tensor_index& A) const{
-  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_level==A._level);
+  // return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_level==A._level);
+  return (_tag==A._tag);
 }
 
-bool tensor_index::operator == (tensor_index& A){
-  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_level==A._level);
+bool tensor_index::operator != (const tensor_index& A) const{
+  // return (_size!=A._size)||(_name!=A._name)||(_type!=A._type)||(_level!=A._level);
+  return (_tag!=A._tag);
+}
+
+bool tensor_index::operator <  (const tensor_index& A) const{
+  return (_tag<A._tag);
 }
 
 inline bool tensor_index::similar(const tensor_index& A){
