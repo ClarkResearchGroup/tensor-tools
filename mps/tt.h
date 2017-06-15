@@ -79,10 +79,16 @@ public:
   double norm();
   void moveLeft(int site, bool print_EE=false);
   void moveRight(int site, bool print_EE=false);
+  void EE(vector<double>& EEs);
 
   // svd
-  void svd(double tol, bool dry_run=false);
+  void svd(double cutoff, bool dry_run=false);
 
+  // fit
+  void fit(TensorTrain<T>& other, int max_iter, double cutoff);
+
+  // to_tensor
+  dtensor<T> to_tensor(int site);
 };
 
 

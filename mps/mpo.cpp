@@ -9,6 +9,7 @@ MPO<T>::MPO(int l, int pd, int bd) : TensorTrain<T>() {
 	TensorTrain<T>::setLength(l);
 	TensorTrain<T>::setIndexSize(pd*pd);
 	TensorTrain<T>::setBondDim(bd);
+	checkBonds();
 	TensorTrain<T>::allocateTensors();
 }
 template MPO<double>::MPO(int l, int pd, int bd);
@@ -51,10 +52,23 @@ void MPO<T>::setMPO(int l, int pd, int bd) {
 	TensorTrain<T>::setLength(l);
 	TensorTrain<T>::setIndexSize(pd*pd);
 	TensorTrain<T>::setBondDim(bd);
+	checkBonds();
 	TensorTrain<T>::allocateTensors();
 }
 template void MPO<double>::setMPO(int l, int pd, int bd);
 template void MPO< std::complex<double> >::setMPO(int l, int pd, int bd);
+
+template <typename T>
+void MPO<T>::checkBonds(){
+	for (int i = 1; i < TensorTrain<T>::length; i++) {
+		TensorTrain<T>::bond_dims[i] = std::min(TensorTrain<T>::bond_dims[i], TensorTrain<T>::index_size*TensorTrain<T>::bond_dims[i-1]);
+	}
+	for (int i = TensorTrain<T>::length-1; i > 0; i--) {
+		TensorTrain<T>::bond_dims[i] = std::min(TensorTrain<T>::bond_dims[i], TensorTrain<T>::index_size*TensorTrain<T>::bond_dims[i+1]);
+	}
+}
+template void MPO<double>::checkBonds();
+template void MPO< std::complex<double> >::checkBonds();
 
 template <typename T>
 MPO<T>::~MPO() {

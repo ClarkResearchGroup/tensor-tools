@@ -17,15 +17,6 @@ T psiphi(MPS<T>& psi, MPS<T>& phi);
 
 
 //-------------------------------------
-// EE
-template <typename T>
-void EE(MPS<T>& psi, std::vector<double>& vec);
-
-template <typename T>
-void EE(MPO<T>& HH, std::vector<double>& vec);
-
-
-//-------------------------------------
 // MPO operations
 template <typename T>
 MPO<T> diagonal(const MPO<T>& H);
@@ -37,7 +28,7 @@ template <typename T>
 double var(const MPO<T>& H);
 
 template <typename T>
-double trace(const MPO<T>& H);
+T trace(const MPO<T>& H);
 
 template <typename T>
 double l2norm(const MPO<T>& H);

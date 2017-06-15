@@ -21,7 +21,6 @@ MPS<T>::MPS (const MPS<T>& other) : TensorTrain<T>() {
 	TensorTrain<T>::setLength(other.length);
 	TensorTrain<T>::setIndexSize(other.index_size);
 	TensorTrain<T>::setBondDims(other.bond_dims);
-	checkBonds();
 	TensorTrain<T>::allocateTensors();
 	for (int i = 0; i < TensorTrain<T>::length; i++){
 		for (int j = 0; j < TensorTrain<T>::index_size; j++) {

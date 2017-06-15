@@ -25,6 +25,7 @@ public:
 	~ MPO ();
 
 	void setMPO(int l, int pd, int bd);
+	void checkBonds();
 
 	void setIdentity(); // defaults to bond dimension 1
 	void square();

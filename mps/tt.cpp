@@ -742,10 +742,47 @@ template void TensorTrain<double>::moveRight(int site, bool print_EE);
 template void TensorTrain< std::complex<double> >::moveRight(int site, bool print_EE);
 
 template <typename T>
-void TensorTrain<T>::svd(double tol, bool dry_run){
+void TensorTrain<T>::EE(vector<double>& EEs){
+	assert(tensors_allocated);
+  normalize();
+	int L  = length;
+	int bD = *std::max_element(bond_dims.begin(), bond_dims.end());
+	double * sv = new double [index_size*bD]();
+	int row, col, tDim;
+	Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, U, V;
+	for(int i = 0; i < L-1; i++){
+		row = M[i][0].rows();
+		col = M[i][0].cols();
+		TM.resize(index_size*row,col);
+		tDim = std::min(TM.rows(),TM.cols());
+		for(int j = 0; j < index_size; j++){
+			TM.block(j*row,0,row,col) = M[i][j].block(0,0,row,col);
+		}
+		SVD(TM,tDim,sv,U,V,'r');
+		double EEn = 0;
+		for(int j = 0; j < tDim; ++j){
+			if(sv[j]>1e-15) EEn -= sv[j]*sv[j]*log(sv[j]*sv[j]);
+		}
+		EEs.push_back(EEn);
+		for(int tid = 0; tid < index_size; tid++){
+			M[i][tid].setZero();
+			M[i][tid].block(0,0,row,U.cols()) = U.block(tid*row,0,row,U.cols());
+			Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
+			tempM.noalias() = V * M[i+1][tid];
+			M[i+1][tid].setZero();
+			M[i+1][tid].block(0,0,tempM.rows(),tempM.cols())=tempM;
+		}
+	}
+	delete [] sv;
+}
+template void TensorTrain<double>::EE(vector<double>& EEs);
+template void TensorTrain< std::complex<double> >::EE(vector<double>& EEs);
+
+template <typename T>
+void TensorTrain<T>::svd(double cutoff, bool dry_run){
   rc();
   int row, col;
-  double svd_tol = tol;
+  double svd_tol = cutoff/2;
   std::vector<double> sv;
   Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, U, V;
   // Left to Right
@@ -771,6 +808,7 @@ void TensorTrain<T>::svd(double tol, bool dry_run){
       TM.block(0,j*col,row,col)=M[i][j];
     }
     TM.adjointInPlace();
+    svd_tol = cutoff;
     SVD(TM,sv,U,V,svd_tol,dry_run);
     U.adjointInPlace();
     V.adjointInPlace();
@@ -784,7 +822,164 @@ void TensorTrain<T>::svd(double tol, bool dry_run){
     bond_dims[i] = M[i][0].rows();
   }
 }
-template void TensorTrain<double>::svd(double tol, bool dry_run);
-template void TensorTrain< std::complex<double> >::svd(double tol, bool dry_run);
+template void TensorTrain<double>::svd(double cutoff, bool dry_run);
+template void TensorTrain< std::complex<double> >::svd(double cutoff, bool dry_run);
+
+template <typename T>
+void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff){
+  assert(other.tensors_allocated);
+  // chop off some bond dimensions to a given cutoff
+  *this = other;
+  svd(cutoff);
+  print();
+  other.print();
+  // environment tensors
+  std::vector<dtensor<T>> TL(length);
+  std::vector<dtensor<T>> TR(length);
+  // build right environment TR
+  dtensor<T> t1,t2,t3,t4;
+  for (int i = length-1; i > 0 ; i--) {
+    t1 = std::move( to_tensor(i) ); t1.dag(); t1.mapPrime(1,0,Site);
+    t2 = std::move( other.to_tensor(i) );
+    if(i==length-1){
+      TR[i] = std::move(t1*t2);
+    }else{
+      t3 = std::move(t1*TR[i+1]);
+      TR[i] = std::move(t3*t2);
+    }
+    TR[i].print();
+  }
+  int step = 0;
+  double overlap = 0;
+  double delta = 1.0;
+  // Start the cycle of updating site and TL/TR
+  std::cout << "Starting fitting..." << '\n';
+  while(step<max_iter){
+    // Left to Right
+    for (int i = 0; i < length-1; i++) {
+      t4 = std::move( to_tensor(i) ); t4.dag(); t4.mapPrime(1,0,Site);
+      t2 = std::move( other.to_tensor(i) );
+      // update site
+      if(i==0){
+        t1 = std::move(TR[i+1]*t2);
+      }else{
+        t3 = std::move(TR[i+1]*t2);
+        t1 = std::move(TL[i-1]*t3);
+      }
+      int idx = 0;
+      for (int j = 0; j < index_size; j++) {
+        for (int k = 0; k < M[i][j].size(); k++) {
+          M[i][j].data()[k] = t1._T.data()[idx];
+          ++idx;
+        }
+      }
+      double tp = std::abs(t4.contract(t1));
+      delta = std::abs(overlap - tp)/std::max(overlap ,tp);
+      std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
+      overlap = tp;
+      moveRight(i);
+      // update env
+      t1 = std::move( to_tensor(i) ); t1.dag(); t1.mapPrime(1,0,Site);
+      if(i==0){
+        TL[i] = std::move(t1*t2);
+      }else{
+        t3 = std::move(TL[i-1]*t1);
+        TL[i] = std::move(t3*t2);
+      }
+    }
+    // Right to Left
+    for (int i = length-1; i > 0; i--) {
+      t4 = std::move( to_tensor(i) ); t4.dag(); t4.mapPrime(1,0,Site);
+      t2 = std::move( other.to_tensor(i) );
+      // update site
+      if(i==length-1){
+        t1 = std::move(TL[i-1]*t2);
+      }else{
+        t3 = std::move(TR[i+1]*t2);
+        t1 = std::move(TL[i-1]*t3);
+      }
+      int idx = 0;
+      for (int j = 0; j < index_size; j++) {
+        for (int k = 0; k < M[i][j].size(); k++) {
+          M[i][j].data()[k] = t1._T.data()[idx];
+          ++idx;
+        }
+      }
+      double tp = std::abs(t4.contract(t1));
+      delta = std::abs(overlap - tp)/std::max(overlap ,tp);
+      std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
+      overlap = tp;
+      moveLeft(i);
+      // update env
+      t1 = std::move( to_tensor(i) ); t1.dag(); t1.mapPrime(1,0,Site);
+      if(i==length-1){
+        TR[i] = std::move(t1*t2);
+      }else{
+        t3 = std::move(t1*TR[i+1]);
+        TR[i] = std::move(t3*t2);
+      }
+    }
+    ++step;
+  }
+}
+template void TensorTrain<double>::fit(TensorTrain<double>& other, int max_iter, double cutoff);
+template void TensorTrain< std::complex<double> >::fit(TensorTrain< std::complex<double> >& other, int max_iter, double cutoff);
+
+template <typename T>
+dtensor<T> TensorTrain<T>::to_tensor(int site){
+  assert(tensors_allocated);
+  assert(site>=0 && site<length);
+  int_vec idx_sizes;
+  str_vec idx_names;
+  typ_vec idx_types;
+  int_vec idx_levels;
+  string Link_name_pref = "TT"+to_string(TensorTrain<T>::TTID)+"Link";
+  string Site_name = "Site"+to_string(site);
+  if(site==0){
+    idx_sizes.push_back(bond_dims[site+1]);
+    idx_sizes.push_back(index_size);
+    idx_names.push_back(Link_name_pref+to_string(site+1));
+    idx_names.push_back(Site_name);
+    idx_types.push_back(Link);
+    idx_types.push_back(Site);
+    idx_levels.push_back(0);
+    idx_levels.push_back(0);
+  }else if(site==TensorTrain<T>::length-1){
+    idx_sizes.push_back(bond_dims[site]);
+    idx_sizes.push_back(index_size);
+    idx_names.push_back(Link_name_pref+to_string(site));
+    idx_names.push_back(Site_name);
+    idx_types.push_back(Link);
+    idx_types.push_back(Site);
+    idx_levels.push_back(0);
+    idx_levels.push_back(0);
+  }else if(site>0 && site<length-1){
+    idx_sizes.push_back(bond_dims[site]);
+    idx_sizes.push_back(bond_dims[site+1]);
+    idx_sizes.push_back(index_size);
+    idx_names.push_back(Link_name_pref+to_string(site));
+    idx_names.push_back(Link_name_pref+to_string(site+1));
+    idx_names.push_back(Site_name);
+    idx_types.push_back(Link);
+    idx_types.push_back(Link);
+    idx_types.push_back(Site);
+    idx_levels.push_back(0);
+    idx_levels.push_back(0);
+    idx_levels.push_back(0);
+  }
+  dtensor<T> A(idx_sizes,idx_names,idx_types,idx_levels);
+  int k = 0;
+  for (int i = 0; i < index_size; i++) {
+    for (int j = 0; j < M[site][i].size(); j++) {
+      A._T.data()[k] = M[site][i].data()[j];
+      ++k;
+    }
+  }
+  return A;
+}
+template dtensor<double> TensorTrain<double>::to_tensor(int site);
+template dtensor< std::complex<double> > TensorTrain< std::complex<double> >::to_tensor(int site);
+
+
 
 #endif
