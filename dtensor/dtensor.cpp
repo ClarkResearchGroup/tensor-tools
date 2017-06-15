@@ -609,7 +609,7 @@ dtensor<T> dtensor<T>::diagonal(){
     }
   }
   dtensor<T> A(new_idx_sizes,new_idx_names,new_idx_types,new_idx_levels);
-  #pragma omp parallel for default(shared)
+  // #pragma omp parallel for default(shared)
   for (size_t i = 0; i < A.size; i++) {
     int A_idx[A.rank];
     int this_idx[rank];
@@ -668,7 +668,7 @@ dtensor<T> dtensor<T>::diagonal(index_type type){
     }
   }
   dtensor<T> A(new_idx_sizes,new_idx_names,new_idx_types,new_idx_levels);
-  #pragma omp parallel for default(shared)
+  // #pragma omp parallel for default(shared)
   for (size_t i = 0; i < A.size; i++) {
     int A_idx[A.rank];
     int this_idx[rank];
@@ -844,7 +844,7 @@ template <typename T>
 void dtensor<T>::dag(){
   prime();
   if(std::is_same< T, std::complex<double> >::value){
-    #pragma omp parallel for default(shared)
+    // #pragma omp parallel for default(shared)
     for (size_t i = 0; i < size; i++) {
       if(_T.data()[i]!=T(0)) _T.data()[i] = std::abs(_T.data()[i])*std::abs(_T.data()[i])/_T.data()[i];
     }
