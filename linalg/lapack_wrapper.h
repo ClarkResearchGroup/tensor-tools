@@ -4,8 +4,7 @@
 #include "../util/types_and_headers.h"
 
 #ifdef USE_MKL
-#define MKL_Complex16 std::complex<double>
-#include "mkl.h"
+// #include "mkl.h"
 #endif
 
 #if !defined(USE_MKL)

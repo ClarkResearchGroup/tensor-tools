@@ -3,7 +3,6 @@
 
 #include "lapack_wrapper.h"
 
-typedef Eigen::MatrixXd Mxd;
 
 void diag(double* M, double* evals, int nn)
 {

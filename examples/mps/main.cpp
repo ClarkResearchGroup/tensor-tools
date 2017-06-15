@@ -1,8 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <Eigen/Dense>
-
 #include "../../dtensor/tensor_index.cpp"
 #include "../../dtensor/tensor_index_op.cpp"
 #include "../../dtensor/dtensor.cpp"
@@ -22,7 +17,7 @@ int main(int argc, char const *argv[]) {
   cout<<"and the derived MPS and MPO classes."<<endl;
   cout<<"//------------------------------------"<<endl;
   //------------------------------------
-  int L = 100, bd = 100, xs = 2;
+  int L = 10, bd = 30, xs = 2;
   //------------------------------------
   MPS<double> psi(L,xs,bd);
   MPS<double> phi(L,xs,bd);
@@ -34,6 +29,15 @@ int main(int argc, char const *argv[]) {
   std::cout << psiHphi(psi,H,psi) << '\n';
   std::cout << psiHphi(phi,H,phi) << '\n';
   std::cout << psiHphi(psi,H,phi) << '\n';
+
+  psi.fit(phi,4,1e-6);
+  std::cout << psiphi(psi,psi) << " " << psiphi(phi,phi) << " " << psiphi(psi,phi) << '\n';
+
+  MPO<double> W(L,xs,5);
+  W.fit(H,4,1e-6);
+  MPO<double> V;
+  V = H - W;
+  std::cout << H.norm() << " " << W.norm() << " " << V.norm() << '\n';
   //------------------------------------
   return 0;
 }
