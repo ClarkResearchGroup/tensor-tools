@@ -58,19 +58,19 @@ bool tensor_index::operator <  (const tensor_index& A) const{
 }
 
 inline bool tensor_index::similar(const tensor_index& A){
-  return (_size==A._size)&&(_type==A._type)&&(_level!=A._level);
+  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_level!=A._level);
 }
 
 inline bool tensor_index::similar(tensor_index& A){
-  return (_size==A._size)&&(_type==A._type)&&(_level!=A._level);
+  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_level!=A._level);
 }
 
 inline bool tensor_index::similar(const tensor_index& A, index_type type){
-  return (_size==A._size)&&(_type==A._type)&&(_type==type)&&(_level!=A._level);
+  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&(_level!=A._level);
 }
 
 inline bool tensor_index::similar(tensor_index& A, index_type type){
-  return (_size==A._size)&&(_type==A._type)&&(_type==type)&&(_level!=A._level);
+  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&(_level!=A._level);
 }
 
 #endif

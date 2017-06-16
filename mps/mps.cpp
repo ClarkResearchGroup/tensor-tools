@@ -7,6 +7,7 @@ template <typename T>
 MPS<T>::MPS(int l, int pd, int bd) : TensorTrain<T>() {
 	TensorTrain<T>::setLength(l);
 	TensorTrain<T>::setIndexSize(pd);
+	TensorTrain<T>::setPhysicalSize(pd);
 	TensorTrain<T>::setBondDim(bd);
 	checkBonds();
 	TensorTrain<T>::allocateTensors();
@@ -20,6 +21,7 @@ template <typename T>
 MPS<T>::MPS (const MPS<T>& other) : TensorTrain<T>() {
 	TensorTrain<T>::setLength(other.length);
 	TensorTrain<T>::setIndexSize(other.index_size);
+	TensorTrain<T>::setPhysicalSize(other.phy_size);
 	TensorTrain<T>::setBondDims(other.bond_dims);
 	TensorTrain<T>::allocateTensors();
 	for (int i = 0; i < TensorTrain<T>::length; i++){
@@ -35,6 +37,7 @@ template <typename T>
 MPS<T>::MPS (MPS<T>&& other) : TensorTrain<T>() {
 	TensorTrain<T>::setLength(other.length);
 	TensorTrain<T>::setIndexSize(other.index_size);
+	TensorTrain<T>::setPhysicalSize(other.phy_size);
 	TensorTrain<T>::setBondDims(other.bond_dims);
 	TensorTrain<T>::M = other.M;
 	other.M = nullptr;
@@ -49,6 +52,7 @@ void MPS<T>::setMPS(int l, int pd, int bd) {
 	TensorTrain<T>::freeTensors();
 	TensorTrain<T>::setLength(l);
 	TensorTrain<T>::setIndexSize(pd);
+	TensorTrain<T>::setPhysicalSize(pd);
 	TensorTrain<T>::setBondDim(bd);
 	checkBonds();
 	TensorTrain<T>::allocateTensors();
@@ -84,6 +88,7 @@ MPS<T>& MPS<T>::operator = (const TensorTrain<T>& other){
 		TensorTrain<T>::freeTensors();
     TensorTrain<T>::setLength(other.length);
     TensorTrain<T>::setIndexSize(other.index_size);
+		TensorTrain<T>::setPhysicalSize(other.phy_size);
     TensorTrain<T>::setBondDims(other.bond_dims);
     TensorTrain<T>::allocateTensors();
     for (int i = 0; i < TensorTrain<T>::length; i++){
@@ -96,6 +101,17 @@ MPS<T>& MPS<T>::operator = (const TensorTrain<T>& other){
 }
 template MPS<double>& MPS<double>::operator = (const TensorTrain<double>& other);
 template MPS< std::complex<double> >& MPS< std::complex<double> >::operator = (const TensorTrain< std::complex<double> >& other);
+
+template <typename T>
+MPS<T>& MPS<T>::operator = (const MPS<T>& other){
+  assert(other.tensors_allocated);
+  if(this!=&other){
+		*this = (TensorTrain<T>) other;
+  }
+  return *this;
+}
+template MPS<double>& MPS<double>::operator = (const MPS<double>& other);
+template MPS< std::complex<double> >& MPS< std::complex<double> >::operator = (const MPS< std::complex<double> >& other);
 
 template <typename T>
 double MPS<T>::maxBondDim(){

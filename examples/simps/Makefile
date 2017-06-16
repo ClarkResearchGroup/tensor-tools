@@ -13,36 +13,36 @@
 # TBLIS_INC = -DUSE_TBLIS -I/usr/local/include -I/usr/local/include/tblis
 # TBLIS_LIB = -L/usr/local/lib -ltblis
 
-# CC = g++-7
-# CC_FLAGS = -O3 -march=native -fopenmp -ffast-math -DNDEBUG -std=c++11 -W
-#
-# ARPACK_INC = -larpack
-# ARPACK_LIB = -larpack
-#
-# LAPACK_INC = -framework Accelerate
-# LAPACK_LIB = -framework Accelerate
-#
-# HDF5_INC = -DUSE_EZH5 -I/usr/local/opt/hdf5/include
-# HDF5_LIB = -L/usr/local/opt/hdf5/lib -lhdf5
-#
-# TBLIS_INC = -DUSE_TBLIS -I/usr/local/include -I/usr/local/include/tblis
-# TBLIS_LIB = -L/usr/local/lib -ltblis
-
-
-CC = g++
-CC_FLAGS = -O1 -g -march=native -fopenmp -ffast-math -std=c++11 -W
+CC = g++-7
+CC_FLAGS = -O2 -g -march=native -fopenmp -ffast-math -std=c++11 -W
 
 ARPACK_INC = -larpack
 ARPACK_LIB = -larpack
 
-LAPACK_INC = -I/usr/include/openblas
-LAPACK_LIB = -lpthread -L/usr/lib/openblas-base -lopenblas
+LAPACK_INC = -framework Accelerate
+LAPACK_LIB = -framework Accelerate
 
-HDF5_INC = -DUSE_EZH5 -I/usr/lib/x86_64-linux-gnu/hdf5/serial/include
-HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -lhdf5
+HDF5_INC = -DUSE_EZH5 -I/usr/local/opt/hdf5/include
+HDF5_LIB = -L/usr/local/opt/hdf5/lib -lhdf5
 
-TBLIS_INC = -I/usr/local/include -I/usr/local/include/tblis
+TBLIS_INC = -DUSE_TBLIS -I/usr/local/include -I/usr/local/include/tblis
 TBLIS_LIB = -L/usr/local/lib -ltblis
+
+
+# CC = g++
+# CC_FLAGS = -O1 -g -march=native -fopenmp -ffast-math -std=c++11 -W
+#
+# ARPACK_INC = -larpack
+# ARPACK_LIB = -larpack
+#
+# LAPACK_INC = -I/usr/include/openblas
+# LAPACK_LIB = -lpthread -L/usr/lib/openblas-base -lopenblas
+#
+# HDF5_INC = -DUSE_EZH5 -I/usr/lib/x86_64-linux-gnu/hdf5/serial/include
+# HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -lhdf5
+#
+# TBLIS_INC = -I/usr/local/include -I/usr/local/include/tblis
+# TBLIS_LIB = -L/usr/local/lib -ltblis
 
 # File names
 EXEC = run

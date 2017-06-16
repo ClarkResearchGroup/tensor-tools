@@ -9,6 +9,8 @@
 #include "../../models/hams.cpp"
 #include "../../util/ezh5.cpp"
 #include "../../linalg/lapack_wrapper.cpp"
+#include "../../algos/simps/simps.cpp"
+#include "../../algos/simps/tensor_cg.cpp"
 
 using namespace std;
 
@@ -18,33 +20,14 @@ int main(int argc, char const *argv[]) {
   cout<<"and the derived MPS and MPO classes."<<endl;
   cout<<"//------------------------------------"<<endl;
   //------------------------------------
-  int L = 10, bd = 30, xs = 2;
+  int L = 10, bd = 20, xs = 2;
+  double tE = -4.3;
   //------------------------------------
   MPS<double> psi(L,xs,bd);
   MPS<double> phi(L,xs,bd);
   MPO<double> H(L,xs,5);
-  buildHeisenberg(H);
-
-  std::cout << psiphi(psi,psi) << " " << psiphi(phi,phi) << " " << psiphi(psi,phi) << '\n';
-  psi.fit(phi,4,1e-6);
-  std::cout << psiphi(psi,psi) << " " << psiphi(phi,phi) << " " << psiphi(psi,phi) << '\n';
-
-  MPO<double> W(L,xs,5);
-  W.fit(H,4,1e-6);
-  MPO<double> V;
-  V = H - W;
-  std::cout << H.norm() << " " << W.norm() << " " << V.norm() << '\n';
-
-  fitApplyMPO(H,psi,phi);
-  std::cout << psiHphi(psi,H,psi) << " " << psiphi(psi,phi) << '\n';
-
-  H.print();
-  fitApplyMPO(H, H, W);
-  W.print();
-  V.setMPO(L,xs,1); V.setIdentity();
-  V = V+W;
-  V.print();
-  std::cout << "trace(V) = " << trace(V) << '\n';
+  buildHeisenberg(H,tE);
+  simps(tE,H,psi,100);
   //------------------------------------
   return 0;
 }

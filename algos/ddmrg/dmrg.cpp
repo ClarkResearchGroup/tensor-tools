@@ -16,7 +16,7 @@ void buildEnv(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector
 			t4 = std::move(t1*t2);
 			TR[i] = std::move(t4*t3);
 		}else{
-			t4 = std::move(TR[i+1]*t1);
+			t4 = std::move(t1*TR[i+1]);
 			t5 = std::move(t4*t2);
 			TR[i] = std::move(t5*t3);
 		}
@@ -86,7 +86,7 @@ void updateEnv(const char& direction, MPS<T>& psi, MPO<T>& H, std::vector< dtens
 			t4 = std::move(t1*t2);
 			TR[site] = std::move(t4*t3);
 		}else{
-			t4 = std::move(TR[site+1]*t1);
+			t4 = std::move(t1*TR[site+1]);
 			t5 = std::move(t4*t2);
 			TR[site] = std::move(t5*t3);
 		}

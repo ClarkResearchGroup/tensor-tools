@@ -27,6 +27,7 @@ class TensorTrain
 public:
   unsigned TTID;
   int length;
+  int phy_size;
   int index_size; // For mps, index_size=phy_size; For mpo, index_size=phy_size^2
   Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>** M;
   std::vector<int> bond_dims;
@@ -40,6 +41,7 @@ public:
   // set shapes
   void setLength(int L);
   void setIndexSize(int s);
+  void setPhysicalSize(int s);
   void setBondDim(int bd);
   void setBondDims(std::vector<int> bds);
 
@@ -85,7 +87,7 @@ public:
   void svd(double cutoff, bool dry_run=false);
 
   // fit
-  void fit(TensorTrain<T>& other, int max_iter, double cutoff);
+  void fit(TensorTrain<T>& other, int max_iter, double cutoff, double tol=1e-14, bool verbose=false);
 
   // to_tensor
   dtensor<T> to_tensor(int site);

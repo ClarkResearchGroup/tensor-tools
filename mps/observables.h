@@ -15,22 +15,4 @@ T psiHphi(MPS<T>& psi, MPO<T>& H, MPS<T>& phi);
 template <typename T>
 T psiphi(MPS<T>& psi, MPS<T>& phi);
 
-
-//-------------------------------------
-// MPO operations
-template <typename T>
-MPO<T> diagonal(const MPO<T>& H);
-
-template <typename T>
-MPO<T> offdiagonal(const MPO<T>& H);
-
-template <typename T>
-double var(const MPO<T>& H);
-
-template <typename T>
-T trace(const MPO<T>& H);
-
-template <typename T>
-double l2norm(const MPO<T>& H);
-
 #endif

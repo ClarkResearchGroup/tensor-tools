@@ -6,6 +6,8 @@
 template <typename T>
 TensorTrain<T>::TensorTrain() {
   tensors_allocated = false;
+  index_size = 0;
+  phy_size = 0;
   TTID = unsigned(1e8*drand48()+1e5*drand48());
 }
 template TensorTrain<double>::TensorTrain();
@@ -14,10 +16,11 @@ template TensorTrain< std::complex<double> >::TensorTrain();
 template <typename T>
 TensorTrain<T>::TensorTrain(const TensorTrain<T>& other){
   tensors_allocated = false;
-  TTID = unsigned(1e8*drand48()+1e5*drand48());
+  TTID = unsigned(1e8*drand48()+1e6*drand48()+1e4*drand48()+1e2*drand48());
   if(other.tensors_allocated){
     setLength(other.length);
     setIndexSize(other.index_size);
+    setPhysicalSize(other.phy_size);
     setBondDims(other.bond_dims);
     allocateTensors();
     for (int i = 0; i < length; i++){
@@ -38,6 +41,7 @@ TensorTrain<T>::TensorTrain(TensorTrain<T>&& other){
   if(other.tensors_allocated){
     setLength(other.length);
     setIndexSize(other.index_size);
+    setPhysicalSize(other.phy_size);
     setBondDims(other.bond_dims);
     allocateTensors();
     M = other.M;
@@ -67,6 +71,14 @@ void TensorTrain<T>::setIndexSize(int s){
 }
 template void TensorTrain<double>::setIndexSize(int s);
 template void TensorTrain< std::complex<double> >::setIndexSize(int s);
+
+template <typename T>
+void TensorTrain<T>::setPhysicalSize(int s){
+  if(!tensors_allocated) phy_size = s;
+  assert(s>0);
+}
+template void TensorTrain<double>::setPhysicalSize(int s);
+template void TensorTrain< std::complex<double> >::setPhysicalSize(int s);
 
 template <typename T>
 void TensorTrain<T>::setBondDim(int bd){
@@ -181,7 +193,7 @@ template void TensorTrain< std::complex<double> >::setRandom(int bd);
 
 template <typename T>
 void TensorTrain<T>::print(int level){
-  std::cout << length << " " << index_size << '\n';
+  std::cout << length << " " << index_size << " " << phy_size << '\n';
   for(auto v : bond_dims) std::cout << v << " ";
   std::cout<<std::endl;
   if(level>0){
@@ -203,6 +215,7 @@ TensorTrain<T>& TensorTrain<T>::operator = (const TensorTrain<T>& other){
     freeTensors();
     setLength(other.length);
     setIndexSize(other.index_size);
+    setPhysicalSize(other.phy_size);
     setBondDims(other.bond_dims);
     allocateTensors();
     for (int i = 0; i < length; i++){
@@ -223,6 +236,7 @@ TensorTrain<T>& TensorTrain<T>::operator = (TensorTrain<T>&& other){
     freeTensors();
     setLength(other.length);
     setIndexSize(other.index_size);
+    setPhysicalSize(other.phy_size);
     setBondDims(other.bond_dims);
     M = other.M;
     other.M = nullptr;
@@ -240,6 +254,7 @@ TensorTrain<T>& TensorTrain<T>::operator += (const TensorTrain<T>& A){
   TensorTrain<T> t;
   t.setLength(length);
   t.setIndexSize(index_size);
+  t.setPhysicalSize(phy_size);
   t.bond_dims[0] = 1;
   for (int i = 1; i < length; i++){
     t.bond_dims[i] = bond_dims[i] + A.bond_dims[i];
@@ -272,6 +287,7 @@ TensorTrain<T>& TensorTrain<T>::operator -= (const TensorTrain<T>& A){
   TensorTrain<T> t;
   t.setLength(length);
   t.setIndexSize(index_size);
+  t.setPhysicalSize(phy_size);
   t.bond_dims[0] = 1;
   for (int i = 1; i < length; i++){
     t.bond_dims[i] = this->bond_dims[i] + A.bond_dims[i];
@@ -304,6 +320,7 @@ TensorTrain<T> TensorTrain<T>::operator + (const TensorTrain<T>& A){
   TensorTrain<T> t;
   t.setLength(length);
   t.setIndexSize(index_size);
+  t.setPhysicalSize(phy_size);
   t.bond_dims[0] = 1;
   for (int i = 1; i < length; i++){
     t.bond_dims[i] = this->bond_dims[i] + A.bond_dims[i];
@@ -335,6 +352,7 @@ TensorTrain<T> TensorTrain<T>::operator - (const TensorTrain<T>& A){
   TensorTrain<T> t;
   t.setLength(length);
   t.setIndexSize(index_size);
+  t.setPhysicalSize(phy_size);
   t.bond_dims[0] = 1;
   for (int i = 1; i < length; i++){
     t.bond_dims[i] = this->bond_dims[i] + A.bond_dims[i];
@@ -420,6 +438,7 @@ void TensorTrain<T>::save(std::string fn){
   ezh5::File fh5 (fn, H5F_ACC_TRUNC);
   fh5["length"] = length;
   fh5["index_size"] = index_size;
+  fh5["phy_size"] = phy_size;
   fh5["bond_dims"] = bond_dims;
   for (int i = 0; i < length; i++){
     for (int j = 0; j < index_size; j++) {
@@ -431,7 +450,7 @@ void TensorTrain<T>::save(std::string fn){
   std::ofstream fout;
   fout.precision(15);
   fout.open(fn.c_str());
-  fout<<length<<" "<<index_size<<std::endl;
+  fout<<length<<" "<<index_size<<" "<<phy_size<<std::endl;
   for(auto v : bond_dims) fout<<v<<" ";
   fout<<std::endl;
   // MPS matrices
@@ -456,6 +475,7 @@ void TensorTrain<T>::load(std::string fn){
   ezh5::File fh5 (fn, H5F_ACC_RDONLY);
   fh5["length"] >> length;
   fh5["index_size"] >> index_size;
+  fh5["phy_size"] >> phy_size;
   fh5["bond_dims"] >> bond_dims;
   allocateTensors();
   for (int i = 0; i < length; i++){
@@ -470,6 +490,7 @@ void TensorTrain<T>::load(std::string fn){
   fin.open(fn);
   fin>>length;
   fin>>index_size;
+  fin>>phy_size;
   bond_dims.resize(length+1);
   for (int i = 0; i < length+1; i++) {
     fin>>bond_dims[i];
@@ -826,13 +847,11 @@ template void TensorTrain<double>::svd(double cutoff, bool dry_run);
 template void TensorTrain< std::complex<double> >::svd(double cutoff, bool dry_run);
 
 template <typename T>
-void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff){
+void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff, double tol, bool verbose){
   assert(other.tensors_allocated);
   // chop off some bond dimensions to a given cutoff
   *this = other;
   svd(cutoff);
-  print();
-  other.print();
   // environment tensors
   std::vector<dtensor<T>> TL(length);
   std::vector<dtensor<T>> TR(length);
@@ -847,13 +866,11 @@ void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff){
       t3 = std::move(t1*TR[i+1]);
       TR[i] = std::move(t3*t2);
     }
-    TR[i].print();
   }
   int step = 0;
   double overlap = 0;
   double delta = 1.0;
   // Start the cycle of updating site and TL/TR
-  std::cout << "Starting fitting..." << '\n';
   while(step<max_iter){
     // Left to Right
     for (int i = 0; i < length-1; i++) {
@@ -875,7 +892,7 @@ void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff){
       }
       double tp = std::abs(t4.contract(t1));
       delta = std::abs(overlap - tp)/std::max(overlap ,tp);
-      std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
+      if(verbose) std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
       overlap = tp;
       moveRight(i);
       // update env
@@ -907,7 +924,7 @@ void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff){
       }
       double tp = std::abs(t4.contract(t1));
       delta = std::abs(overlap - tp)/std::max(overlap ,tp);
-      std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
+      if(verbose) std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
       overlap = tp;
       moveLeft(i);
       // update env
@@ -919,11 +936,12 @@ void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff){
         TR[i] = std::move(t3*t2);
       }
     }
+    if(delta<tol) break;
     ++step;
   }
 }
-template void TensorTrain<double>::fit(TensorTrain<double>& other, int max_iter, double cutoff);
-template void TensorTrain< std::complex<double> >::fit(TensorTrain< std::complex<double> >& other, int max_iter, double cutoff);
+template void TensorTrain<double>::fit(TensorTrain<double>& other, int max_iter, double cutoff, double tol, bool verbose);
+template void TensorTrain< std::complex<double> >::fit(TensorTrain< std::complex<double> >& other, int max_iter, double cutoff, double tol, bool verbose);
 
 template <typename T>
 dtensor<T> TensorTrain<T>::to_tensor(int site){

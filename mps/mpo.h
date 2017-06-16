@@ -17,7 +17,6 @@ template <typename T>
 class MPO : public TensorTrain<T>
 {
 public:
-	int phy_size;
 	MPO () : TensorTrain<T>() {};
 	MPO (int l, int pd, int bd);
 	MPO (const MPO<T>& other);
@@ -31,6 +30,7 @@ public:
 	void square();
 
 	MPO& operator = (const TensorTrain<T>& other);
+	MPO& operator = (const MPO<T>& other);
 
 	dtensor<T> tensorize(int site);
 };

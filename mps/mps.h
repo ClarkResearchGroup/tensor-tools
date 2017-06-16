@@ -30,6 +30,7 @@ public:
 	double avgBondDim();
 
 	MPS& operator = (const TensorTrain<T>& other);
+	MPS& operator = (const MPS<T>& other);
 
 	dtensor<T> tensorize(int site);
 };

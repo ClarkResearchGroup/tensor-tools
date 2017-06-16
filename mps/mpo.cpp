@@ -5,21 +5,22 @@
 
 template <typename T>
 MPO<T>::MPO(int l, int pd, int bd) : TensorTrain<T>() {
-	phy_size = pd;
 	TensorTrain<T>::setLength(l);
 	TensorTrain<T>::setIndexSize(pd*pd);
+	TensorTrain<T>::setPhysicalSize(pd);
 	TensorTrain<T>::setBondDim(bd);
 	checkBonds();
 	TensorTrain<T>::allocateTensors();
+	setIdentity();
 }
 template MPO<double>::MPO(int l, int pd, int bd);
 template MPO< std::complex<double> >::MPO(int l, int pd, int bd);
 
 template <typename T>
 MPO<T>::MPO (const MPO<T>& other) : TensorTrain<T>() {
-	phy_size = other.phy_size;
 	TensorTrain<T>::setLength(other.length);
 	TensorTrain<T>::setIndexSize(other.index_size);
+	TensorTrain<T>::setPhysicalSize(other.phy_size);
 	TensorTrain<T>::setBondDims(other.bond_dims);
 	TensorTrain<T>::allocateTensors();
 	for (int i = 0; i < TensorTrain<T>::length; i++){
@@ -33,9 +34,9 @@ template MPO< std::complex<double> >::MPO (const MPO< std::complex<double> >& ot
 
 template <typename T>
 MPO<T>::MPO (MPO<T>&& other) : TensorTrain<T>() {
-	phy_size = other.phy_size;
 	TensorTrain<T>::setLength(other.length);
 	TensorTrain<T>::setIndexSize(other.index_size);
+	TensorTrain<T>::setPhysicalSize(other.phy_size);
 	TensorTrain<T>::setBondDims(other.bond_dims);
 	TensorTrain<T>::M = other.M;
 	other.M = nullptr;
@@ -47,10 +48,10 @@ template MPO< std::complex<double> >::MPO (MPO< std::complex<double> >&& other);
 
 template <typename T>
 void MPO<T>::setMPO(int l, int pd, int bd) {
-	phy_size = pd;
 	TensorTrain<T>::freeTensors();
 	TensorTrain<T>::setLength(l);
 	TensorTrain<T>::setIndexSize(pd*pd);
+	TensorTrain<T>::setPhysicalSize(pd);
 	TensorTrain<T>::setBondDim(bd);
 	checkBonds();
 	TensorTrain<T>::allocateTensors();
@@ -81,10 +82,10 @@ template <typename T>
 MPO<T>& MPO<T>::operator = (const TensorTrain<T>& other){
   assert(other.tensors_allocated);
   if(this!=&other){
-		phy_size = int(std::round(std::sqrt(other.index_size)));
 		TensorTrain<T>::freeTensors();
     TensorTrain<T>::setLength(other.length);
     TensorTrain<T>::setIndexSize(other.index_size);
+		TensorTrain<T>::setPhysicalSize(other.phy_size);
     TensorTrain<T>::setBondDims(other.bond_dims);
     TensorTrain<T>::allocateTensors();
     for (int i = 0; i < TensorTrain<T>::length; i++){
@@ -99,12 +100,23 @@ template MPO<double>& MPO<double>::operator = (const TensorTrain<double>& other)
 template MPO< std::complex<double> >& MPO< std::complex<double> >::operator = (const TensorTrain< std::complex<double> >& other);
 
 template <typename T>
+MPO<T>& MPO<T>::operator = (const MPO<T>& other){
+  assert(other.tensors_allocated);
+  if(this!=&other){
+		*this = (TensorTrain<T>) other;
+  }
+  return *this;
+}
+template MPO<double>& MPO<double>::operator = (const MPO<double>& other);
+template MPO< std::complex<double> >& MPO< std::complex<double> >::operator = (const MPO< std::complex<double> >& other);
+
+template <typename T>
 void MPO<T>::setIdentity() {
-	assert(tensors_allocated);
-	TensorTrain<T>::setZero(1);
+	assert(TensorTrain<T>::tensors_allocated);
+	TensorTrain<T>::setZero();
 	for(int i = 0; i < TensorTrain<T>::length; ++i){
-		for(int j = 0; j < phy_size; ++j) {
-			TensorTrain<T>::M[i][j*phy_size+j].setIdentity();
+		for(int j = 0; j < TensorTrain<T>::phy_size; ++j) {
+			TensorTrain<T>::M[i][j*TensorTrain<T>::phy_size+j].setIdentity();
 		}
 	}
 }
@@ -113,13 +125,13 @@ template void MPO< std::complex<double> >::setIdentity();
 
 template <typename T>
 void MPO<T>::square() {
-	assert(tensors_allocated);
+	assert(TensorTrain<T>::tensors_allocated);
 	Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> ** tM = new Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> * [TensorTrain<T>::length];
 	for(int i = 0; i < TensorTrain<T>::length; ++i){
-		tM[i] = new Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> [phy_size*phy_size];
+		tM[i] = new Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> [TensorTrain<T>::index_size];
 	}
 	for(int i = 0; i < TensorTrain<T>::length; ++i){
-		for(int j = 0; j < phy_size*phy_size; ++j){
+		for(int j = 0; j < TensorTrain<T>::index_size; ++j){
 			tM[i][j] = TensorTrain<T>::M[i][j];
 		}
 	}
@@ -130,12 +142,12 @@ void MPO<T>::square() {
 	for(int i = 0; i < TensorTrain<T>::length; i++){
 		int r = tM[i][0].rows();
 		int c = tM[i][0].cols();
-		for(int p1 = 0; p1 < phy_size; p1++){
-			for(int p3 = 0; p3 < phy_size; p3++){
+		for(int p1 = 0; p1 < TensorTrain<T>::phy_size; p1++){
+			for(int p3 = 0; p3 < TensorTrain<T>::phy_size; p3++){
 				for(int j = 0; j < r; j++){
 					for(int k = 0; k < c; k++){
-						for(int p2 = 0; p2 < phy_size; p2++){
-							TensorTrain<T>::M[i][p1*phy_size+p3].block(j*r,k*c,r,c) += tM[i][p1*phy_size+p2](j,k) * tM[i][p2*phy_size+p3];
+						for(int p2 = 0; p2 < TensorTrain<T>::phy_size; p2++){
+							TensorTrain<T>::M[i][p1*TensorTrain<T>::phy_size+p3].block(j*r,k*c,r,c) += tM[i][p1*TensorTrain<T>::phy_size+p2](j,k) * tM[i][p2*TensorTrain<T>::phy_size+p3];
 						}
 					}
 				}
@@ -162,8 +174,8 @@ dtensor<T> MPO<T>::tensorize(int site){
 	string Site_name = "Site"+to_string(site);
 	if(site==0){
 		idx_sizes.push_back(TensorTrain<T>::bond_dims[site+1]);
-		idx_sizes.push_back(phy_size);
-		idx_sizes.push_back(phy_size);
+		idx_sizes.push_back(TensorTrain<T>::phy_size);
+		idx_sizes.push_back(TensorTrain<T>::phy_size);
 		idx_names.push_back(Link_name_pref+to_string(site+1));
 		idx_names.push_back(Site_name);
 		idx_names.push_back(Site_name);
@@ -175,8 +187,8 @@ dtensor<T> MPO<T>::tensorize(int site){
 		idx_levels.push_back(1);
 	}else if(site==TensorTrain<T>::length-1){
 		idx_sizes.push_back(TensorTrain<T>::bond_dims[site]);
-		idx_sizes.push_back(phy_size);
-		idx_sizes.push_back(phy_size);
+		idx_sizes.push_back(TensorTrain<T>::phy_size);
+		idx_sizes.push_back(TensorTrain<T>::phy_size);
 		idx_names.push_back(Link_name_pref+to_string(site));
 		idx_names.push_back(Site_name);
 		idx_names.push_back(Site_name);
@@ -189,8 +201,8 @@ dtensor<T> MPO<T>::tensorize(int site){
 	}else if(site>0 && site<TensorTrain<T>::length-1){
 		idx_sizes.push_back(TensorTrain<T>::bond_dims[site]);
 		idx_sizes.push_back(TensorTrain<T>::bond_dims[site+1]);
-		idx_sizes.push_back(phy_size);
-		idx_sizes.push_back(phy_size);
+		idx_sizes.push_back(TensorTrain<T>::phy_size);
+		idx_sizes.push_back(TensorTrain<T>::phy_size);
 		idx_names.push_back(Link_name_pref+to_string(site));
 		idx_names.push_back(Link_name_pref+to_string(site+1));
 		idx_names.push_back(Site_name);

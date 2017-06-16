@@ -498,13 +498,16 @@ template <typename T>
 dtensor<T> dtensor<T>::operator*(const T c){
   assert(_initted);
   dtensor A(*this);
-  lab_vec labels;
-  char ch = 'a';
-  for (size_t i = 0; i < size; i++) {
-    labels.push_back(ch);
-    ++ch;
-    tblis::scale(c, A._T, labels.data());
+  for (size_t i = 0; i < A.size; i++) {
+    A._T.data()[i] *= c;
   }
+  // lab_vec labels;
+  // char ch = 'a';
+  // for (size_t i = 0; i < size; i++) {
+  //   labels.push_back(ch);
+  //   ++ch;
+  //   tblis::scale(c, A._T, labels.data());
+  // }
   return A;
 }
 template dtensor<double> dtensor<double>::operator*(const double c);
@@ -514,13 +517,16 @@ template <typename T>
 dtensor<T> dtensor<T>::operator/(const T c){
   assert(_initted);
   dtensor A(*this);
-  lab_vec labels;
-  char ch = 'a';
-  for (size_t i = 0; i < size; i++) {
-    labels.push_back(ch);
-    ++ch;
-    tblis::scale(1.0/c, A._T, labels.data());
+  for (size_t i = 0; i < A.size; i++) {
+    A._T.data()[i] /= c;
   }
+  // lab_vec labels;
+  // char ch = 'a';
+  // for (size_t i = 0; i < size; i++) {
+  //   labels.push_back(ch);
+  //   ++ch;
+  //   tblis::scale(1.0/c, A._T, labels.data());
+  // }
   return A;
 }
 template dtensor<double> dtensor<double>::operator/(const double c);
@@ -580,22 +586,6 @@ dtensor<T> dtensor<T>::diagonal(){
   typ_vec new_idx_types;
   int_vec new_idx_levels;
   vector< std::pair<int,int> > idx_pairs;
-  for (size_t i = 0; i < rank; i++) {
-    bool is_shared = false;
-    for (size_t j = 0; j < rank; j++) {
-      if(idx_set[i].similar(idx_set[j])){
-        is_shared = true;
-        break;
-      }
-    }
-    if(!is_shared){
-      new_idx_sizes.push_back(idx_set[i]._size);
-      new_idx_names.push_back(idx_set[i]._name);
-      new_idx_types.push_back(idx_set[i]._type);
-      new_idx_levels.push_back(idx_set[i]._level);
-      idx_pairs.push_back(std::make_pair(i,-1));
-    }
-  }
   for (size_t i = 0; i < rank; i++) {
     for (size_t j = i+1; j < rank; j++) {
       if(idx_set[i].similar(idx_set[j])){
@@ -876,7 +866,7 @@ template double dtensor< std::complex<double> >::norm();
 
 
 template <typename T>
-void dtensor<T>::normalize(){
+double dtensor<T>::normalize(){
   double res = 0.0;
   if(std::is_same< T, std::complex<double> >::value){
     for (size_t i = 0; i < size; i++) {
@@ -891,9 +881,10 @@ void dtensor<T>::normalize(){
   for (size_t i = 0; i < size; i++) {
       _T.data()[i] /= res;
   }
+  return res;
 }
-template void dtensor<double>::normalize();
-template void dtensor< std::complex<double> >::normalize();
+template double dtensor<double>::normalize();
+template double dtensor< std::complex<double> >::normalize();
 //-----------------------------------------------------------------------------
 
 
