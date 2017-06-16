@@ -8,7 +8,7 @@ void elemWiseDivide(dtensor<T>& A, dtensor<T>& B){
   assert(A._initted && B._initted);
   assert(A.size == B.size);
   for (unsigned i = 0; i < A.size; i++) {
-    if( B._T.data()[i]!=T(0) )
+    if( B._T.data()[i]!=T(0) && B._T.data()[i]>1e-10 )
       A._T.data()[i] = A._T.data()[i]/B._T.data()[i];
   }
 }
@@ -33,7 +33,7 @@ void LRWx(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, dten
 }
 
 template <typename T>
-int tensor_CG(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, dtensor<T>& b, int max_iter, double tol){
+int tensor_CG(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, dtensor<T>& b, int max_iter, double tol, bool preconditioned){
   dtensor<T> A, D, t1, t2;
   if(REnv.size==0){
     A = std::move(LEnv * W);
@@ -61,7 +61,8 @@ int tensor_CG(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, 
   }
 
   for (int i = 1; i <= max_iter; i++){
-    z = r; // elemWiseDivide(z,D);
+    z = r;
+    if(preconditioned) elemWiseDivide(z,D);
     rho = r.contract(z);
     if(i==1)
       p = z;
@@ -87,8 +88,8 @@ int tensor_CG(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, 
   }
   return 1;
 }
-template int tensor_CG(dtensor<double>& LEnv, dtensor<double>& REnv, dtensor<double>& W, dtensor<double>& x, dtensor<double>& b, int max_iter, double tol);
-template int tensor_CG(dtensor< std::complex<double> >& LEnv, dtensor< std::complex<double> >& REnv, dtensor< std::complex<double> >& W, dtensor< std::complex<double> >& x, dtensor< std::complex<double> >& b, int max_iter, double tol);
+template int tensor_CG(dtensor<double>& LEnv, dtensor<double>& REnv, dtensor<double>& W, dtensor<double>& x, dtensor<double>& b, int max_iter, double tol, bool preconditioned);
+template int tensor_CG(dtensor< std::complex<double> >& LEnv, dtensor< std::complex<double> >& REnv, dtensor< std::complex<double> >& W, dtensor< std::complex<double> >& x, dtensor< std::complex<double> >& b, int max_iter, double tol, bool preconditioned);
 
 
 #endif

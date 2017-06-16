@@ -31,7 +31,7 @@ void invdmpo (MPO<T>& H, MPO<T>& invH, int Nsweep, double cutoff, double tol){
 	std::vector< dtensor<T> > VR(L);
 	std::vector< dtensor<T> > VL(L);
 	////////////////////////////////////////////////
-	buildEnv(psi, phi, HS_approx, MR, ML, VR, VL);
+	buildEnv(psi, phi, HS, MR, ML, VR, VL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
 	std::cout<<"# Sweep # |invD*D-I| #"<<std::endl;
@@ -42,8 +42,8 @@ void invdmpo (MPO<T>& H, MPO<T>& invH, int Nsweep, double cutoff, double tol){
 		{
 			if(direc=='r') site = i;
 			if(direc=='l') site = L-1-i;
-			updateSite(direc, psi, phi, HS_approx, MR, ML, VR, VL, site, tol);
-			updateEnv(direc, psi, phi, HS_approx, MR, ML, VR, VL, site);
+			updateSite(direc, psi, phi, HS, MR, ML, VR, VL, site, tol);
+			updateEnv(direc, psi, phi, HS, MR, ML, VR, VL, site);
 		}
 		invH = MPSAsDiagonalMPO(psi);
 		MPO<T> res;
@@ -112,11 +112,11 @@ void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std:
 	}
 	b.prime(-1);
 	if(site==0){
-		tensor_CG(null_tensor, MR[site+1], W, x, b, max_iter, tol);
+		tensor_CG(null_tensor, MR[site+1], W, x, b, max_iter, tol, false);
 	}else if(site==L-1){
-		tensor_CG(ML[site-1], null_tensor, W, x, b, max_iter, tol);
+		tensor_CG(ML[site-1], null_tensor, W, x, b, max_iter, tol, false);
 	}else{
-		tensor_CG(ML[site-1], MR[site+1], W, x, b, max_iter, tol);
+		tensor_CG(ML[site-1], MR[site+1], W, x, b, max_iter, tol, false);
 	}
 	// x.normalize();
 	////////////////////////////////////////////////
