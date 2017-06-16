@@ -55,13 +55,13 @@ int tensor_CG(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, 
     normb = 1;
 
   if ((resid = r.norm() / normb) <= tol) {
-    tol = std::abs(resid);
+    // tol = std::abs(resid);
     max_iter = 0;
     return 0;
   }
 
   for (int i = 1; i <= max_iter; i++){
-    z = r; elemWiseDivide(z,D);
+    z = r; // elemWiseDivide(z,D);
     rho = r.contract(z);
     if(i==1)
       p = z;
@@ -76,14 +76,14 @@ int tensor_CG(dtensor<T>& LEnv, dtensor<T>& REnv, dtensor<T>& W, dtensor<T>& x, 
     t1 = q * alpha; r -= t1;
 
     if ((resid = r.norm() / normb) <= tol) {
-      tol = std::abs(resid);
+      // tol = std::abs(resid);
       max_iter = i;
       return 0;
     }
 
     rho_1 = rho;
 
-    // std::cout << "reside = " << resid << " " << i << " " << alpha << " " << beta << '\n';
+    // std::cout << "resid = " << resid << " " << i << " " << alpha << " " << beta << '\n';
   }
   return 1;
 }

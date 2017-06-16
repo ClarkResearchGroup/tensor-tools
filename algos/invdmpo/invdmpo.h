@@ -16,7 +16,7 @@ template <typename T>
 void buildEnv(MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T>>& MR, std::vector<dtensor<T>>& ML, std::vector<dtensor<T>>& VR, std::vector<dtensor<T>>& VL);
 
 template <typename T>
-void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T>>& MR, std::vector<dtensor<T>>& ML, std::vector<dtensor<T>>& VR, std::vector<dtensor<T>>& VL, const int& site, T& delta);
+void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T>>& MR, std::vector<dtensor<T>>& ML, std::vector<dtensor<T>>& VR, std::vector<dtensor<T>>& VL, const int& site, double tol);
 
 template <typename T>
 void updateEnv(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T>>& MR, std::vector<dtensor<T>>& ML, std::vector<dtensor<T>>& VR, std::vector<dtensor<T>>& VL, const int& site);

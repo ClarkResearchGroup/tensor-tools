@@ -16,7 +16,7 @@ void invdmpo (MPO<T>& H, MPO<T>& invH, int Nsweep, double cutoff, double tol){
 	std::cout << "l2norm((0.1Hd^2)^2) = " << l2norm(HS) << '\n';
 	std::cout << "trace((0.1Hd^2)^2)  = " << trace(HS) << '\n';
 	MPO<T> HS_approx;
-	HS_approx.fit(HS,10,1e-10);
+	HS_approx.fit(HS,10,cutoff);
 	HS_approx.print();
 	std::cout << "l2norm((0.1Hd^2)^2) = " << l2norm(HS_approx) << '\n';
 	std::cout << "trace((0.1Hd^2)^2)  = " << trace(HS_approx) << '\n';
@@ -31,12 +31,10 @@ void invdmpo (MPO<T>& H, MPO<T>& invH, int Nsweep, double cutoff, double tol){
 	std::vector< dtensor<T> > VR(L);
 	std::vector< dtensor<T> > VL(L);
 	////////////////////////////////////////////////
-	psi.normalize();
-	// phi.normalize();
-	buildEnv(psi, phi, HS, MR, ML, VR, VL);
+	buildEnv(psi, phi, HS_approx, MR, ML, VR, VL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	std::cout<<"# Sweep # Mid bond EE # |A*D-I| #"<<std::endl;
+	std::cout<<"# Sweep # |invD*D-I| #"<<std::endl;
 	for(int l = 0; l < Nsweep; l++) {
 		std::cout<<l<<" ";
 		direc = ((l%2==0)?'r':'l'); // determine the direction
@@ -44,21 +42,15 @@ void invdmpo (MPO<T>& H, MPO<T>& invH, int Nsweep, double cutoff, double tol){
 		{
 			if(direc=='r') site = i;
 			if(direc=='l') site = L-1-i;
-			updateSite(direc, psi, phi, HS, MR, ML, VR, VL, site, delta);
-			updateEnv(direc, psi, phi, HS, MR, ML, VR, VL, site);
+			updateSite(direc, psi, phi, HS_approx, MR, ML, VR, VL, site, tol);
+			updateEnv(direc, psi, phi, HS_approx, MR, ML, VR, VL, site);
 		}
-		MPO<T> invH = MPSAsDiagonalMPO(psi);
+		invH = MPSAsDiagonalMPO(psi);
 		MPO<T> res;
-		fitApplyMPO(invH, H, res);
-		delta = 256/psiphi(psi,phi);
-		std::cout<<delta<<" ";
-		std::cout<<res.norm()<<" ";
-		res *= delta;
+		fitApplyMPO(invH, H, res, 'I', true, cutoff);
 		res = res - IdM;
 		std::cout<<res.norm()<<std::endl;
-		// std::cout<<E<<" "<<std::sqrt(std::abs(SE-E*E))<<std::endl;
 	}
-	psi.normalize();
 	invH = MPSAsDiagonalMPO(psi);
 }
 template void invdmpo (MPO<double>& H, MPO<double>& invH, int Nsweep, double cutoff, double tol);
@@ -100,16 +92,10 @@ template void buildEnv(MPS<double>& psi, MPS<double>& phi, MPO<double>& H, std::
 template void buildEnv(MPS< std::complex<double> >& psi, MPS< std::complex<double> >& phi, MPO< std::complex<double> >& H, std::vector<dtensor< std::complex<double> > >& MR, std::vector<dtensor< std::complex<double> > >& ML, std::vector<dtensor< std::complex<double> > >& VR, std::vector<dtensor< std::complex<double> > >& VL);
 
 template <typename T>
-void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T> >& MR, std::vector<dtensor<T> >& ML, std::vector<dtensor<T> >& VR, std::vector<dtensor<T> >& VL, const int& site, T& delta){
+void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T> >& MR, std::vector<dtensor<T> >& ML, std::vector<dtensor<T> >& VR, std::vector<dtensor<T> >& VL, const int& site, double tol){
 	// std::cout << "Hello, update!" << '\n';
-	int phy = psi.index_size;
-	int L = psi.length;
-	int r = psi.bond_dims[site];
-	int c = psi.bond_dims[site+1];
-	int n = phy * r * c;
-	int nev = 1;
 	int max_iter = 400;
-	double tol = 1e-8;
+	int L = psi.length;
 	////////////////////////////////////////////////
 	// Linear equation problem Ax=b
 	dtensor<T> x, b, W, t1, t2, t3, null_tensor;
@@ -132,7 +118,7 @@ void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std:
 	}else{
 		tensor_CG(ML[site-1], MR[site+1], W, x, b, max_iter, tol);
 	}
-	delta *= x.normalize();
+	// x.normalize();
 	////////////////////////////////////////////////
 	// copy data from dtensor to MPS
 	int idx = 0;
@@ -144,13 +130,13 @@ void updateSite(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std:
 	}
 	// move to neighbor
 	if(direction == 'r'){
-		psi.moveRight(site,true);
+		psi.moveRight(site,false);
 	}else if(direction == 'l'){
-		psi.moveLeft(site,true);
+		psi.moveLeft(site,false);
 	}
 }
-template void updateSite(const char& direction, MPS<double>& psi, MPS<double>& phi, MPO<double>& H, std::vector<dtensor<double> >& MR, std::vector<dtensor<double> >& ML, std::vector<dtensor<double> >& VR, std::vector<dtensor<double> >& VL, const int& site, double& delta);
-template void updateSite(const char& direction, MPS< std::complex<double> >& psi, MPS< std::complex<double> >& phi, MPO< std::complex<double> >& H, std::vector<dtensor< std::complex<double> > >& MR, std::vector<dtensor< std::complex<double> > >& ML, std::vector<dtensor< std::complex<double> > >& VR, std::vector<dtensor< std::complex<double> > >& VL, const int& site, std::complex<double>& delta);
+template void updateSite(const char& direction, MPS<double>& psi, MPS<double>& phi, MPO<double>& H, std::vector<dtensor<double> >& MR, std::vector<dtensor<double> >& ML, std::vector<dtensor<double> >& VR, std::vector<dtensor<double> >& VL, const int& site, double tol);
+template void updateSite(const char& direction, MPS< std::complex<double> >& psi, MPS< std::complex<double> >& phi, MPO< std::complex<double> >& H, std::vector<dtensor< std::complex<double> > >& MR, std::vector<dtensor< std::complex<double> > >& ML, std::vector<dtensor< std::complex<double> > >& VR, std::vector<dtensor< std::complex<double> > >& VL, const int& site, double tol);
 
 template <typename T>
 void updateEnv(const char& direction, MPS<T>& psi, MPS<T>& phi, MPO<T>& H, std::vector<dtensor<T> >& MR, std::vector<dtensor<T> >& ML, std::vector<dtensor<T> >& VR, std::vector<dtensor<T> >& VL, const int& site){
