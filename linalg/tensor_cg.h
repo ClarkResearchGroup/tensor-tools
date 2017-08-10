@@ -5,10 +5,12 @@
 #include "../dtensor/dtensor_index_op.h"
 #include "../dtensor/dtensor.h"
 #include "../dtensor/dtensor_view.h"
+#include "../dtensor/big_dtensor.h"
 
 #include "../qtensor/qtensor_index.h"
 #include "../qtensor/qtensor_index_op.h"
 #include "../qtensor/qtensor.h"
+#include "../qtensor/big_qtensor.h"
 
 template <typename T>
 void elemWiseDivide(dtensor<T>& A, dtensor<T>& B);

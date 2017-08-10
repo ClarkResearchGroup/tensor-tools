@@ -25,10 +25,10 @@ void elemWiseDivide(qtensor<T>& A, qtensor<T>& B){
     unsigned A_id = i->second;
     if(B.block_id_by_qn_str.find(qn_str)!=B.block_id_by_qn_str.end()){
       unsigned B_id = B.block_id_by_qn_str.at(qn_str);
-      assert(A.block_size[A_id] == B.block_size[B_id]);
-      for (size_t j = 0; j < A.block_size[A_id]; j++) {
-        if( B.block[B_id].data()[j]!=T(0) )
-          A.block[A_id].data()[j] = A.block[A_id].data()[j]/B.block[B_id].data()[j];
+      assert(A.block[A_id].size() == B.block[B_id].size());
+      for (size_t j = 0; j < A.block[A_id].size(); j++) {
+        if( B.block[B_id][j]!=T(0) )
+          A.block[A_id][j] = A.block[A_id][j]/B.block[B_id][j];
       }
     }
   }

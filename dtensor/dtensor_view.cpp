@@ -884,7 +884,6 @@ template void dtensor_view< std::complex<double> >::print(unsigned print_level);
 
 //-----------------------------------------------------------------------------
 // Save/Load
-#ifdef USE_EZH5
 template <typename T>
 void dtensor_view<T>::save(string fn){
   assert(_initted);
@@ -950,7 +949,6 @@ template void dtensor_view< std::complex<double> >::save(string fn);
 // }
 // template void dtensor_view<double>::load(string fn);
 // template void dtensor_view< std::complex<double> >::load(string fn);
-#endif
 //-----------------------------------------------------------------------------
 
 

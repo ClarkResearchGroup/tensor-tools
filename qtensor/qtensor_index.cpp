@@ -81,28 +81,6 @@ qtensor_index qtensor_index::operator = (const qtensor_index& other){
   return *this;
 }
 
-inline bool qtensor_index::similar(const qtensor_index& A){
-  if(_arrow != A._arrow &&
-    _tag    == A._tag   &&
-    ((_level== A._level+1)||(_level+1== A._level))
-  ){
-    return true;
-  }else{
-    return false;
-  }
-}
-
-inline bool qtensor_index::similar(qtensor_index& A){
-  if(_arrow != A._arrow &&
-    _tag    == A._tag   &&
-    ((_level== A._level+1)||(_level+1== A._level))
-  ){
-    return true;
-  }else{
-    return false;
-  }
-}
-
 bool qtensor_index::operator == (const qtensor_index& A) const{
   return (_tag==A._tag && _arrow==A._arrow && _level==A._level);
 }

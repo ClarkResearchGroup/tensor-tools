@@ -1,6 +1,7 @@
 #ifndef QUANTUM_NUMBERED_TENSORTRAIN_CLASS_H
 #define QUANTUM_NUMBERED_TENSORTRAIN_CLASS_H
 
+#include "../util/ezh5.h"
 #include "../linalg/lapack_wrapper.h"
 #include "../qtensor/qtensor_index.h"
 #include "../qtensor/qtensor_index_op.h"
@@ -8,7 +9,7 @@
 #include "../qtensor/qtensor_op.h"
 #include "../qtensor/big_qtensor.h"
 #include "../models/sites/sites.h"
-#include "../util/ezh5.h"
+
 
 /*
 This class is the base class of MPS and MPO.
@@ -82,12 +83,10 @@ public:
 
   //---------------------------------------------------------------------------
   // txt or HDF5 storage
-  #ifdef USE_EZH5
   void save(std::string fn);
   void load(std::string fn);
   void save(ezh5::Node& fW);
   void load(ezh5::Node& fR);
-  #endif
 
   //---------------------------------------------------------------------------
   // Canonicalization

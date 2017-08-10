@@ -1,6 +1,7 @@
 #ifndef DENSE_TENSORTRAIN_CLASS_H
 #define DENSE_TENSORTRAIN_CLASS_H
 
+#include "../util/ezh5.h"
 #include "../linalg/lapack_wrapper.h"
 #include "../dtensor/dtensor_index.h"
 #include "../dtensor/dtensor_index_op.h"
@@ -9,7 +10,6 @@
 #include "../dtensor/dtensor_op.h"
 #include "../dtensor/big_dtensor.h"
 #include "../models/sites/sites.h"
-#include "../util/ezh5.h"
 
 /*
 This class is the base class of MPS and MPO.
@@ -81,13 +81,11 @@ public:
   void print(int level=0);
 
   //---------------------------------------------------------------------------
-  // txt or HDF5 storage
-  #ifdef USE_EZH5
+  // HDF5 storage
   void save(std::string fn);
   void load(std::string fn);
   void save(ezh5::Node& fW);
   void load(ezh5::Node& fR);
-  #endif
 
   //---------------------------------------------------------------------------
   // Canonicalization

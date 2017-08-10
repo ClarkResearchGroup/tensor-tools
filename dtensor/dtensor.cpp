@@ -318,6 +318,8 @@ void dtensor<T>::reset(vector<dtensor_index>& idx_vec){
   _initted = true;
   setZero();
 }
+template void dtensor<double>::reset(vector<dtensor_index>& idx_vec);
+template void dtensor< std::complex<double> >::reset(vector<dtensor_index>& idx_vec);
 //-----------------------------------------------------------------------------
 
 
@@ -1310,7 +1312,6 @@ template void dtensor< std::complex<double> >::print(unsigned print_level);
 
 //-----------------------------------------------------------------------------
 // Save/Load
-#ifdef USE_EZH5
 template <typename T>
 void dtensor<T>::save(string fn){
   assert(_initted);
@@ -1443,7 +1444,6 @@ void dtensor<T>::load(ezh5::Node& fR){
 }
 template void dtensor<double>::load(ezh5::Node& fR);
 template void dtensor< std::complex<double> >::load(ezh5::Node& fR);
-#endif
 //-----------------------------------------------------------------------------
 
 

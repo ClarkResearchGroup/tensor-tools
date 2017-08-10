@@ -391,7 +391,6 @@ template dTensorTrain< std::complex<double>, 1> dTensorTrain<std::complex<double
 template dTensorTrain< std::complex<double>, 2> dTensorTrain<std::complex<double>, 2>::operator / (const  std::complex<double> c) const;
 
 
-#ifdef USE_EZH5
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::save(std::string fn){
   assert(tensors_allocated);
@@ -470,7 +469,6 @@ template void dTensorTrain<double, 1>::load(ezh5::Node& fh5);
 template void dTensorTrain<double, 2>::load(ezh5::Node& fh5);
 template void dTensorTrain<std::complex<double>, 1>::load(ezh5::Node& fh5);
 template void dTensorTrain<std::complex<double>, 2>::load(ezh5::Node& fh5);
-#endif
 
 
 template <typename T, unsigned N>

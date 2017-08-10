@@ -1,5 +1,3 @@
-#ifdef USE_EZH5
-
 #ifndef EZH5
 #define EZH5
 
@@ -20,14 +18,14 @@ namespace ezh5{
 		}
   };
 
-	template<> hid_t DataType<char>::id = H5T_NATIVE_CHAR;
+  template<> hid_t DataType<char>::id = H5T_NATIVE_CHAR;
   template<> hid_t DataType<double>::id = H5T_NATIVE_DOUBLE;
   template<> hid_t DataType<float>::id = H5T_NATIVE_FLOAT;
   template<> hid_t DataType<int>::id = H5T_NATIVE_INT;
   template<> hid_t DataType<long>::id = H5T_NATIVE_LONG;
   template<> hid_t DataType<unsigned int>::id = H5T_NATIVE_UINT;
   template<> hid_t DataType<unsigned long>::id = H5T_NATIVE_ULONG;
-	template<> hid_t DataType<std::complex<int> >::id = H5Tcreate(H5T_COMPOUND, sizeof(std::complex<int>));
+  template<> hid_t DataType<std::complex<int> >::id = H5Tcreate(H5T_COMPOUND, sizeof(std::complex<int>));
   template<> hid_t DataType<std::complex<float> >::id = H5Tcreate(H5T_COMPOUND, sizeof(std::complex<float>));
   template<> hid_t DataType<std::complex<double> >::id = H5Tcreate(H5T_COMPOUND, sizeof(std::complex<double>));
 
@@ -63,6 +61,8 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator = (int val);
+        template Node& Node::operator = (unsigned val);
+        template Node& Node::operator = (unsigned long val);
 	template Node& Node::operator = (float val);
 	template Node& Node::operator = (double val);
 	template Node& Node::operator = (char val);
@@ -78,6 +78,8 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator >> (int& val);
+  	template Node& Node::operator >> (unsigned& val);
+    	template Node& Node::operator >> (unsigned long& val);
 	template Node& Node::operator >> (float& val);
 	template Node& Node::operator >> (double& val);
 	template Node& Node::operator >> (char& val);
@@ -101,6 +103,8 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator = (std::vector<int>& vec);
+  	template Node& Node::operator = (std::vector<unsigned>& vec);
+  	template Node& Node::operator = (std::vector<unsigned long>& vec);
 	template Node& Node::operator = (std::vector<float>& vec);
 	template Node& Node::operator = (std::vector<double>& vec);
 	template Node& Node::operator = (std::vector<char>& vec);
@@ -122,6 +126,8 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator >> (std::vector<int>& vec);
+  	template Node& Node::operator >> (std::vector<unsigned>& vec);
+  	template Node& Node::operator >> (std::vector<unsigned long>& vec);
 	template Node& Node::operator >> (std::vector<float>& vec);
 	template Node& Node::operator >> (std::vector<double>& vec);
 	template Node& Node::operator >> (std::vector<char>& vec);
@@ -145,6 +151,7 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator = (Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic>& m);
+  	template Node& Node::operator = (Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic>& m);
 	template Node& Node::operator = (Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>& m);
 	template Node& Node::operator = (Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>& m);
 	template Node& Node::operator = (Eigen::Matrix<std::complex<int>, Eigen::Dynamic, Eigen::Dynamic>& m);
@@ -165,6 +172,7 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator >> (Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic>& m);
+  	template Node& Node::operator >> (Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic>& m);
 	template Node& Node::operator >> (Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>& m);
 	template Node& Node::operator >> (Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>& m);
 	template Node& Node::operator >> (Eigen::Matrix<std::complex<int>, Eigen::Dynamic, Eigen::Dynamic>& m);
@@ -184,7 +192,5 @@ namespace ezh5{
 	///////////////////////////
 }
 
-
-#endif
 
 #endif

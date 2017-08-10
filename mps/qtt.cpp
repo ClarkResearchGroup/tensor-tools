@@ -634,7 +634,6 @@ template qTensorTrain< std::complex<double>, 1> qTensorTrain<std::complex<double
 template qTensorTrain< std::complex<double>, 2> qTensorTrain<std::complex<double>, 2>::operator / (const  std::complex<double> c) const;
 
 
-#ifdef USE_EZH5
 template <typename T, unsigned N>
 void qTensorTrain<T, N>::save(std::string fn){
   assert(tensors_allocated);
@@ -721,7 +720,6 @@ template void qTensorTrain<double, 1>::load(ezh5::Node& fh5);
 template void qTensorTrain<double, 2>::load(ezh5::Node& fh5);
 template void qTensorTrain<std::complex<double>, 1>::load(ezh5::Node& fh5);
 template void qTensorTrain<std::complex<double>, 2>::load(ezh5::Node& fh5);
-#endif
 
 
 template <typename T, unsigned N>

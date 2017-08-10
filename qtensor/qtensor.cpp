@@ -299,6 +299,8 @@ void qtensor<T>::reset(vector<qtensor_index>& idx_vec){
   idx_set = idx_vec;
   rank = idx_set.size();
 }
+template void qtensor<double>::reset(vector<qtensor_index>& idx_vec);
+template void qtensor< std::complex<double> >::reset(vector<qtensor_index>& idx_vec);
 //-----------------------------------------------------------------------------
 
 
@@ -1256,7 +1258,6 @@ template void qtensor< std::complex<double> >::print(unsigned print_level);
 
 //-----------------------------------------------------------------------------
 // Save/Load
-#ifdef USE_EZH5
 template <typename T>
 void qtensor<T>::save(string fn){
   assert(_initted);
@@ -1449,7 +1450,6 @@ void qtensor<T>::load(ezh5::Node& fh5R){
 }
 template void qtensor<double>::load(ezh5::Node& fR);
 template void qtensor< std::complex<double> >::load(ezh5::Node& fR);
-#endif
 //-----------------------------------------------------------------------------
 
 

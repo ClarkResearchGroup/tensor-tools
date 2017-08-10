@@ -1,7 +1,9 @@
-#ifdef USE_EZH5
-
 #ifndef EZH5_H
 #define EZH5_H
+
+#include <iostream>
+#include "hdf5.h"
+#include <Eigen/Dense>
 
 namespace ezh5{
   ///////////////////////////
@@ -65,7 +67,5 @@ namespace ezh5{
   ///////////////////////////
 }
 
-
-#endif
 
 #endif

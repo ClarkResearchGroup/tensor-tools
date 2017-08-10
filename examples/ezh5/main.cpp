@@ -9,7 +9,13 @@ typedef Eigen::MatrixXd Mxd;
 
 using namespace std;
 
-enum color {red, green};
+void save_by_handle(ezh5::Node& f, double val){
+  f["pi"] = val;
+}
+
+void read_by_handle(ezh5::Node& f, double& val){
+  f["pi"] >> val;
+}
 
 int main(int argc, char const *argv[]) {
   cout<<"//------------------------------------"<<endl;
@@ -42,6 +48,9 @@ int main(int argc, char const *argv[]) {
     f1["my_random_vector"] = v;
     cout<<"Vector is written to '"<<fn1<<"'."<<endl;
     cout<<"If hdf5 tools are installed, use 'h5dump "<<fn1<<"' to display the file content in terminal."<<endl;
+    double pi = 3.141592653;
+    ezh5::Node f1n = f1["const"];
+    save_by_handle(f1n, pi);
     //------------------------------------
     cout<<"//------------------------------------"<<endl;
     Mxd M(N,N); M.setRandom();
@@ -61,6 +70,10 @@ int main(int argc, char const *argv[]) {
     for(auto val : v) cout<<val<<" ";
     cout<<endl;
     cout<<"Vector is read from '"<<fn1<<"'."<<endl;
+    double pi = 0;
+    ezh5::Node f1n = f1["const"];
+    read_by_handle(f1n, pi);
+    std::cout << "Pi = " << pi << '\n';
     //------------------------------------
     cout<<"//------------------------------------"<<endl;
     Mxd M;

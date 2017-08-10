@@ -57,9 +57,28 @@ public:
       _arrow=Inward;
   }
 
-  inline bool similar(const qtensor_index& A);
-  inline bool similar(qtensor_index& A);
+  inline bool similar(const qtensor_index& A){
+    if(_arrow != A._arrow &&
+           _tag    == A._tag   &&
+       ((_level== A._level+1)||(_level+1== A._level))
+       ){
+      return true;
+    }else{
+      return false;
+    }
+  }
 
+  inline bool similar(qtensor_index& A){
+    if(_arrow != A._arrow &&
+           _tag    == A._tag   &&
+       ((_level== A._level+1)||(_level+1== A._level))
+       ){
+      return true;
+    }else{
+      return false;
+    }
+  }
+  
   inline void prime(int inc=1) {_level+=inc;}
   inline void primeLink(int inc=1) {if(_type==Link) _level+=inc;}
   inline void primeSite(int inc=1) {if(_type==Site) _level+=inc;}

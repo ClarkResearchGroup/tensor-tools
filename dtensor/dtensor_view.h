@@ -2,6 +2,7 @@
 #define DENSE_TENSOR_VIEW_CLASS_HEADER
 
 #include "../util/types_and_headers.h"
+#include "../util/ezh5.h"
 #include "dtensor_index.h"
 #include "dtensor_index_op.h"
 #include "dtensor.h"
@@ -93,10 +94,8 @@ public:
 
   //---------------------------------------------------------------------------
   // Save/Load
-#ifdef USE_EZH5
   void save(std::string fn);
   // void load(std::string fn);
-#endif
 
   //---------------------------------------------------------------------------
   // Get norm

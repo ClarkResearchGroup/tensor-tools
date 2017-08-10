@@ -29,10 +29,21 @@ public:
   inline index_type type(){return _type;}
   inline string tag(){return _tag+to_string(_level);}
 
-  inline bool similar(const dtensor_index& A);
-  inline bool similar(dtensor_index& A);
-  inline bool similar(const dtensor_index& A, index_type type);
-  inline bool similar(dtensor_index& A, index_type type);
+  inline bool similar(const dtensor_index& A){
+    return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&((_level==A._level+1)||(_level+1==A._level));
+  }
+
+  inline bool similar(dtensor_index& A){
+    return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&((_level==A._level+1)||(_level+1==A._level));
+  }
+
+  inline bool similar(const dtensor_index& A, index_type type){
+    return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&((_level==A._level+1)||(_level+1==A._level));
+  }
+
+  inline bool similar(dtensor_index& A, index_type type){
+    return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&((_level==A._level+1)||(_level+1==A._level));
+  }
 
   inline void prime(int inc=1){_level+=inc;}
   inline void primeLink(int inc=1){if(_type==Link) _level+=inc;}

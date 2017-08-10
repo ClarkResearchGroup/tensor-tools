@@ -2,6 +2,8 @@
 #define QUANTUM_NUMBERED_TENSOR_CLASS_HEADER
 
 #include "../util/types_and_headers.h"
+#include "../util/ezh5.h"
+#include "../linalg/lapack_wrapper.h"
 #include "qtensor_index.h"
 #include "qtensor_index_op.h"
 
@@ -116,12 +118,10 @@ public:
 
   //---------------------------------------------------------------------------
   // Save/Load
-#ifdef USE_EZH5
   void save(string fn);
   void load(string fn);
   void save(ezh5::Node& fW);
   void load(ezh5::Node& fR);
-#endif
 
   //---------------------------------------------------------------------------
   // Get norm

@@ -3,6 +3,9 @@
 
 #include "../../mps/tt.h"
 #include "../../mps/qtt.h"
+#include "../../mps/observables.h"
+#include "../../linalg/tensor_davidson.h"
+
 
 //-------------------------------------------------------------------------------------------
 // MPS, MPO

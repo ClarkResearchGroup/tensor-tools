@@ -76,20 +76,4 @@ bool dtensor_index::operator <  (const dtensor_index& A) const{
   return (_tag<A._tag && _level<A._level);
 }
 
-inline bool dtensor_index::similar(const dtensor_index& A){
-  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&((_level==A._level+1)||(_level+1==A._level));
-}
-
-inline bool dtensor_index::similar(dtensor_index& A){
-  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&((_level==A._level+1)||(_level+1==A._level));
-}
-
-inline bool dtensor_index::similar(const dtensor_index& A, index_type type){
-  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&((_level==A._level+1)||(_level+1==A._level));
-}
-
-inline bool dtensor_index::similar(dtensor_index& A, index_type type){
-  return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&((_level==A._level+1)||(_level+1==A._level));
-}
-
 #endif

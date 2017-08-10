@@ -67,16 +67,13 @@ typedef vector<tblis::label_type>  lab_vec;
 //------------------------------------------------------------------------------
 // Check https://support.hdfgroup.org/HDF5/ for instructions on
 // how to install HDF5
+#include "hdf5.h"
 //------------------------------------------------------------------------------
 // For easier user interface of HDF5 functions, a wrapper called "EZH5" is used.
 // By M. Chen
 // https://github.com/mileschen360/ezh5
 // Notice:
 // If not enabled, save/load functionality for many things will not work
-#ifdef USE_EZH5
-#include "hdf5.h"
-#include "../util/ezh5.h"
-#endif
 //------------------------------------------------------------------------------
 
 
@@ -104,11 +101,11 @@ typedef vector<tblis::label_type>  lab_vec;
 typedef pair<int, unsigned> quantum_number;
 //------------------------------------------------------------------------------
 // For sorting quantum numbers by qn
-bool qnCompare(const quantum_number& qn1, const quantum_number& qn2) {
+inline bool qnCompare(const quantum_number& qn1, const quantum_number& qn2) {
   return qn1.first < qn2.first;
 }
 // For sorting singular values of different quantum blocks
-bool pairCompare(const pair<double, unsigned>& p1, const pair<double, unsigned>& p2) {
+inline bool pairCompare(const pair<double, unsigned>& p1, const pair<double, unsigned>& p2) {
   return p1.first > p2.first;
 }
 //------------------------------------------------------------------------------
@@ -145,7 +142,7 @@ inline std::complex<double> cconj(std::complex<double> val) {return std::conj(va
 //------------------------------------------------------------------------------
 // Thread safe random numbers
 //------------------------------------------------------------------------------
-double thread_safe_random_double() {
+inline double thread_safe_random_double() {
   // static thread_local std::mt19937 generator(std::random_device{}());
   static thread_local std::mt19937 generator;
   std::uniform_real_distribution<double> distribution(0, 1);
