@@ -5,11 +5,19 @@ I. Dense tensor interfaces
 ```C++
 // Create a dtensor<T> object by providing index sizes, names, types (Link, Site), prime level (unsigned)
 dtensor<double> A({4,8,6}, {"a","b","c"}, {Link,Link}, {0,0});
+A.setRandom();
+// normalize
+A.normalize();
+// print has different levels of information available
+A.print(1);
 // Create a dtensor<T> object by providing index sizes, names, default Link type, default 0 prime level
 dtensor<double> B({6,7,4}, {"c","d","a"});
-// Repeated indices (same size, name, type and prime level) are automatically contracted in multiplication
+B.setRandom();
+B.print(1);
+// Repeated indices (same size, name, type and prime level) are contracted in multiplication
 // dtensor<T> supports move semantics, which removes unnecessary copy operation
 dtensor<double> C = std::move(A,B);
+C.print(1);
 ```
 
 -----------------
@@ -29,7 +37,7 @@ A.addQNtoIndex(2, std::make_pair(3, 8));
 A.initBlock();
 A.setRandom();
 // print has different levels of information available
-A.print(0);
+A.print(1);
 
 qtensor< std::complex<double> > B({Inward,Inward,Outward} ,{"b", "s2", "c"});
 B.addQNtoIndex(0, std::make_pair(1, 6));
