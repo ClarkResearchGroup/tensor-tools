@@ -3,14 +3,14 @@
 -----------------
 I. Dense tensor interfaces
 ```C++
-// Create a dtensor<T> object by providing index sizes, names, types (Link, Site), prime level (unsigned)
+// Create a dtensor<T> object by providing sizes, names, types (Link, Site), prime level (unsigned)
 dtensor<double> A({4,8,6}, {"a","b","c"}, {Link,Link}, {0,0});
 A.setRandom();
 // normalize
 A.normalize();
 // print has different levels of information available
 A.print(1);
-// Create a dtensor<T> object by providing index sizes, names, default Link type, default 0 prime level
+// Create a dtensor<T> object by providing sizes, names (default to Link type and 0 prime level)
 dtensor<double> B({6,7,4}, {"c","d","a"});
 B.setRandom();
 B.print(1);
@@ -23,7 +23,7 @@ C.print(1);
 -----------------
 II. Quantum numbered tensor interfaces
 ```C++
-// Create a qtensor<T> object by providing index arrow, names, default Link type, default 0 prime level
+// Create a qtensor<T> object by providing arrows, names (default to Link type and 0 prime level)
 qtensor< std::complex<double> > A({Inward,Inward,Outward} ,{"a", "s1", "b"});
 // Fill in the information on the quantum numbers (qn, qdim)
 A.addQNtoIndex(0, std::make_pair(1, 4));
