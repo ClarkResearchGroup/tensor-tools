@@ -1,6 +1,70 @@
 # tensor-tools
 
 -----------------
+Dependency
+```C++
+//------------------------------------------------------------------------------
+// External library 1 -- TBLIS -- necessary
+//------------------------------------------------------------------------------
+// By Devin Matthews, et al.
+// https://github.com/devinamatthews/tblis
+// Intro:
+// TBLIS is a library and framework for performing tensor operations,
+// especially tensor contraction, using efficient native algorithms.
+// In other words, TBLIS does not need tensor transposition to perform tensor
+// contraction.
+// In comparison, a popular but not optimal tensor contraction strategy consists
+// of 3 steps: transposition, d/s/zgemm, transposition.
+// However, TBLIS does not support sparse tensor (at least for now).
+#include "tblis.h"
+typedef vector<tblis::len_type>    len_vec;
+typedef vector<tblis::label_type>  lab_vec;
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// External library 2 -- Eigen -- needed, but only for conducting easier tests
+//------------------------------------------------------------------------------
+// http://eigen.tuxfamily.org
+#include <Eigen/Dense>
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// External library 3 -- HDF5 -- required when saving/loading data
+//------------------------------------------------------------------------------
+// Check https://support.hdfgroup.org/HDF5/ for instructions on
+// how to install HDF5
+#include "hdf5.h"
+//------------------------------------------------------------------------------
+// For easier user interface of HDF5 functions, a wrapper called "EZH5" is used.
+// By M. Chen
+// https://github.com/mileschen360/ezh5
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// External library 4 -- HPTT -- optional
+//------------------------------------------------------------------------------
+// By Paul Springer
+// https://github.com/springer13/hptt
+// Intro:
+// HPTT is a high-performance C++ library for out-of-place tensor transpositions.
+// Notice:
+// Tensor transposition is used to reshape tensors before sending them to QR/SVD.
+// If enabled, tensor transposition calls will be sent to HPTT driver.
+// If not enabled, tensor transposition will be sent to a not optimal function.
+#ifdef USE_HPTT
+#include <hptt.h>
+#endif
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Single Abelian quantum number
+// first: qn;    second: dimension
+//------------------------------------------------------------------------------
+typedef pair<int, unsigned> quantum_number;
+//------------------------------------------------------------------------------
+```
+
+-----------------
 I. Dense tensor interfaces
 ```C++
 // Create a dtensor<T> object by providing sizes, names, types (Link, Site), prime level (unsigned)
