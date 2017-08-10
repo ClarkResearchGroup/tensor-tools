@@ -2,22 +2,9 @@
 #define DENSE_TENSOR_CLASS_HEADER
 
 #include "../util/types_and_headers.h"
-#include "tensor_index.h"
-#include "tensor_index_op.h"
-
-//---------------------------------------------------------------------------
-// Type definitions
-typedef initializer_list<unsigned>    int_list;
-typedef initializer_list<string>      str_list;
-typedef initializer_list<index_type>  typ_list;
-
-typedef vector<unsigned>    int_vec;
-typedef vector<string>      str_vec;
-typedef vector<index_type>  typ_vec;
-typedef vector<len_type>    len_vec;
-typedef vector<label_type>  lab_vec;
-//---------------------------------------------------------------------------
-
+#include "dtensor_index.h"
+#include "dtensor_index_op.h"
+#include "dtensor_view.h"
 
 /*
 Design of the templated dtensor class:
@@ -48,87 +35,124 @@ Design of the templated dtensor class:
 Repeated indices will be summed over.
 */
 
+template <typename T> class dtensor_view;
+
+
 template <typename T>
 class dtensor{
 public:
   //---------------------------------------------------------------------------
   // Constructors
   dtensor();                               // default constructor
-  dtensor(int_list idx_sizes);                 // given idx_sizes, random names, default to type Link
-  dtensor(int_vec idx_sizes);                  // given idx_sizes, random names, default to type Link
-  dtensor(int_list idx_sizes, str_list names); // given idx_sizes and names, default to type Link
-  dtensor(int_vec idx_sizes, str_vec names);   // given idx_sizes and names, default to type Link
-  dtensor(int_list idx_sizes, str_list names, typ_list types); // given idx_sizes, names, and types
-  dtensor(int_vec idx_sizes, str_vec names, typ_vec types);    // given idx_sizes, names, and types
-  dtensor(int_list idx_sizes, str_list names, typ_list types, int_list levels); // given idx_sizes, names, types, levels
-  dtensor(int_vec idx_sizes, str_vec names, typ_vec types, int_vec levels);    // given idx_sizes, names, types, levels
-  dtensor(int_list idx_sizes, str_list names, typ_list types, int_list levels, T* data_array); // given idx_sizes, names, types, levels, data
-  dtensor(int_vec idx_sizes, str_vec names, typ_vec types, int_vec levels, T* data_array);    // given idx_sizes, names, types, levels, data
-  dtensor(vector<tensor_index>& idx_vec);
-  dtensor(const dtensor<T>& other);  // copy constructor
-  dtensor(dtensor<T>&& other);       // move constructor
+  dtensor(uint_list idx_sizes);                 // given idx_sizes, random names, default to type Link
+  dtensor(uint_vec& idx_sizes);                  // given idx_sizes, random names, default to type Link
+  dtensor(uint_list idx_sizes, str_list names); // given idx_sizes and names, default to type Link
+  dtensor(uint_vec& idx_sizes, str_vec& names);   // given idx_sizes and names, default to type Link
+  dtensor(uint_list idx_sizes, str_list names, typ_list types); // given idx_sizes, names, and types
+  dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types);    // given idx_sizes, names, and types
+  dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels); // given idx_sizes, names, types, levels
+  dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels);    // given idx_sizes, names, types, levels
+  dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels, T* data_array); // given idx_sizes, names, types, levels, data
+  dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels, T* data_array);    // given idx_sizes, names, types, levels, data
+  dtensor(vector<dtensor_index>& idx_vec);
+  dtensor(initializer_list<dtensor_index> idx_list);
+  dtensor(vector<dtensor_index>& idx_vec, T* data_array);
+  dtensor(const dtensor<T>& other);       // copy constructor
+  dtensor(const dtensor_view<T>& other);  // copy constructor
+  dtensor(dtensor<T>&& other);            // move constructor
   //---------------------------------------------------------------------------
   // Destructor
   ~dtensor(){}
+  //---------------------------------------------------------------------------
+  // Reset
+  void reset(vector<dtensor_index>& idx_vec);
+  //---------------------------------------------------------------------------
+  // Resize indices
+  // (data preserved when dimension of indices lowered, filled with val when enlarged)
+  void resize(uint_vec& new_sizes, T val=T());
+  void resize(uint_list new_sizes, T val=T());
+  void resize(vector<dtensor_index>& new_idx_set, T val=T());
 
   //---------------------------------------------------------------------------
   // Storage
-  unsigned size;        // total size (number of elements) of the tensor
-  unsigned rank;        // number of indices
-  vector<tensor_index> idx_set; // full set of indices
-  tensor<T> _T;         // tblis::tensor<T>
-  bool _initted;        // initilization flag
+  unsigned size;                  // total size (number of elements) of the tensor
+  unsigned rank;                  // number of indices
+  vector<dtensor_index> idx_set;   // full set of tensor indices (dtensor_index.h)
+  tblis::tensor<T> _T;            // tblis::tensor_view<T>, provide tensor functionality (does not own data)
+  bool _initted;                  // initilization flag
 
   //---------------------------------------------------------------------------
   // Initializer
   void setRandom();
   void setZero();
+  void setOne();
+
+  //---------------------------------------------------------------------------
+  // Permutate
+  void permute(uint_vec& perm);
+  void permute(uint_list perm);
 
   //---------------------------------------------------------------------------
   // Overloaded operator
-  dtensor& operator = (const dtensor<T>& other); // copy assignment
-  dtensor& operator = (dtensor<T>&& other);      // move assignment
-  dtensor operator * (dtensor<T>& A);            // repeated indices are summed over
-  dtensor& operator += (dtensor<T>& A);           //
-  dtensor& operator -= (dtensor<T>& A);           //
-  dtensor operator + (dtensor<T>& A);            //
-  dtensor operator - (dtensor<T>& A);            //
-  dtensor& operator *= (const T c);              // scaling
-  dtensor& operator /= (const T c);              // scaling
-  dtensor operator * (const T c);                // scaling
-  dtensor operator / (const T c);                // scaling
+  dtensor<T>& operator = (const dtensor<T>& other);      // copy assignment
+  dtensor<T>& operator = (const dtensor_view<T>& other); // copy assignment
+  dtensor<T>& operator = (dtensor<T>&& other);           // move assignment
+  dtensor<T>  operator * (dtensor<T>& A);                // repeated indices are summed over
+  dtensor<T>  operator * (dtensor_view<T>& A);           // repeated indices are summed over
+  dtensor<T>& operator += (dtensor<T>& A);               //
+  dtensor<T>& operator += (dtensor_view<T>& A);          //
+  dtensor<T>& operator -= (dtensor<T>& A);               //
+  dtensor<T>& operator -= (dtensor_view<T>& A);          //
+  dtensor<T>  operator + (dtensor<T>& A);                //
+  dtensor<T>  operator + (dtensor_view<T>& A);           //
+  dtensor<T>  operator - (dtensor<T>& A);                //
+  dtensor<T>  operator - (dtensor_view<T>& A);           //
+  dtensor<T>& operator *= (const T c);                   // scaling
+  dtensor<T>& operator /= (const T c);                   // scaling
+  dtensor<T>  operator * (const T c);                    // scaling
+  dtensor<T>  operator / (const T c);                    // scaling
 
   //---------------------------------------------------------------------------
   // Full contraction (ends in a scalar)
   T contract(dtensor<T>& A);
+  T contract(dtensor_view<T>& A);
 
   //---------------------------------------------------------------------------
   // Get diagonal subtensor
-  // only possible when tensor indices must com in "pairs",
+  // only possible when tensor indices come in "pairs",
   // meaning same name string but different prime level
-  dtensor diagonal();
-  dtensor diagonal(index_type type);
+  dtensor<T> diagonal();
+  dtensor<T> diagonal(index_type type);
 
   //---------------------------------------------------------------------------
   // Prime level manipulation
   void prime(int inc=1);
-  void primeLink();
-  void primeSite();
+  void primeLink(int inc=1);
+  void primeSite(int inc=1);
   void mapPrime(unsigned from, unsigned to);
   void mapPrime(unsigned from, unsigned to, index_type type);
-  void dag();
+
+  void dag(){};
+  void conj();
 
   //---------------------------------------------------------------------------
   // Save/Load
 #ifdef USE_EZH5
-  void save(std::string fn);
-  void load(std::string fn);
+  void save(string fn);
+  void load(string fn);
+  void save(ezh5::Node& fW);
+  void load(ezh5::Node& fR);
 #endif
 
   //---------------------------------------------------------------------------
   // Get norm
   double norm();
   double normalize();
+
+  //---------------------------------------------------------------------------
+  // special arithmetic operations with another tensor in the same format/pattern
+  void add(dtensor<T>& A, T c = T(1));
+  T inner_product(dtensor<T>& A);
 
   //---------------------------------------------------------------------------
   // Print

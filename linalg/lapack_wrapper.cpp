@@ -3,30 +3,58 @@
 
 #include "lapack_wrapper.h"
 
+void MAT_VEC(int& m, int& k, int& n, double* A, double* B, double* C){
+	char transa = 'N';
+	char transb = 'N';
+	double alpha = 1;
+	double beta  = 1;
+	dgemm_(&transa,&transb,&m,&n,&k,&alpha,A,&m,B,&k,&beta,C,&m);
+}
 
-void diag(double* M, double* evals, int nn)
-{
-	int N = nn;
-    char jobz = 'V';
-    char uplo = 'U';
-    int lwork = std::max(1,3*N-1);//std::max(1, 1+6*N+2*N*N);
-    double *work = new double [lwork];
-    int info;
-	dsyev_(&jobz,&uplo,&N,M,&N,evals,work,&lwork,&info);
-	if(info!=0)
-	{
+void MAT_VEC(int& m, int& k, int& n, std::complex<double>* A, std::complex<double>* B, std::complex<double>* C){
+	char transa = 'N';
+	char transb = 'N';
+	std::complex<double> alpha = 1;
+	std::complex<double> beta  = 1;
+	zgemm_(&transa,&transb,&m,&n,&k,&alpha,A,&m,B,&k,&beta,C,&m);
+}
+
+
+void DIAG(int m, double* A, double* evals){
+	int N = m;
+  char jobz = 'V';
+  char uplo = 'U';
+  int lwork = std::max(1,2*N+N*N);
+  double * work = new double [lwork];
+  int info;
+	dsyev_(&jobz,&uplo,&N,A,&N,evals,work,&lwork,&info);
+	if(info!=0){
 		std::cout<<"dsyev error info is "<<info<<std::endl;
 	}
 	delete [] work;
 }
 
-void QR(const Mxd& MT, Mxd& Q){
+void DIAG(int m, std::complex<double>* A, double* evals){
+	int N = m;
+  char jobz = 'V';
+  char uplo = 'U';
+  int lwork = std::max(1,N+N*N);
+  std::complex<double> * work = new std::complex<double> [lwork];
+	double * rwork = new double [std::max(1,3*N-2)];
+  int info;
+	zheev_(&jobz,&uplo,&N,A,&N,evals,work,&lwork,rwork,&info);
+	if(info!=0){
+		std::cout<<"zheev error info is "<<info<<std::endl;
+	}
+	delete [] work;
+	delete [] rwork;
+}
+
+void ORTHO(int r, int c, double* A){
 	///////////////////////////////////
 	// INITIALIZATION
-	int M = MT.rows();
-	int N = MT.cols();
-
-	Mxd tQ = MT;
+	int M = r;
+	int N = c;
 
 	int LDA, K;
 	LDA = std::max(1,M);
@@ -37,23 +65,13 @@ void QR(const Mxd& MT, Mxd& Q){
 	double * work = new double [lwork];
 	int INFO;
 	///////////////////////////////////
-	dgeqrf_(&M, &N, tQ.data(), &LDA, TAU, work, &lwork, &INFO);
+	dgeqrf_(&M, &N, A, &LDA, TAU, work, &lwork, &INFO);
 	if (INFO!=0) {
-		std::cout<<"Illegal value at "<<INFO<<std::endl;
+		std::cout<<"QR illegal value at "<<INFO<<std::endl;
 	}
-	if (N>M) {
-		N = M;
-		dorgqr_(&M, &N, &K, tQ.data(), &LDA, TAU, work, &lwork, &INFO);
-		if (INFO!=0) {
-			std::cout<<"QR Failed!\n";
-		}
-		Q=tQ.block(0,0,M,N);
-	} else {
-		dorgqr_(&M, &N, &K, tQ.data(), &LDA, TAU, work, &lwork, &INFO);
-		if (INFO!=0) {
-			std::cout<<"QR Failed!\n";
-		}
-		Q=tQ;
+	dorgqr_(&M, &K, &K, A, &LDA, TAU, work, &lwork, &INFO);
+	if (INFO!=0) {
+		std::cout<<"QR Failed!\n";
 	}
 	///////////////////////////////////
 	//Free Space
@@ -61,13 +79,12 @@ void QR(const Mxd& MT, Mxd& Q){
 	delete [] work;
 }
 
-void QR(const Mxc& MT, Mxc& Q){
+
+void ORTHO(int r, int c, std::complex<double>* A){
 	///////////////////////////////////
 	// INITIALIZATION
-	int M = MT.rows();
-	int N = MT.cols();
-
-	Mxc tQ = MT;
+	int M = r;
+	int N = c;
 
 	int LDA, K;
 	LDA = std::max(1,M);
@@ -78,23 +95,13 @@ void QR(const Mxc& MT, Mxc& Q){
 	std::complex<double> * work = new std::complex<double> [lwork];
 	int INFO;
 	///////////////////////////////////
-	zgeqrf_(&M, &N, tQ.data(), &LDA, TAU, work, &lwork, &INFO);
+	zgeqrf_(&M, &N, A, &LDA, TAU, work, &lwork, &INFO);
 	if (INFO!=0) {
-		std::cout<<"Illegal value at "<<INFO<<std::endl;
+		std::cout<<"QR illegal value at "<<INFO<<std::endl;
 	}
-	if (N>M) {
-		N = M;
-		zungqr_(&M, &N, &K, tQ.data(), &LDA, TAU, work, &lwork, &INFO);
-		if (INFO!=0) {
-			std::cout<<"QR Failed!\n";
-		}
-		Q=tQ.block(0,0,M,N);
-	}else {
-		zungqr_(&M, &N, &K, tQ.data(), &LDA, TAU, work, &lwork, &INFO);
-		if (INFO!=0) {
-			std::cout<<"QR Failed!\n";
-		}
-		Q=tQ;
+	zungqr_(&M, &K, &K, A, &LDA, TAU, work, &lwork, &INFO);
+	if (INFO!=0) {
+		std::cout<<"QR Failed!\n";
 	}
 	///////////////////////////////////
 	//Free Space
@@ -102,626 +109,470 @@ void QR(const Mxc& MT, Mxc& Q){
 	delete [] work;
 }
 
+void QR(int r, int c, double* A, double* Q, double* R){
+	///////////////////////////////////
+	// INITIALIZATION
+	int M = r;
+	int N = c;
+	double* B = new double [M*N];
+	std::copy(A, A+M*N, B);
 
-void SVD(const Mxd& M, int ds, double * sv, Mxd& UM, Mxd& VTM, char direction)
+	int LDA, K;
+	LDA = std::max(1,M);
+	K = std::min(M,N);
+
+	double * TAU = new double [K];
+	int lwork = std::max(M,N)*std::max(M,N);//The dimension of the array WORK.
+	double * work = new double [lwork];
+	int INFO;
+	///////////////////////////////////
+	dgeqrf_(&M, &N, B, &LDA, TAU, work, &lwork, &INFO);
+	if (INFO!=0) {
+		std::cout<<"QR illegal value at "<<INFO<<std::endl;
+	}
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < std::min(i+1,M); j++) {
+			R[i*K+j] = B[i*M+j];
+		}
+	}
+	dorgqr_(&M, &K, &K, B, &LDA, TAU, work, &lwork, &INFO);
+	if (INFO!=0) {
+		std::cout<<"QR Failed!\n";
+	}
+	std::copy(B, B+M*K, Q);
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] TAU;
+	delete [] work;
+}
+
+
+void QR(int r, int c, std::complex<double>* A, std::complex<double>* Q, std::complex<double>* R){
+	///////////////////////////////////
+	// INITIALIZATION
+	int M = r;
+	int N = c;
+	std::complex<double>* B = new std::complex<double> [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA, K;
+	LDA = std::max(1,M);
+	K = std::min(M,N);
+
+	std::complex<double> * TAU = new std::complex<double> [K];
+	int lwork = std::max(M,N)*std::max(M,N);//The dimension of the array WORK.
+	std::complex<double> * work = new std::complex<double> [lwork];
+	int INFO;
+	///////////////////////////////////
+	zgeqrf_(&M, &N, B, &LDA, TAU, work, &lwork, &INFO);
+	if (INFO!=0) {
+		std::cout<<"QR illegal value at "<<INFO<<std::endl;
+	}
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < std::min(i+1,M); j++) {
+			R[i*K+j] = B[i*M+j];
+		}
+	}
+	zungqr_(&M, &K, &K, B, &LDA, TAU, work, &lwork, &INFO);
+	if (INFO!=0) {
+		std::cout<<"QR Failed!\n";
+	}
+	std::copy(B, B+M*K, Q);
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] TAU;
+	delete [] work;
+}
+
+
+void SVD(int r, int c, double* A, double* U, vector<double>& S, double* V)
+{
+	///////////////////////////////////
+	// INITIALIZATION
+	char jobU = 'S'; //all M columns of U are returned in array U
+	char jobV = 'S'; //all N rows of V^T are returned in the array VT
+	int M = r;
+	int N = c;
+	double* B = new double [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
+	double * work = new double [lwork];
+	int INFO;
+	///////////////////////////////////
+	// CALL LAPACK
+	dgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, &INFO);
+	///////////////////////////////////
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
+	}
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] work;
+}
+
+
+void SVD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<double>& S, std::complex<double>* V)
+{
+	///////////////////////////////////
+	// INITIALIZATION
+	char jobU = 'S'; //all M columns of U are returned in array U
+	char jobV = 'S'; //all N rows of V^T are returned in the array VT
+
+	int M = r;
+	int N = c;
+	std::complex<double>* B = new std::complex<double> [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
+	std::complex<double> * work = new std::complex<double> [lwork];
+	double * rwork = new double [5*K];
+	int INFO;
+	///////////////////////////////////
+	// CALL LAPACK
+	zgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, rwork, &INFO);
+	///////////////////////////////////
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
+	}
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] work;
+	delete [] rwork;
+}
+
+void SVD(int r, int c, double* A, double* U, vector<double>& S, double* V, char direction)
 {
 	///////////////////////////////////
 	// INITIALIZATION
 	char jobU; //all M columns of U are returned in array U
 	char jobV; //all N rows of V^T are returned in the array VT
-	if(direction=='r')
+	if(direction=='L')
 	{
 		jobU = 'S'; //all M columns of U are returned in array U
 		jobV = 'N'; //all N rows of V^T are returned in the array VT
-	}else if(direction=='l')
+	}else if(direction=='R')
 	{
 		jobU = 'N'; //all M columns of U are returned in array U
 		jobV = 'S'; //all N rows of V^T are returned in the array VT
 	}
-	int rowN = M.rows();
-	int colN = M.cols();
-	int LDA = rowN;//The leading dimension of the array A
-	int DofS = std::min(rowN, colN);
-	if (ds<DofS) {
-		std::cout<<"Please assign more space to the singular value container!\n";
-		exit(1);
-	}
-	for (int i = 0; i < ds; i++) {
-		sv[i]=0;
-	}
+	int M = r;
+	int N = c;
+	double* B = new double [M*N];
+	std::copy(A, A+M*N, B);
 
-	UM.setZero(rowN,DofS);
-	VTM.setZero(DofS,colN);
-	int LDU = rowN;//The leading dimension of the array U
-	int LDV = DofS;//The leading dimension of the array VT
-	int lwork = std::max(4*std::min(rowN,colN)+std::max(rowN,colN),6*std::min(rowN,colN));
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
 	double * work = new double [lwork];
 	int INFO;
-	Mxd tp = M;
 	///////////////////////////////////
 	// CALL LAPACK
-	dgesvd_(&jobU, &jobV, &rowN, &colN, tp.data(), &LDA, sv, UM.data(), &LDU, VTM.data(), &LDV, work, &lwork, &INFO);
+	dgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, &INFO);
 	///////////////////////////////////
-	if (INFO!=0) {
-		std::cout<<"SVD Failed!\n";
-	}
-	///////////////////////////////////
-	// No truncation
-	if(direction=='r')
-	{
-		VTM.noalias() = UM.transpose() * M;
-	}else if(direction=='l')
-	{
-		UM.noalias() = M * VTM.transpose();
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
 	}
 	///////////////////////////////////
 	//Free Space
+	delete [] B;
 	delete [] work;
 }
 
-void SVD(const Mxd& M, int ds, double * sv, Mxd& UM, Mxd& VTM, int truncD, double& svd_error)
-{
-	///////////////////////////////////
-	// INITIALIZATION
-	char jobU = 'S'; //all M columns of U are returned in array U
-	char jobV = 'N'; //all N rows of V^T are returned in the array VT
 
-	int rowN = M.rows();
-	int colN = M.cols();
-	int LDA = rowN;//The leading dimension of the array A
-
-	int DofS;
-	if (rowN >= colN) {
-		DofS = colN;
-	}else {
-		DofS = rowN;
-	}
-
-	if (ds<DofS) {
-		std::cout<<"Please assign more space to the singular value container!\n";
-		exit(1);
-	}
-	for (int i = 0; i < ds; i++) {
-		sv[i]=0.0;
-	}
-
-	UM.setZero(rowN,DofS);
-	VTM.setZero(DofS,colN);
-
-	int LDU = rowN;//The leading dimension of the array U
-
-	int LDV = DofS;//The leading dimension of the array VT
-
-	int lwork = std::max(3*std::min(rowN,colN)+std::max(rowN,colN),5*std::min(rowN,colN));
-
-	double * work = new double [lwork];
-
-	int INFO;
-
-	Mxd tp = M;
-	Mxd temp;
-	///////////////////////////////////
-	// CALL LAPACK
-	dgesvd_(&jobU, &jobV, &rowN, &colN, tp.data(), &LDA, sv, UM.data(), &LDU, VTM.data(), &LDV, work, &lwork, &INFO);
-	///////////////////////////////////
-	if (INFO!=0) {
-		std::cout<<"SVD Failed!\n";
-	}
-	///////////////////////////////////
-	// Truncate
-	if(truncD>=DofS) // do nothing
-	{
-		VTM.noalias() = UM.transpose() * M;
-	}else if(truncD>0)
-	{
-		svd_error = 0.0;
-		for(int i = truncD; i < DofS; i++)
-		{
-			svd_error += sv[i]*sv[i];
-		}
-		temp=UM.block(0,0,M.rows(),truncD);
-		UM=temp;
-		VTM.noalias() = UM.transpose() * M;
-	}
-	///////////////////////////////////
-	//Free Space
-	delete [] work;
-}
-
-void SVD(const Mxd& M, std::vector<double>& sv, Mxd& UM, Mxd& VTM, double& svd_cutoff, bool dry_run)
-{
-  ///////////////////////////////////
-  // INITIALIZATION
-  char jobU = 'S'; //all M columns of U are returned in array U
-  char jobV = 'N'; //all N rows of V^T are returned in the array VT
-
-  int rowN = M.rows();
-  int colN = M.cols();
-  int LDA = rowN;//The leading dimension of the array A
-
-  int DofS;
-  if (rowN >= colN) {
-    DofS = colN;
-  }else {
-    DofS = rowN;
-  }
-
-  sv.resize(DofS,0);
-
-  UM.setZero(rowN,DofS);
-  VTM.setZero(DofS,colN);
-
-  int LDU = rowN;//The leading dimension of the array U
-
-  int LDV = DofS;//The leading dimension of the array VT
-
-  int lwork = std::max(3*std::min(rowN,colN)+std::max(rowN,colN),5*std::min(rowN,colN));
-
-  double * work = new double [lwork];
-
-  int INFO;
-
-  Mxd tp = M;
-  Mxd temp;
-  ///////////////////////////////////
-  // CALL LAPACK
-  dgesvd_(&jobU, &jobV, &rowN, &colN, tp.data(), &LDA, sv.data(), UM.data(), &LDU, VTM.data(), &LDV, work, &lwork, &INFO);
-  ///////////////////////////////////
-  if (INFO!=0) {
-    std::cout<<"SVD Failed!\n";
-  }
-  ///////////////////////////////////
-  // Truncate
-	double sv_all = 0.0;
-	for(int i = 0; i < DofS; i++){
-		sv_all += sv[i]*sv[i];
-	}
-  double sv_sum = 0.0;
-  int new_D = 0;
-  for(int i = 0; i < DofS; i++){
-      sv_sum += sv[i]*sv[i]/sv_all;
-      ++new_D;
-      if((1.0-sv_sum)<svd_cutoff) break;
-			// if(sv[i]/sv[0]<svd_tol) break;
-  }
-  if(dry_run){
-      // std::cout<<"#(SV) would drop from "<<DofS<<" to "<<new_D<<std::endl;
-      VTM.noalias() = UM.transpose() * M;
-  }else{
-      // std::cout<<"#(SV) droped from "<<DofS<<" to "<<new_D<<std::endl;
-      temp=UM.block(0,0,M.rows(),new_D);
-      UM=temp;
-      VTM.noalias() = UM.transpose() * M;
-			VTM /= std::sqrt(sv_sum);
-  }
-  ///////////////////////////////////
-  //Free Space
-  delete [] work;
-}
-
-
-void SVD(const Mxc& M, int ds, double * sv, Mxc& UM, Mxc& VTM, char direction)
+void SVD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<double>& S, std::complex<double>* V, char direction)
 {
 	///////////////////////////////////
 	// INITIALIZATION
 	char jobU; //all M columns of U are returned in array U
 	char jobV; //all N rows of V^T are returned in the array VT
-	if(direction=='r')
+	if(direction=='L')
 	{
 		jobU = 'S'; //all M columns of U are returned in array U
 		jobV = 'N'; //all N rows of V^T are returned in the array VT
-	}else if(direction=='l')
+	}else if(direction=='R')
 	{
 		jobU = 'N'; //all M columns of U are returned in array U
 		jobV = 'S'; //all N rows of V^T are returned in the array VT
 	}
-	int rowN = M.rows();
-	int colN = M.cols();
-	int LDA = rowN;//The leading dimension of the array A
-	int DofS = std::min(rowN, colN);
-	if (ds<DofS) {
-		std::cout<<"Please assign more space to the singular value container!\n";
-		exit(1);
-	}
-	for (int i = 0; i < ds; i++) {
-		sv[i]=0;
-	}
+	int M = r;
+	int N = c;
+	std::complex<double>* B = new std::complex<double> [M*N];
+	std::copy(A, A+M*N, B);
 
-	UM.setZero(rowN,DofS);
-	VTM.setZero(DofS,colN);
-	int LDU = rowN;//The leading dimension of the array U
-	int LDV = DofS;//The leading dimension of the array VT
-	int lwork = std::max(4*std::min(rowN,colN)+std::max(rowN,colN),6*std::min(rowN,colN));
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
 	std::complex<double> * work = new std::complex<double> [lwork];
-	double * rwork = new double [5*DofS];
+	double * rwork = new double [5*K];
 	int INFO;
-	Mxc tp = M;
 	///////////////////////////////////
 	// CALL LAPACK
-	zgesvd_(&jobU, &jobV, &rowN, &colN, tp.data(), &LDA, sv, UM.data(), &LDU, VTM.data(), &LDV, work, &lwork, rwork, &INFO);
+	zgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, rwork, &INFO);
 	///////////////////////////////////
-	if (INFO!=0) {
-		std::cout<<"SVD Failed!\n";
-	}
-	///////////////////////////////////
-	// No truncation
-	if(direction=='r')
-	{
-		VTM.noalias() = UM.adjoint() * M;
-	}else if(direction=='l')
-	{
-		UM.noalias() = M * VTM.adjoint();
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
 	}
 	///////////////////////////////////
 	//Free Space
+	delete [] B;
 	delete [] work;
 	delete [] rwork;
 }
 
-void SVD(const Mxc& M, int ds, double * sv, Mxc& UM, Mxc& VTM, int truncD, double& svd_error)
+void SVD(int r, int c, double* A, double* U, vector<double>& S, double* V, char direction, double cutoff)
 {
 	///////////////////////////////////
 	// INITIALIZATION
-	char jobU = 'S'; //all M columns of U are returned in array U
-	char jobV = 'N'; //all N rows of V^T are returned in the array VT
-
-	int rowN = M.rows();
-	int colN = M.cols();
-	int LDA = rowN;//The leading dimension of the array A
-
-	int DofS;
-	if (rowN >= colN) {
-		DofS = colN;
-	}else {
-		DofS = rowN;
+	char jobU; //all M columns of U are returned in array U
+	char jobV; //all N rows of V^T are returned in the array VT
+	if(direction=='L')
+	{
+		jobU = 'S'; //all M columns of U are returned in array U
+		jobV = 'N'; //all N rows of V^T are returned in the array VT
+	}else if(direction=='R')
+	{
+		jobU = 'N'; //all M columns of U are returned in array U
+		jobV = 'S'; //all N rows of V^T are returned in the array VT
 	}
+	int M = r;
+	int N = c;
+	double* B = new double [M*N];
+	std::copy(A, A+M*N, B);
 
-	if (ds<DofS) {
-		std::cout<<"Please assign more space to the singular value container!\n";
-		exit(1);
-	}
-	for (int i = 0; i < ds; i++) {
-		sv[i]=0.0;
-	}
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
 
-	UM.setZero(rowN,DofS);
-	VTM.setZero(DofS,colN);
-
-	int LDU = rowN;//The leading dimension of the array U
-	int LDV = DofS;//The leading dimension of the array VT
-	int lwork = std::max(3*std::min(rowN,colN)+std::max(rowN,colN),5*std::min(rowN,colN));
-	std::complex<double> * work = new std::complex<double> [lwork];
-	double * rwork = new double [5*DofS];
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
+	double * work = new double [lwork];
 	int INFO;
-	Mxc tp = M;
-	Mxc temp;
 	///////////////////////////////////
 	// CALL LAPACK
-	zgesvd_(&jobU, &jobV, &rowN, &colN, tp.data(), &LDA, sv, UM.data(), &LDU, VTM.data(), &LDV, work, &lwork, rwork, &INFO);
+	dgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, &INFO);
 	///////////////////////////////////
-	if (INFO!=0) {
-		std::cout<<"SVD Failed!\n";
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
 	}
 	///////////////////////////////////
-	// Truncate
-	if(truncD>=DofS) // do nothing
-	{
-		VTM.noalias() = UM.adjoint() * M;
-	}else if(truncD>0)
-	{
-		svd_error = 0.0;
-		for(int i = truncD; i < DofS; i++)
-		{
-			svd_error += sv[i]*sv[i];
+	double norm = 0;
+	for (int i = 0; i < K; i++) {
+		norm += S[i]*S[i];
+	}
+	double running_weight = 0;
+	int Kp = 0;
+	for (int i = 0; i < K; i++) {
+		running_weight += S[i]*S[i]/norm;
+		Kp += 1;
+		if(1-running_weight <= cutoff){
+			break;
 		}
-		temp=UM.block(0,0,M.rows(),truncD);
-		UM=temp;
-		VTM.noalias() = UM.adjoint() * M;
 	}
+	S.resize(Kp);
+	// running_weight = std::sqrt(running_weight);
+	// for (int i = 0; i < Kp; i++) {
+	// 	S[i] /= running_weight;
+	// }
 	///////////////////////////////////
 	//Free Space
+	delete [] B;
+	delete [] work;
+}
+
+
+void SVD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<double>& S, std::complex<double>* V, char direction, double cutoff)
+{
+	///////////////////////////////////
+	// INITIALIZATION
+	char jobU; //all M columns of U are returned in array U
+	char jobV; //all N rows of V^T are returned in the array VT
+	if(direction=='L')
+	{
+		jobU = 'S'; //all M columns of U are returned in array U
+		jobV = 'N'; //all N rows of V^T are returned in the array VT
+	}else if(direction=='R')
+	{
+		jobU = 'N'; //all M columns of U are returned in array U
+		jobV = 'S'; //all N rows of V^T are returned in the array VT
+	}
+	int M = r;
+	int N = c;
+	std::complex<double>* B = new std::complex<double> [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
+	std::complex<double> * work = new std::complex<double> [lwork];
+	double * rwork = new double [5*K];
+	int INFO;
+	///////////////////////////////////
+	// CALL LAPACK
+	zgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, rwork, &INFO);
+	///////////////////////////////////
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
+	}
+	///////////////////////////////////
+	double norm = 0;
+	for (int i = 0; i < K; i++) {
+		norm += S[i]*S[i];
+	}
+	double running_weight = 0;
+	int Kp = 0;
+	for (int i = 0; i < K; i++) {
+		running_weight += S[i]*S[i]/norm;
+		Kp += 1;
+		if(1-running_weight <= cutoff){
+			break;
+		}
+	}
+	S.resize(Kp);
+	// running_weight = std::sqrt(running_weight);
+	// for (int i = 0; i < Kp; i++) {
+	// 	S[i] /= running_weight;
+	// }
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
 	delete [] work;
 	delete [] rwork;
 }
 
-void SVD(const Mxc& M, std::vector<double>& sv, Mxc& UM, Mxc& VTM, double& svd_cutoff, bool dry_run)
+void SVD(int r, int c, double* A, double* U, vector<double>& S, double* V, char direction, int max_size)
 {
-  ///////////////////////////////////
-  // INITIALIZATION
-  char jobU = 'S'; //all M columns of U are returned in array U
-  char jobV = 'N'; //all N rows of V^T are returned in the array VT
-
-  int rowN = M.rows();
-  int colN = M.cols();
-  int LDA = rowN;//The leading dimension of the array A
-
-  int DofS;
-  if (rowN >= colN) {
-    DofS = colN;
-  }else {
-    DofS = rowN;
-  }
-
-  sv.resize(DofS,0);
-
-  UM.setZero(rowN,DofS);
-  VTM.setZero(DofS,colN);
-
-  int LDU = rowN;//The leading dimension of the array U
-  int LDV = DofS;//The leading dimension of the array VT
-  int lwork = std::max(3*std::min(rowN,colN)+std::max(rowN,colN),5*std::min(rowN,colN));
-  std::complex<double> * work = new std::complex<double> [lwork];
-	double * rwork = new double [5*DofS];
-  int INFO;
-  Mxc tp = M;
-  Mxc temp;
-  ///////////////////////////////////
-  // CALL LAPACK
-  zgesvd_(&jobU, &jobV, &rowN, &colN, tp.data(), &LDA, sv.data(), UM.data(), &LDU, VTM.data(), &LDV, work, &lwork, rwork, &INFO);
-  ///////////////////////////////////
-  if (INFO!=0) {
-    std::cout<<"SVD Failed!\n";
-  }
-  ///////////////////////////////////
-  // Truncate
-	double sv_all = 0.0;
-	for(int i = 0; i < DofS; i++){
-		sv_all += sv[i]*sv[i];
+	///////////////////////////////////
+	// INITIALIZATION
+	char jobU; //all M columns of U are returned in array U
+	char jobV; //all N rows of V^T are returned in the array VT
+	if(direction=='L')
+	{
+		jobU = 'S'; //all M columns of U are returned in array U
+		jobV = 'N'; //all N rows of V^T are returned in the array VT
+	}else if(direction=='R')
+	{
+		jobU = 'N'; //all M columns of U are returned in array U
+		jobV = 'S'; //all N rows of V^T are returned in the array VT
 	}
-  double sv_sum = 0.0;
-  int new_D = 0;
-  for(int i = 0; i < DofS; i++){
-      sv_sum += sv[i]*sv[i]/sv_all;
-      ++new_D;
-      if((1.0-sv_sum)<svd_cutoff) break;
-			// if(sv[i]/sv[0]<svd_tol) break;
-  }
-  if(dry_run){
-      // std::cout<<"#(SV) would drop from "<<DofS<<" to "<<new_D<<std::endl;
-      VTM.noalias() = UM.adjoint() * M;
-  }else{
-      // std::cout<<"#(SV) droped from "<<DofS<<" to "<<new_D<<std::endl;
-      temp=UM.block(0,0,M.rows(),new_D);
-      UM=temp;
-      VTM.noalias() = UM.adjoint() * M;
-			VTM /= std::sqrt(sv_sum);
-  }
-  ///////////////////////////////////
-  //Free Space
-  delete [] work;
+	int M = r;
+	int N = c;
+	double* B = new double [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
+	double * work = new double [lwork];
+	int INFO;
+	///////////////////////////////////
+	// CALL LAPACK
+	dgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, &INFO);
+	///////////////////////////////////
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
+	}
+	if(K>max_size) S.resize(max_size);
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] work;
+}
+
+
+void SVD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<double>& S, std::complex<double>* V, char direction, int max_size)
+{
+	///////////////////////////////////
+	// INITIALIZATION
+	char jobU; //all M columns of U are returned in array U
+	char jobV; //all N rows of V^T are returned in the array VT
+	if(direction=='L')
+	{
+		jobU = 'S'; //all M columns of U are returned in array U
+		jobV = 'N'; //all N rows of V^T are returned in the array VT
+	}else if(direction=='R')
+	{
+		jobU = 'N'; //all M columns of U are returned in array U
+		jobV = 'S'; //all N rows of V^T are returned in the array VT
+	}
+	int M = r;
+	int N = c;
+	std::complex<double>* B = new std::complex<double> [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = std::max(6*K+2*std::max(M,N),10*K);
+	std::complex<double> * work = new std::complex<double> [lwork];
+	double * rwork = new double [5*K];
+	int INFO;
+	///////////////////////////////////
+	// CALL LAPACK
+	zgesvd_(&jobU, &jobV, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork, rwork, &INFO);
+	///////////////////////////////////
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge!\n";
+	}
+	if(K>max_size) S.resize(max_size);
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] work;
 	delete [] rwork;
 }
 
-
-void linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	// std::cout<<"In linear solver"<<std::endl;
-	char uplo = 'U';
-	int n = ord;
-	int nrhs = 1;
-	int * ipiv = new int [2*n](); //del
-	int info;
-	dsytrs_(&uplo,&n,&nrhs,A.data(),&n,ipiv,vec.data(),&n,&info);
-	if(info!=0)
-	{
-		std::cout<<"dsytrs error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-		abort();
-	}
-	// for(int i = 0; i < n; ++i)
-	// {
-	// 	if(std::isnan(vec[i]))
-	// 	{
-	// 		std::cout<<"dstrs error! Invalid solution!"<<std::endl;
-	// 		abort();
-	// 	}
-	// }
-	// std::cout<<"Out linear solver"<<std::endl;
-	delete [] ipiv;
-}
-
-void indef_linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	// std::cout<<"In linear solver"<<std::endl;
-	char uplo = 'L';
-	int nn = ord;
-	int nrhs = 1;
-	int * ipiv = new int [nn]();
-	int info;
-	int lwork = 16*nn;
-	double* work = new double [lwork];
-	dsysv_(&uplo,&nn,&nrhs,A.data(),&nn,ipiv,vec.data(),&nn,work,&lwork,&info);
-	if(info!=0)
-	{
-		std::cout<<"dsysv error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-		abort();
-	}
-	// for(int i = 0; i < n; ++i)
-	// {
-	// 	if(std::isnan(vec[i]))
-	// 	{
-	// 		std::cout<<"dsysv error! Invalid solution!"<<std::endl;
-	// 		abort();
-	// 	}
-	// }
-	delete [] work;
-	delete [] ipiv;
-	// std::cout<<"Out linear solver"<<std::endl;
-}
-
-
-int def_linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	// std::cout<<"In linear solver"<<std::endl;
-	char uplo = 'U';
-	int n = ord;
-	int nrhs = 1;
-	int info;
-	dposv_(&uplo,&n,&nrhs,A.data(),&n,vec.data(),&n,&info);
-	if(info!=0)
-	{
-		if(info<0)
-		{
-			std::cout<<"dposv error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-			abort();
-		}
-		if(info>0)
-		{
-			 std::cout<<"dposv error! Matrix is exactly singular!"<<std::endl;
-			 return -1;
-		}
-	}
-	// for(int i = 0; i < n; ++i)
-	// {
-	// 	if(std::isnan(vec[i]))
-	// 	{
-	// 		std::cout<<"dstrs error! Invalid solution!"<<std::endl;
-	// 		abort();
-	// 	}
-	// }
-	// std::cout<<"Out linear solver"<<std::endl;
-	return 0;
-}
-
-void geindef_linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	// std::cout<<"In linear solver"<<std::endl;
-	int nn = ord;
-	int nrhs = 1;
-	int * ipiv = new int [nn]();
-	int info;
-	dgesv_(&nn,&nrhs,A.data(),&nn,ipiv,vec.data(),&nn,&info);
-	if(info!=0)
-	{
-		std::cout<<"dgesv error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-		abort();
-	}
-	// for(int i = 0; i < n; ++i)
-	// {
-	// 	if(std::isnan(vec[i]))
-	// 	{
-	// 		std::cout<<"dsysv error! Invalid solution!"<<std::endl;
-	// 		abort();
-	// 	}
-	// }
-	delete [] ipiv;
-}
-
-int sdef_linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	// std::cout<<"In linear solver"<<std::endl;
-	char uplo = 'U';
-	int n = ord;
-	int nrhs = 1;
-	int info;
-	// Mxd x = vec;
-	double* x = new double [n];
-	for(int i = 0; i < n; ++i)
-	{
-		x[i] = vec.data()[i];
-	}
-	double* work = new double [n];
-	float* swork = new float [n*(n+nrhs)];
-	int iter;
-	dsposv_(&uplo,&n,&nrhs,A.data(),&n,x,&n,vec.data(),&n,work,swork,&iter,&info);
-	if(info!=0)
-	{
-		if(info<0)
-		{
-			std::cout<<"dsposv error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-			abort();
-		}
-		if(info>0)
-		{
-			 std::cout<<"dsposv error! Matrix is exactly singular!"<<std::endl;
-			 return -1;
-		}
-	}
-	delete [] x;
-	delete [] work;
-	delete [] swork;
-	return 0;
-}
-
-void sindef_linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	char fact = 'N';
-	char uplo = 'U';
-	int  n = ord;
-	int nrhs = 1;
-	double* af = new double [n*n];
-	int* ipiv = new int [n];
-	Mxd B = vec;
-	double rcond;
-	double ferr;
-	double berr;
-	int lwork = std::max (1,12*n);
-	double* work = new double [lwork];
-	int* iwork = new int [n];
-	int info;
-
-	dsysvx_(&fact,&uplo,&n,&nrhs,A.data(),&n,af,&n,ipiv,B.data(),&n,vec.data(),&n,&rcond,&ferr,&berr,work,&lwork,iwork,&info);
-
-	if(info!=0)
-	{
-		if(info<0)
-		{
-			std::cout<<"dsysvx error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-			abort();
-		}
-		if(info>0&&info<n)
-		{
-			std::cout<<"dsysvx error! Matrix is exactly singular!"<<std::endl;
-			abort();
-		}
-		if(info==n+1)
-		{
-			std::cout<<"Condition number smaller than eps!"<<std::endl;
-		}
-	}
-	// std::cout<<"Condition Number: "<<rcond<<std::endl;
-	delete [] af;
-	delete [] ipiv;
-	delete [] work;
-	delete [] iwork;
-}
-
-void sxdef_linearSolver(int ord, Mxd& A, Mxd& vec)
-{
-	char fact = 'N';
-	char uplo = 'U';
-	int  n = ord;
-	int nrhs = 1;
-	double* af = new double [n*n];
-	char equed;
-	double* s = new double [n];
-	int* ipiv = new int [n];
-	Mxd B = vec;
-	double rcond;
-	double ferr;
-	double berr;
-	double* work = new double [3*n];
-	int* iwork = new int [n];
-	int info;
-
-	dposvx_(&fact,&uplo,&n,&nrhs,A.data(),&n,af,&n,&equed,s,B.data(),&n,vec.data(),&n,&rcond,&ferr,&berr,work,iwork,&info);
-	if(info!=0)
-	{
-		if(info<0)
-		{
-			std::cout<<"dposvx error! The "<<-info<<"-th argument had an illegal value!"<<std::endl;
-			abort();
-		}
-		if(info>0&&info<n)
-		{
-			std::cout<<"dposvx error! Matrix is exactly singular!"<<std::endl;
-			abort();
-		}
-		if(info==n+1)
-		{
-			std::cout<<"Condition number smaller than eps!"<<std::endl;
-		}
-	}
-	// std::cout<<"Condition Number: "<<rcond<<std::endl;
-}
 
 #endif

@@ -1,1003 +1,646 @@
-#ifndef My_TENSORTRAIN_CLASS
-#define My_TENSORTRAIN_CLASS
+#ifndef DENSE_TENSORTRAIN_CLASS
+#define DENSE_TENSORTRAIN_CLASS
 
 #include "tt.h"
 
-template <typename T>
-TensorTrain<T>::TensorTrain() {
+//---------------------------------------------------------------------------
+// Constructors
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain() {
   tensors_allocated = false;
-  index_size = 0;
-  phy_size = 0;
-  TTID = unsigned(1e8*drand48()+1e5*drand48());
-}
-template TensorTrain<double>::TensorTrain();
-template TensorTrain< std::complex<double> >::TensorTrain();
+  length  = 0;
+  phy_dim = 0;
+  center  = -1;
+  _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
 
-template <typename T>
-TensorTrain<T>::TensorTrain(const TensorTrain<T>& other){
+}
+template dTensorTrain<double, 1>::dTensorTrain();
+template dTensorTrain<double, 2>::dTensorTrain();
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain();
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain();
+
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain(abstract_sites* s, unsigned bd){
+  _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
   tensors_allocated = false;
-  TTID = unsigned(1e8*drand48()+1e6*drand48()+1e4*drand48()+1e2*drand48());
+  setLength((*s).N());
+  setPhysicalDim((*s).phy_dim());
+  setBondDim(bd);
+  allocateTensors();
+  setZero();
+  center  = -1;
+}
+template dTensorTrain<double, 1>::dTensorTrain(abstract_sites* s, unsigned bd);
+template dTensorTrain<double, 2>::dTensorTrain(abstract_sites* s, unsigned bd);
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain(abstract_sites* s, unsigned bd);
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain(abstract_sites* s, unsigned bd);
+
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain(abstract_sites* s, str_vec product_string){
+  _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
+  tensors_allocated = false;
+  setLength((*s).N());
+  setPhysicalDim((*s).phy_dim());
+  setBondDim(1);
+  uint_vec product_state = (*s).product_state(product_string);
+  allocateTensors(product_state.data());
+  center  = -1;
+}
+template dTensorTrain<double, 1>::dTensorTrain(abstract_sites* s, str_vec product_string);
+template dTensorTrain<double, 2>::dTensorTrain(abstract_sites* s, str_vec product_string);
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain(abstract_sites* s, str_vec product_string);
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain(abstract_sites* s, str_vec product_string);
+
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain(unsigned l, unsigned pd, unsigned bd){
+  _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
+  tensors_allocated = false;
+  setLength(l);
+  setPhysicalDim(pd);
+  setBondDim(bd);
+  allocateTensors();
+  setZero();
+  center  = -1;
+}
+template dTensorTrain<double, 1>::dTensorTrain(unsigned l, unsigned pd, unsigned bd);
+template dTensorTrain<double, 2>::dTensorTrain(unsigned l, unsigned pd, unsigned bd);
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain(unsigned l, unsigned pd, unsigned bd);
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain(unsigned l, unsigned pd, unsigned bd);
+
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain(const dTensorTrain<T, N>& other){
+  tensors_allocated = false;
   if(other.tensors_allocated){
+    _id = other._id;
     setLength(other.length);
-    setIndexSize(other.index_size);
-    setPhysicalSize(other.phy_size);
+    setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
-    allocateTensors();
-    for (int i = 0; i < length; i++){
-      for (int j = 0; j < index_size; j++) {
-        M[i][j] = other.M[i][j];
-      }
-    }
+    center = other.center;
+    A.clear();
+    A = other.A;
     tensors_allocated = true;
   }
 }
-template TensorTrain<double>::TensorTrain(const TensorTrain<double>& other);
-template TensorTrain< std::complex<double> >::TensorTrain(const TensorTrain< std::complex<double> >& other);
+template dTensorTrain<double, 1>::dTensorTrain(const dTensorTrain<double, 1>& other);
+template dTensorTrain<double, 2>::dTensorTrain(const dTensorTrain<double, 2>& other);
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain(const dTensorTrain< std::complex<double>, 1>& other);
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain(const dTensorTrain< std::complex<double>, 2>& other);
 
-template <typename T>
-TensorTrain<T>::TensorTrain(TensorTrain<T>&& other){
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain(dTensorTrain<T, N>&& other){
   tensors_allocated = false;
-  TTID = unsigned(1e8*drand48()+1e5*drand48());
   if(other.tensors_allocated){
+    _id = other._id;
     setLength(other.length);
-    setIndexSize(other.index_size);
-    setPhysicalSize(other.phy_size);
+    setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
-    allocateTensors();
-    M = other.M;
-    other.M = nullptr;
+    center = other.center;
+    A.clear();
+    A = std::move(other.A);
     tensors_allocated = true;
     other.tensors_allocated = false;
   }
 }
-template TensorTrain<double>::TensorTrain(TensorTrain<double>&& other);
-template TensorTrain< std::complex<double> >::TensorTrain(TensorTrain< std::complex<double> >&& other);
+template dTensorTrain<double, 1>::dTensorTrain(dTensorTrain<double, 1>&& other);
+template dTensorTrain<double, 2>::dTensorTrain(dTensorTrain<double, 2>&& other);
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain(dTensorTrain< std::complex<double>, 1>&& other);
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain(dTensorTrain< std::complex<double>, 2>&& other);
 
-template <typename T>
-void TensorTrain<T>::setLength(int L) {
-  if(!tensors_allocated) {
-    length = L;
-    bond_dims.resize(length+1);
-  }
-  assert(L>1);
+
+//---------------------------------------------------------------------------
+// Set shapes
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::setLength(int L) {
+  assert(L>2);
+  assert(!tensors_allocated);
+  length = L;
+  bond_dims.resize(length+1);
 }
-template void TensorTrain<double>::setLength(int L);
-template void TensorTrain< std::complex<double> >::setLength(int L);
+template void dTensorTrain<double, 1>::setLength(int L);
+template void dTensorTrain<double, 2>::setLength(int L);
+template void dTensorTrain<std::complex<double>, 1>::setLength(int L);
+template void dTensorTrain<std::complex<double>, 2>::setLength(int L);
 
-template <typename T>
-void TensorTrain<T>::setIndexSize(int s){
-  if(!tensors_allocated) index_size = s;
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::setPhysicalDim(int s){
   assert(s>0);
+  assert(!tensors_allocated);
+  phy_dim = s;
 }
-template void TensorTrain<double>::setIndexSize(int s);
-template void TensorTrain< std::complex<double> >::setIndexSize(int s);
+template void dTensorTrain<double, 1>::setPhysicalDim(int s);
+template void dTensorTrain<double, 2>::setPhysicalDim(int s);
+template void dTensorTrain<std::complex<double>, 1>::setPhysicalDim(int s);
+template void dTensorTrain<std::complex<double>, 2>::setPhysicalDim(int s);
 
-template <typename T>
-void TensorTrain<T>::setPhysicalSize(int s){
-  if(!tensors_allocated) phy_size = s;
-  assert(s>0);
-}
-template void TensorTrain<double>::setPhysicalSize(int s);
-template void TensorTrain< std::complex<double> >::setPhysicalSize(int s);
 
-template <typename T>
-void TensorTrain<T>::setBondDim(int bd){
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::setBondDim(int bd){
   assert(bd>0);
   bond_dims.at(0) = 1;
-  for (int i = 1; i < length; i++) bond_dims.at(i) = bd;
+  for (size_t i = 1; i < length; i++) bond_dims.at(i) = bd;
   bond_dims.at(length) = 1;
 }
-template void TensorTrain<double>::setBondDim(int bd);
-template void TensorTrain< std::complex<double> >::setBondDim(int bd);
+template void dTensorTrain<double, 1>::setBondDim(int bd);
+template void dTensorTrain<double, 2>::setBondDim(int bd);
+template void dTensorTrain<std::complex<double>, 1>::setBondDim(int bd);
+template void dTensorTrain<std::complex<double>, 2>::setBondDim(int bd);
 
-template <typename T>
-void TensorTrain<T>::setBondDims(std::vector<int> bds){
-  for (int i = 0; i < length+1; i++) {
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::setBondDims(const uint_vec& bds){
+  for (size_t i = 0; i < length+1; i++) {
     bond_dims[i] = bds.at(i);
     assert(bond_dims[i] > 0);
   }
   assert(bond_dims[0]==1 && bond_dims[length]==1);
 }
-template void TensorTrain<double>::setBondDims(std::vector<int> bds);
-template void TensorTrain< std::complex<double> >::setBondDims(std::vector<int> bds);
+template void dTensorTrain<double, 1>::setBondDims(const uint_vec& bds);
+template void dTensorTrain<double, 2>::setBondDims(const uint_vec& bds);
+template void dTensorTrain<std::complex<double>, 1>::setBondDims(const uint_vec& bds);
+template void dTensorTrain<std::complex<double>, 2>::setBondDims(const uint_vec& bds);
 
-template <typename T>
-void TensorTrain<T>::allocateTensors(){
+
+//---------------------------------------------------------------------------
+// Tensor data management
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
   if(!tensors_allocated) {
-    M = new Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>* [length];
-    for (int i = 0; i < length; i++) {
-      M[i] = new Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> [index_size];
-      for (int j = 0; j < index_size; j++) {
-        M[i][j].setZero(bond_dims[i],bond_dims[i+1]);
+    string Link_name_pref = "ID"+to_string(_id)+"Link";
+    string Site_name_pref = "Site";
+    if(N==1){
+      // MPS
+      for (size_t i = 0; i < length; i++) {
+        string left_link_name  = Link_name_pref+to_string(i);
+        string right_link_name = Link_name_pref+to_string(i+1);
+        string site_name       = Site_name_pref+to_string(i);
+        A.push_back(
+          std::move(
+            dtensor<T>(
+              {bond_dims[i], phy_dim, bond_dims[i+1]},
+              {left_link_name, site_name, right_link_name},
+              {Link, Site, Link},
+              {0,0,0})
+          )
+        );
+      }
+      // Set product state
+      if(product_state!=nullptr){
+        for (size_t i = 0; i < length; i++) {
+          A[i].setZero();
+          unsigned s0 = A[i]._T.stride(0);
+          unsigned s1 = A[i]._T.stride(1);
+          unsigned s2 = A[i]._T.stride(2);
+          for (size_t j = 0; j < A[i].size; j++) {
+            unsigned phy_idx = unsigned(j/s1)%phy_dim;
+            if(phy_idx==product_state[i]){
+              A[i]._T.data()[j] = 1.0;
+            }
+          }
+        }
+      }
+    }
+    if(N==2){
+      // MPO
+      for (size_t i = 0; i < length; i++) {
+        string left_link_name  = Link_name_pref+to_string(i);
+        string right_link_name = Link_name_pref+to_string(i+1);
+        string site_name       = Site_name_pref+to_string(i);
+        A.push_back(
+          std::move(
+            dtensor<T>(
+              {bond_dims[i], phy_dim, phy_dim, bond_dims[i+1]},
+              {left_link_name, site_name, site_name, right_link_name},
+              {Link, Site, Site, Link},
+              {0,0,1,0})
+          )
+        );
       }
     }
     tensors_allocated = true;
   }
 }
-template void TensorTrain<double>::allocateTensors();
-template void TensorTrain< std::complex<double> >::allocateTensors();
+template void dTensorTrain<double, 1>::allocateTensors(unsigned* product_state);
+template void dTensorTrain<double, 2>::allocateTensors(unsigned* product_state);
+template void dTensorTrain<std::complex<double>, 1>::allocateTensors(unsigned* product_state);
+template void dTensorTrain<std::complex<double>, 2>::allocateTensors(unsigned* product_state);
 
-template <typename T>
-void TensorTrain<T>::freeTensors(){
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::freeTensors(){
   if(tensors_allocated) {
-    if(M!=nullptr){
-      for (int i = 0; i < length; i++) delete [] M[i];
-      delete [] M;
-    }
+    A.clear();
     tensors_allocated = false;
   }
 }
-template void TensorTrain<double>::freeTensors();
-template void TensorTrain< std::complex<double> >::freeTensors();
+template void dTensorTrain<double, 1>::freeTensors();
+template void dTensorTrain<double, 2>::freeTensors();
+template void dTensorTrain<std::complex<double>, 1>::freeTensors();
+template void dTensorTrain<std::complex<double>, 2>::freeTensors();
 
-template <typename T>
-TensorTrain<T>::~TensorTrain(){
-  freeTensors();
-}
-template TensorTrain<double>::~TensorTrain();
-template TensorTrain< std::complex<double> >::~TensorTrain();
 
-template <typename T>
-void TensorTrain<T>::setZero(){
+//---------------------------------------------------------------------------
+// Set tensors values
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::setZero(){
   if(tensors_allocated) {
-    for (int i = 0; i < length; i++) {
-      for (int j = 0; j < index_size; j++) {
-        M[i][j].setZero(bond_dims[i],bond_dims[i+1]);
-      }
+    for (size_t i = 0; i < length; i++) {
+      A[i].setZero();
     }
   }
 }
-template void TensorTrain<double>::setZero();
-template void TensorTrain< std::complex<double> >::setZero();
+template void dTensorTrain<double, 1>::setZero();
+template void dTensorTrain<double, 2>::setZero();
+template void dTensorTrain<std::complex<double>, 1>::setZero();
+template void dTensorTrain<std::complex<double>, 2>::setZero();
 
-template <typename T>
-void TensorTrain<T>::setZero(int bd){
-  setBondDim(bd);
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::setRandom(){
   if(tensors_allocated) {
-    for (int i = 0; i < length; i++) {
-      for (int j = 0; j < index_size; j++) {
-        M[i][j].setZero(bond_dims[i],bond_dims[i+1]);
-      }
+    for (size_t i = 0; i < length; i++) {
+      A[i].setRandom();
     }
   }
 }
-template void TensorTrain<double>::setZero(int bd);
-template void TensorTrain< std::complex<double> >::setZero(int bd);
+template void dTensorTrain<double, 1>::setRandom();
+template void dTensorTrain<double, 2>::setRandom();
+template void dTensorTrain<std::complex<double>, 1>::setRandom();
+template void dTensorTrain<std::complex<double>, 2>::setRandom();
 
-template <typename T>
-void TensorTrain<T>::setRandom(){
-  if(tensors_allocated) {
-    for (int i = 0; i < length; i++) {
-      for (int j = 0; j < index_size; j++) {
-        M[i][j].setRandom(bond_dims[i],bond_dims[i+1]);
-      }
-    }
-  }
-}
-template void TensorTrain<double>::setRandom();
-template void TensorTrain< std::complex<double> >::setRandom();
 
-template <typename T>
-void TensorTrain<T>::setRandom(int bd){
-  setBondDim(bd);
-  if(tensors_allocated) {
-    for (int i = 0; i < length; i++) {
-      for (int j = 0; j < index_size; j++) {
-        M[i][j].setRandom(bond_dims[i],bond_dims[i+1]);
-      }
-    }
-  }
-}
-template void TensorTrain<double>::setRandom(int bd);
-template void TensorTrain< std::complex<double> >::setRandom(int bd);
-
-template <typename T>
-void TensorTrain<T>::print(int level){
-  std::cout << length << " " << index_size << " " << phy_size << '\n';
+//---------------------------------------------------------------------------
+// Print dTensorTrain information
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::print(int level){
+  std::cout<<"---------------------------------------------------"<<'\n';
+  std::cout << "length = " << length << ",  phy_dim = " << phy_dim << ", center = " << center << ", id = " << _id << '\n';
+  std::cout << "bond_dims vector = " << " ";
   for(auto v : bond_dims) std::cout << v << " ";
   std::cout<<std::endl;
-  if(level>0){
-    for (int i = 0; i < length; i++) {
-      for (int j = 0; j < index_size; j++) {
-        std::cout << M[i][j] << '\n';
+  if(level>=1){
+    std::cout << "Information of individual tensors:" << '\n';
+    if(tensors_allocated){
+      for (size_t i = 0; i < length; i++) {
+        A[i].print(std::max(level-1,0));
       }
-      std::cout << '\n';
     }
   }
+  std::cout<<"---------------------------------------------------"<<'\n';
 }
-template void TensorTrain<double>::print(int level);
-template void TensorTrain< std::complex<double> >::print(int level);
+template void dTensorTrain<double, 1>::print(int level);
+template void dTensorTrain<double, 2>::print(int level);
+template void dTensorTrain<std::complex<double>, 1>::print(int level);
+template void dTensorTrain<std::complex<double>, 2>::print(int level);
 
-template <typename T>
-TensorTrain<T>& TensorTrain<T>::operator = (const TensorTrain<T>& other){
-  assert(other.tensors_allocated);
-  if(this!=&other){
+//---------------------------------------------------------------------------
+// Basic arithmetic operations
+template <typename T, unsigned N>
+dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (const dTensorTrain<T, N>& other){
+  if(this!=&other && other.tensors_allocated){
+    _id = other._id;
     freeTensors();
     setLength(other.length);
-    setIndexSize(other.index_size);
-    setPhysicalSize(other.phy_size);
+    setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
-    allocateTensors();
-    for (int i = 0; i < length; i++){
-      for (int j = 0; j < index_size; j++) {
-        M[i][j] = other.M[i][j];
-      }
-    }
+    A = other.A;
+    tensors_allocated = true;
   }
   return *this;
 }
-template TensorTrain<double>& TensorTrain<double>::operator = (const TensorTrain<double>& other);
-template TensorTrain< std::complex<double> >& TensorTrain< std::complex<double> >::operator = (const TensorTrain< std::complex<double> >& other);
+template dTensorTrain<double, 1>& dTensorTrain<double, 1>::operator = (const dTensorTrain<double, 1>& other);
+template dTensorTrain<double, 2>& dTensorTrain<double, 2>::operator = (const dTensorTrain<double, 2>& other);
+template dTensorTrain<std::complex<double>, 1>& dTensorTrain<std::complex<double>, 1>::operator = (const dTensorTrain<std::complex<double>, 1>& other);
+template dTensorTrain<std::complex<double>, 2>& dTensorTrain<std::complex<double>, 2>::operator = (const dTensorTrain<std::complex<double>, 2>& other);
 
-template <typename T>
-TensorTrain<T>& TensorTrain<T>::operator = (TensorTrain<T>&& other){
-  assert(other.tensors_allocated);
-  if(this!=&other){
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (dTensorTrain<T, N>&& other){
+  if(this!=&other && other.tensors_allocated){
+    _id = other._id;
     freeTensors();
     setLength(other.length);
-    setIndexSize(other.index_size);
-    setPhysicalSize(other.phy_size);
+    setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
-    M = other.M;
-    other.M = nullptr;
+    A = std::move(other.A);
     tensors_allocated = true;
     other.tensors_allocated = false;
   }
   return *this;
 }
-template TensorTrain<double>& TensorTrain<double>::operator = (TensorTrain<double>&& other);
-template TensorTrain< std::complex<double> >& TensorTrain< std::complex<double> >::operator = (TensorTrain< std::complex<double> >&& other);
+template dTensorTrain<double, 1>& dTensorTrain<double, 1>::operator = (dTensorTrain<double, 1>&& other);
+template dTensorTrain<double, 2>& dTensorTrain<double, 2>::operator = (dTensorTrain<double, 2>&& other);
+template dTensorTrain<std::complex<double>, 1>& dTensorTrain<std::complex<double>, 1>::operator = (dTensorTrain<std::complex<double>, 1>&& other);
+template dTensorTrain<std::complex<double>, 2>& dTensorTrain<std::complex<double>, 2>::operator = (dTensorTrain<std::complex<double>, 2>&& other);
 
-template <typename T>
-TensorTrain<T>& TensorTrain<T>::operator += (const TensorTrain<T>& A){
-  assert(tensors_allocated && A.tensors_allocated);
-  TensorTrain<T> t;
-  t.setLength(length);
-  t.setIndexSize(index_size);
-  t.setPhysicalSize(phy_size);
-  t.bond_dims[0] = 1;
-  for (int i = 1; i < length; i++){
-    t.bond_dims[i] = bond_dims[i] + A.bond_dims[i];
-  }
-  t.bond_dims[length] = 1;
-  t.allocateTensors();
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    t.M[0][j].block(0,0,1,bond_dims[1]) = M[0][j];
-    t.M[0][j].block(0,bond_dims[1],1,A.bond_dims[1]) = A.M[0][j];
-    // Last site
-    t.M[length-1][j].block(0,0,bond_dims[length-1],1) = M[length-1][j];
-    t.M[length-1][j].block(bond_dims[length-1],0,A.bond_dims[length-1],1) = A.M[length-1][j];
-  }
-  for (int i = 1; i < length-1; i++){
-    for (int j = 0; j < index_size; j++) {
-      t.M[i][j].block(0,0,bond_dims[i],bond_dims[i+1]) = M[i][j];
-      t.M[i][j].block(bond_dims[i],bond_dims[i+1],A.bond_dims[i],A.bond_dims[i+1]) = A.M[i][j];
-    }
-  }
-  *this = t;
-  return *this;
-}
-template TensorTrain<double>& TensorTrain<double>::operator += (const TensorTrain<double>& A);
-template TensorTrain< std::complex<double> >& TensorTrain< std::complex<double> >::operator += (const TensorTrain< std::complex<double> >& A);
 
-template <typename T>
-TensorTrain<T>& TensorTrain<T>::operator -= (const TensorTrain<T>& A){
-  assert(tensors_allocated && A.tensors_allocated);
-  TensorTrain<T> t;
-  t.setLength(length);
-  t.setIndexSize(index_size);
-  t.setPhysicalSize(phy_size);
-  t.bond_dims[0] = 1;
-  for (int i = 1; i < length; i++){
-    t.bond_dims[i] = this->bond_dims[i] + A.bond_dims[i];
-  }
-  t.bond_dims[length] = 1;
-  t.allocateTensors();
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    t.M[0][j].block(0,0,1,bond_dims[1]) = M[0][j];
-    t.M[0][j].block(0,bond_dims[1],1,A.bond_dims[1]) = -A.M[0][j];
-    // Last site
-    t.M[length-1][j].block(0,0,bond_dims[length-1],1) = M[length-1][j];
-    t.M[length-1][j].block(bond_dims[length-1],0,A.bond_dims[length-1],1) = A.M[length-1][j];
-  }
-  for (int i = 1; i < length-1; i++){
-    for (int j = 0; j < index_size; j++) {
-      t.M[i][j].block(0,0,bond_dims[i],bond_dims[i+1]) = M[i][j];
-      t.M[i][j].block(bond_dims[i],bond_dims[i+1],A.bond_dims[i],A.bond_dims[i+1]) = A.M[i][j];
-    }
-  }
-  *this = t;
-  return *this;
-}
-template TensorTrain<double>& TensorTrain<double>::operator -= (const TensorTrain<double>& A);
-template TensorTrain< std::complex<double> >& TensorTrain< std::complex<double> >::operator -= (const TensorTrain< std::complex<double> >& A);
-
-template <typename T>
-TensorTrain<T> TensorTrain<T>::operator + (const TensorTrain<T>& A){
-  assert(tensors_allocated && A.tensors_allocated);
-  TensorTrain<T> t;
-  t.setLength(length);
-  t.setIndexSize(index_size);
-  t.setPhysicalSize(phy_size);
-  t.bond_dims[0] = 1;
-  for (int i = 1; i < length; i++){
-    t.bond_dims[i] = this->bond_dims[i] + A.bond_dims[i];
-  }
-  t.bond_dims[length] = 1;
-  t.allocateTensors();
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    t.M[0][j].block(0,0,1,bond_dims[1]) = M[0][j];
-    t.M[0][j].block(0,bond_dims[1],1,A.bond_dims[1]) = A.M[0][j];
-    // Last site
-    t.M[length-1][j].block(0,0,bond_dims[length-1],1) = M[length-1][j];
-    t.M[length-1][j].block(bond_dims[length-1],0,A.bond_dims[length-1],1) = A.M[length-1][j];
-  }
-  for (int i = 1; i < length-1; i++){
-    for (int j = 0; j < index_size; j++) {
-      t.M[i][j].block(0,0,bond_dims[i],bond_dims[i+1]) = M[i][j];
-      t.M[i][j].block(bond_dims[i],bond_dims[i+1],A.bond_dims[i],A.bond_dims[i+1]) = A.M[i][j];
-    }
-  }
-  return t;
-}
-template TensorTrain<double> TensorTrain<double>::operator + (const TensorTrain<double>& A);
-template TensorTrain< std::complex<double> > TensorTrain< std::complex<double> >::operator + (const TensorTrain< std::complex<double> >& A);
-
-template <typename T>
-TensorTrain<T> TensorTrain<T>::operator - (const TensorTrain<T>& A){
-  assert(tensors_allocated && A.tensors_allocated);
-  TensorTrain<T> t;
-  t.setLength(length);
-  t.setIndexSize(index_size);
-  t.setPhysicalSize(phy_size);
-  t.bond_dims[0] = 1;
-  for (int i = 1; i < length; i++){
-    t.bond_dims[i] = this->bond_dims[i] + A.bond_dims[i];
-  }
-  t.bond_dims[length] = 1;
-  t.allocateTensors();
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    t.M[0][j].block(0,0,1,bond_dims[1]) = M[0][j];
-    t.M[0][j].block(0,bond_dims[1],1,A.bond_dims[1]) = -A.M[0][j];
-    // Last site
-    t.M[length-1][j].block(0,0,bond_dims[length-1],1) = M[length-1][j];
-    t.M[length-1][j].block(bond_dims[length-1],0,A.bond_dims[length-1],1) = A.M[length-1][j];
-  }
-  for (int i = 1; i < length-1; i++){
-    for (int j = 0; j < index_size; j++) {
-      t.M[i][j].block(0,0,bond_dims[i],bond_dims[i+1]) = M[i][j];
-      t.M[i][j].block(bond_dims[i],bond_dims[i+1],A.bond_dims[i],A.bond_dims[i+1]) = A.M[i][j];
-    }
-  }
-  return t;
-}
-template TensorTrain<double> TensorTrain<double>::operator - (const TensorTrain<double>& A);
-template TensorTrain< std::complex<double> > TensorTrain< std::complex<double> >::operator - (const TensorTrain< std::complex<double> >& A);
-
-template <typename T>
-TensorTrain<T>& TensorTrain<T>::operator *= (const T& c){
+template <typename T, unsigned N>
+dTensorTrain<T, N>& dTensorTrain<T, N>::operator *= (const T c){
   assert(tensors_allocated);
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    M[0][j] *= c;
-  }
+  A[0] *= c;
   return *this;
 }
-template TensorTrain<double>& TensorTrain<double>::operator *= (const double& c);
-template TensorTrain< std::complex<double> >& TensorTrain< std::complex<double> >::operator *= (const  std::complex<double> & c);
+template dTensorTrain<double, 1>& dTensorTrain<double, 1>::operator *= (const double c);
+template dTensorTrain<double, 2>& dTensorTrain<double, 2>::operator *= (const double c);
+template dTensorTrain<std::complex<double>, 1>& dTensorTrain<std::complex<double>, 1>::operator *= (const  std::complex<double> c);
+template dTensorTrain<std::complex<double>, 2>& dTensorTrain<std::complex<double>, 2>::operator *= (const  std::complex<double> c);
 
-template <typename T>
-TensorTrain<T>& TensorTrain<T>::operator /= (const T& c){
+
+template <typename T, unsigned N>
+dTensorTrain<T, N>& dTensorTrain<T, N>::operator /= (const T c){
   assert(tensors_allocated);
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    M[0][j] /= c;
-  }
+  A[0] /= c;
   return *this;
 }
-template TensorTrain<double>& TensorTrain<double>::operator /= (const double& c);
-template TensorTrain< std::complex<double> >& TensorTrain< std::complex<double> >::operator /= (const  std::complex<double> & c);
+template dTensorTrain<double, 1>& dTensorTrain<double, 1>::operator /= (const double c);
+template dTensorTrain<double, 2>& dTensorTrain<double, 2>::operator /= (const double c);
+template dTensorTrain< std::complex<double>, 1>& dTensorTrain<std::complex<double>, 1>::operator /= (const  std::complex<double> c);
+template dTensorTrain< std::complex<double>, 2>& dTensorTrain<std::complex<double>, 2>::operator /= (const  std::complex<double> c);
 
-template <typename T>
-TensorTrain<T> TensorTrain<T>::operator * (const T& c){
+
+template <typename T, unsigned N>
+dTensorTrain<T, N> dTensorTrain<T, N>::operator * (const T c) const{
   assert(tensors_allocated);
-  TensorTrain<T> t;
+  dTensorTrain<T, N> t;
   t = *this;
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    t.M[0][j] *= c;
-  }
+  t.A[0] *= c;
   return t;
 }
-template TensorTrain<double> TensorTrain<double>::operator * (const double& c);
-template TensorTrain< std::complex<double> > TensorTrain< std::complex<double> >::operator * (const  std::complex<double> & c);
+template dTensorTrain<double, 1> dTensorTrain<double, 1>::operator * (const double c) const;
+template dTensorTrain<double, 2> dTensorTrain<double, 2>::operator * (const double c) const;
+template dTensorTrain< std::complex<double>, 1> dTensorTrain<std::complex<double>, 1>::operator * (const  std::complex<double> c) const;
+template dTensorTrain< std::complex<double>, 2 > dTensorTrain<std::complex<double>, 2>::operator * (const  std::complex<double> c) const;
 
-template <typename T>
-TensorTrain<T> TensorTrain<T>::operator / (const T& c){
+
+template <typename T, unsigned N>
+dTensorTrain<T, N> dTensorTrain<T, N>::operator / (const T c) const{
   assert(tensors_allocated);
-
-  TensorTrain<T> t;
+  dTensorTrain<T, N> t;
   t = *this;
-  for (int j = 0; j < index_size; j++) {
-    // First site
-    t.M[0][j] /= c;
-  }
+  t.A[0] /= c;
   return t;
 }
-template TensorTrain<double> TensorTrain<double>::operator / (const double& c);
-template TensorTrain< std::complex<double> > TensorTrain< std::complex<double> >::operator / (const  std::complex<double> & c);
+template dTensorTrain<double, 1> dTensorTrain<double, 1>::operator / (const double c) const;
+template dTensorTrain<double, 2> dTensorTrain<double, 2>::operator / (const double c) const;
+template dTensorTrain< std::complex<double>, 1> dTensorTrain<std::complex<double>, 1>::operator / (const  std::complex<double> c) const;
+template dTensorTrain< std::complex<double>, 2> dTensorTrain<std::complex<double>, 2>::operator / (const  std::complex<double> c) const;
 
-template <typename T>
-void TensorTrain<T>::save(std::string fn){
-  assert(tensors_allocated);
+
 #ifdef USE_EZH5
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::save(std::string fn){
+  assert(tensors_allocated);
   ezh5::File fh5 (fn, H5F_ACC_TRUNC);
   fh5["length"] = length;
-  fh5["index_size"] = index_size;
-  fh5["phy_size"] = phy_size;
+  fh5["phy_dim"] = phy_dim;
   fh5["bond_dims"] = bond_dims;
-  for (int i = 0; i < length; i++){
-    for (int j = 0; j < index_size; j++) {
-      std::string tensor_name = "M_site"+std::to_string(i)+"_"+std::to_string(j);
-      fh5[tensor_name] = M[i][j];
-    }
+  fh5["center"] = center;
+  fh5["id"] = _id;
+  for (size_t i = 0; i < length; i++){
+    ezh5::Node nd = fh5["Tensor"+to_string(i)];
+    A[i].save(nd);
   }
-#else
-  std::ofstream fout;
-  fout.precision(15);
-  fout.open(fn.c_str());
-  fout<<length<<" "<<index_size<<" "<<phy_size<<std::endl;
-  for(auto v : bond_dims) fout<<v<<" ";
-  fout<<std::endl;
-  // MPS matrices
-  for(int i = 0; i < length; ++i){
-    for(int j = 0; j < index_size; ++j){
-      for(int k = 0; k < M[i][j].size(); ++k) {
-        fout<<M[i][j].data()[k]<<" ";
-      }
-      fout<<std::endl;
-    }
-  }
-  fout.close();
-#endif
 }
-template void TensorTrain<double>::save(std::string fn);
-template void TensorTrain< std::complex<double> >::save(std::string fn);
+template void dTensorTrain<double, 1>::save(std::string fn);
+template void dTensorTrain<double, 2>::save(std::string fn);
+template void dTensorTrain<std::complex<double>, 1>::save(std::string fn);
+template void dTensorTrain<std::complex<double>, 2>::save(std::string fn);
 
-template <typename T>
-void TensorTrain<T>::load(std::string fn){
-#ifdef USE_EZH5
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::load(std::string fn){
   freeTensors();
   ezh5::File fh5 (fn, H5F_ACC_RDONLY);
   fh5["length"] >> length;
-  fh5["index_size"] >> index_size;
-  fh5["phy_size"] >> phy_size;
+  fh5["phy_dim"] >> phy_dim;
   fh5["bond_dims"] >> bond_dims;
+  fh5["center"] >> center;
+  fh5["id"] >> _id;
   allocateTensors();
-  for (int i = 0; i < length; i++){
-    for (int j = 0; j < index_size; j++) {
-      std::string tensor_name = "M_site"+std::to_string(i)+"_"+std::to_string(j);
-      fh5[tensor_name] >> M[i][j];
-    }
+  for (size_t i = 0; i < length; i++){
+    ezh5::Node nd = fh5["Tensor"+to_string(i)];
+    A[i].load(nd);
   }
-#else
+}
+template void dTensorTrain<double, 1>::load(std::string fn);
+template void dTensorTrain<double, 2>::load(std::string fn);
+template void dTensorTrain<std::complex<double>, 1>::load(std::string fn);
+template void dTensorTrain<std::complex<double>, 2>::load(std::string fn);
+
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::save(ezh5::Node& fh5){
+  assert(tensors_allocated);
+  fh5["length"] = length;
+  fh5["phy_dim"] = phy_dim;
+  fh5["bond_dims"] = bond_dims;
+  fh5["center"] = center;
+  fh5["id"] = _id;
+  for (size_t i = 0; i < length; i++){
+    ezh5::Node nd = fh5["Tensor"+to_string(i)];
+    A[i].save(nd);
+  }
+}
+template void dTensorTrain<double, 1>::save(ezh5::Node& fh5);
+template void dTensorTrain<double, 2>::save(ezh5::Node& fh5);
+template void dTensorTrain<std::complex<double>, 1>::save(ezh5::Node& fh5);
+template void dTensorTrain<std::complex<double>, 2>::save(ezh5::Node& fh5);
+
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::load(ezh5::Node& fh5){
   freeTensors();
-  std::ifstream fin;
-  fin.open(fn);
-  fin>>length;
-  fin>>index_size;
-  fin>>phy_size;
-  bond_dims.resize(length+1);
-  for (int i = 0; i < length+1; i++) {
-    fin>>bond_dims[i];
-  }
+  fh5["length"] >> length;
+  fh5["phy_dim"] >> phy_dim;
+  fh5["bond_dims"] >> bond_dims;
+  fh5["center"] >> center;
+  fh5["id"] >> _id;
   allocateTensors();
-  double temp;
-  std::vector<double> vec;
-  for(int i = 0; i < length; ++i){
-    for(int j = 0; j < index_size; ++j){
-      vec.clear();
-      for(int k = 0; k < bond_dims[i]*bond_dims[i+1]; ++k) {
-        fin>>temp;
-        vec.push_back(temp);
-      }
-      M[i][j] = Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>>(&vec[0],bond_dims[i],bond_dims[i+1]);
-    }
+  for (size_t i = 0; i < length; i++){
+    ezh5::Node nd = fh5["Tensor"+to_string(i)];
+    A[i].load(nd);
   }
-  fin.close();
+}
+template void dTensorTrain<double, 1>::load(ezh5::Node& fh5);
+template void dTensorTrain<double, 2>::load(ezh5::Node& fh5);
+template void dTensorTrain<std::complex<double>, 1>::load(ezh5::Node& fh5);
+template void dTensorTrain<std::complex<double>, 2>::load(ezh5::Node& fh5);
 #endif
-}
-template void TensorTrain<double>::load(std::string fn);
-template void TensorTrain< std::complex<double> >::load(std::string fn);
 
-template <typename T>
-void TensorTrain<T>::rc(){
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::rc(){
   assert(tensors_allocated);
-  int row, col;
-  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, Q, R;
-  for(int i = length-1; i > 0; --i){
-    row=M[i][0].rows();
-    col=M[i][0].cols();
-    TM.resize(row,index_size*col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(0,j*col,row,col) = M[i][j];
-    }
-    TM.adjointInPlace();
-    QR(TM,Q);
-    R.noalias() = TM.adjoint()*Q;
-    Q.adjointInPlace();
-    for(int j = 0; j < index_size; j++) {
-      int min_row = std::min(row,int(Q.cols()));
-      M[i][j].setZero();
-      M[i][j].block(0,0,min_row,col)=Q.block(0,j*col,min_row,col);
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-      tempM.noalias()=M[i-1][j]*R;
-      M[i-1][j].setZero();
-      M[i-1][j].block(0,0,tempM.rows(),tempM.cols())=tempM;
-    }
-  }
-}
-template void TensorTrain<double>::rc();
-template void TensorTrain< std::complex<double> >::rc();
-
-template <typename T>
-void TensorTrain<T>::lc(){
-	assert(tensors_allocated);
-  int row, col;
-  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, Q, R;
-  for(int i = 0; i < length-1; i++){
-    row=M[i][0].rows();
-    col=M[i][0].cols();
-    TM.resize(index_size*row,col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(j*row,0,row,col)=M[i][j];
-    }
-    QR(TM,Q);
-    R.noalias() = Q.adjoint()*TM;
-    for(int j = 0; j < index_size; j++) {
-      int min_col = std::min(col,int(Q.rows()));
-      M[i][j].setZero();
-      M[i][j].block(0,0,row,min_col)=Q.block(j*row,0,row,min_col);
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-      tempM.noalias()=R*M[i+1][j];
-      M[i+1][j].setZero();
-      M[i+1][j].block(0,0,tempM.rows(),tempM.cols())=tempM;
-    }
-  }
-}
-template void TensorTrain<double>::lc();
-template void TensorTrain< std::complex<double> >::lc();
-
-template <typename T>
-void TensorTrain<T>::normalize(){
-	assert(tensors_allocated);
-  int row, col;
-  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, Q, R;
-  for(int i = length-1; i >= 0; --i){
-    row=M[i][0].rows();
-    col=M[i][0].cols();
-    TM.resize(row,index_size*col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(0,j*col,row,col) = M[i][j];
-    }
-    TM.adjointInPlace();
-    QR(TM,Q);
-    R.noalias() = TM.adjoint()*Q;
-    Q.adjointInPlace();
-    for(int j = 0; j < index_size; j++) {
-      int min_row = std::min(row,int(Q.cols()));
-      M[i][j].setZero();
-      M[i][j].block(0,0,min_row,col)=Q.block(0,j*col,min_row,col);
-      if(i!=0) {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-        tempM.noalias()=M[i-1][j]*R;
-        M[i-1][j].setZero();
-        M[i-1][j].block(0,0,tempM.rows(),tempM.cols())=tempM;
+  dtensor<T> U,V;
+  vector<double> S;
+  for (size_t i = length-1; i > 0; i--) {
+    vector<dtensor_index> left;
+    vector<dtensor_index> right;
+    dtensor_index mid;
+    string LinkName = "ID"+to_string(_id)+"Link"+to_string(i);
+    // Separate dtensor_index
+    for (size_t j = 0; j < A[i].rank; j++) {
+      string idx_name = A[i].idx_set[j].name();
+      if (idx_name == LinkName) {
+        left.push_back(A[i].idx_set[j]);
+        mid = A[i].idx_set[j];
+      }else{
+        right.push_back(A[i].idx_set[j]);
       }
     }
+    // SVD
+    svd(A[i],left,right,U,V,S,MoveFromRight);
+    mid.resize(S.size());
+    bond_dims[i] = S.size();
+    A[i] = V;
+    A[i].idx_set[0] = mid;
+    A[i-1] = std::move(A[i-1]*U);
+    A[i-1].idx_set.back() = mid;
   }
+  center = 0;
 }
-template void TensorTrain<double>::normalize();
-template void TensorTrain< std::complex<double> >::normalize();
+template void dTensorTrain<double, 1>::rc();
+template void dTensorTrain<double, 2>::rc();
+template void dTensorTrain<std::complex<double>, 1>::rc();
+template void dTensorTrain<std::complex<double>, 2>::rc();
 
-template <typename T>
-double TensorTrain<T>::norm(){
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::lc(){
   assert(tensors_allocated);
-  TensorTrain<T> t;
+  dtensor<T> U,V;
+  vector<double> S;
+  for (size_t i = 0; i < length-1; i++) {
+    vector<dtensor_index> left;
+    vector<dtensor_index> right;
+    dtensor_index mid;
+    string LinkName = "ID"+to_string(_id)+"Link"+to_string(i+1);
+    // Separate dtensor_index
+    for (size_t j = 0; j < A[i].rank; j++) {
+      string idx_name = A[i].idx_set[j].name();
+      if (idx_name == LinkName) {
+        right.push_back(A[i].idx_set[j]);
+        mid = A[i].idx_set[j];
+      }else{
+        left.push_back(A[i].idx_set[j]);
+      }
+    }
+    // SVD
+    svd(A[i],left,right,U,V,S,MoveFromLeft);
+    mid.resize(S.size());
+    bond_dims[i+1] = S.size();
+    A[i] = U;
+    A[i].idx_set.back() = mid;
+    A[i+1] = std::move(V*A[i+1]);
+    A[i+1].idx_set[0] = mid;
+  }
+  center = length-1;
+}
+template void dTensorTrain<double, 1>::lc();
+template void dTensorTrain<double, 2>::lc();
+template void dTensorTrain<std::complex<double>, 1>::lc();
+template void dTensorTrain<std::complex<double>, 2>::lc();
+
+
+template <typename T, unsigned N>
+void dTensorTrain<T, N>::normalize(){
+  assert(tensors_allocated);
+  double nm = norm();
+  if(center == -1)
+    A[0] /= nm;
+  else
+    A[center] /= nm;
+}
+template void dTensorTrain<double, 1>::normalize();
+template void dTensorTrain<double, 2>::normalize();
+template void dTensorTrain<std::complex<double>, 1>::normalize();
+template void dTensorTrain<std::complex<double>, 2>::normalize();
+
+
+template <typename T, unsigned N>
+double dTensorTrain<T, N>::norm(){
+  assert(tensors_allocated);
+  dTensorTrain<T, N> t;
   t = *this;
-  double nm=0.0;
-  int row, col;
-  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, Q, R;
-  for(int i = length-1; i >= 0; --i){
-    row=t.M[i][0].rows();
-    col=t.M[i][0].cols();
-    TM.resize(row,index_size*col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(0,j*col,row,col) = t.M[i][j];
-    }
-    TM.adjointInPlace();
-    QR(TM,Q);
-    R.noalias() = TM.adjoint()*Q;
-    Q.adjointInPlace();
-    for(int j = 0; j < index_size; j++) {
-      int min_row = std::min(row,int(Q.cols()));
-      t.M[i][j].setZero();
-      t.M[i][j].block(0,0,min_row,col)=Q.block(0,j*col,min_row,col);
-      if(i!=0) {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-        tempM.noalias()=M[i-1][j]*R;
-        t.M[i-1][j].setZero();
-        t.M[i-1][j].block(0,0,tempM.rows(),tempM.cols())=tempM;
-      }else{
-        nm = std::abs(R(0,0));
-      }
-    }
-  }
-  return nm;
+  t.rc();
+  return t.A[0].norm();
 }
-template double TensorTrain<double>::norm();
-template double TensorTrain< std::complex<double> >::norm();
+template double dTensorTrain<double, 1>::norm();
+template double dTensorTrain<double, 2>::norm();
+template double dTensorTrain<std::complex<double>, 1>::norm();
+template double dTensorTrain<std::complex<double>, 2>::norm();
 
-template <typename T>
-void TensorTrain<T>::moveLeft(int site, bool print_EE){
+
+//---------------------------------------------------------------------------
+// Adjust canonical center
+template <typename T, unsigned N>
+double dTensorTrain<T, N>::position(int site){
   assert(tensors_allocated);
-  if(site==length/2){
-    // Calculate EE at mid bond
-    int bD = *std::max_element(bond_dims.begin(), bond_dims.end());
-    double * sv = new double [index_size*bD]();
-    int row, col, tDim;
-    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, U, V;
-    row=M[site][0].rows();
-    col=M[site][0].cols();
-    TM.resize(row,index_size*col);
-    tDim = std::min(TM.rows(),TM.cols());
-    for(int tid = 0; tid < index_size; tid++){
-      TM.block(0,tid*col,row,col) = M[site][tid].block(0,0,row,col);
-    }
-    SVD(TM,index_size*bD,sv,U,V,'l');
-    double EE = 0;
-    for(int j = 0; j < tDim; ++j){
-      if(sv[j]>1e-15) EE -= sv[j]*sv[j]*log(sv[j]*sv[j]);
-      // std::cout << sv[j] << " ";
-    }
-    // std::cout<<endl;
-    if(print_EE) std::cout<<EE<<" ";
-    // std::cout<<endl;
-    for(int tid = 0; tid < index_size; tid++){
-      M[site][tid].setZero();
-      M[site][tid].block(0,0,std::min(row,tDim),col) = V.block(0,tid*col,std::min(row,tDim),col);
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-      tempM.noalias() = M[site-1][tid] * U;
-      M[site-1][tid].setZero();
-      M[site-1][tid].block(0,0,tempM.rows(),tempM.cols())=tempM;
-    }
-    delete [] sv;
-  }else{
-    int row, col;
-    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, Q, R;
-    row=M[site][0].rows();
-    col=M[site][0].cols();
-    TM.resize(row,index_size*col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(0,j*col,row,col) = M[site][j];
-    }
-    TM.adjointInPlace();
-    QR(TM,Q);
-    R.noalias() = TM.adjoint()*Q;
-    Q.adjointInPlace();
-    for(int j = 0; j < index_size; j++) {
-      int min_row = std::min(row,int(Q.cols()));
-      M[site][j].setZero();
-      M[site][j].block(0,0,min_row,col)=Q.block(0,j*col,min_row,col);
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-      tempM.noalias()=M[site-1][j]*R;
-      M[site-1][j].setZero();
-      M[site-1][j].block(0,0,tempM.rows(),tempM.cols())=tempM;
-    }
-  }
-}
-template void TensorTrain<double>::moveLeft(int site, bool print_EE);
-template void TensorTrain< std::complex<double> >::moveLeft(int site, bool print_EE);
-
-template <typename T>
-void TensorTrain<T>::moveRight(int site, bool print_EE){
-  assert(tensors_allocated);
-  if(site==length/2-1){
-    // Calculate EE at mid bond
-    int bD = *std::max_element(bond_dims.begin(), bond_dims.end());
-    double * sv = new double [index_size*bD]();
-    int row, col, tDim;
-    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, U, V;
-    row=M[site][0].rows();
-    col=M[site][0].cols();
-    TM.resize(index_size*row,col);
-    tDim = std::min(TM.rows(),TM.cols());
-    for(int tid = 0; tid < index_size; tid++){
-      TM.block(tid*row,0,row,col) = M[site][tid].block(0,0,row,col);
-    }
-    SVD(TM,index_size*bD,sv,U,V,'r');
-    double EE = 0;
-    for(int j = 0; j < tDim; ++j){
-      if(sv[j]>1e-15) EE -= sv[j]*sv[j]*log(sv[j]*sv[j]);
-      // std::cout << sv[j] << " ";
-    }
-    // std::cout<<endl;
-    if(print_EE) std::cout<<EE<<" ";
-    // std::cout<<endl;
-    for(int tid = 0; tid < index_size; tid++){
-      M[site][tid].setZero();
-      M[site][tid].block(0,0,row,std::min(col,tDim)) = U.block(tid*row,0,row,std::min(col,tDim));
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-      tempM.noalias() = V * M[site+1][tid];
-      M[site+1][tid].setZero();
-      M[site+1][tid].block(0,0,tempM.rows(),tempM.cols())=tempM;
-    }
-    delete [] sv;
-  }else{
-    int row, col;
-    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, Q, R;
-    row=M[site][0].rows();
-    col=M[site][0].cols();
-    TM.resize(index_size*row,col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(j*row,0,row,col)=M[site][j];
-    }
-    QR(TM,Q);
-    R.noalias() = Q.adjoint()*TM;
-    for(int j = 0; j < index_size; j++) {
-      int min_col = std::min(col,int(Q.rows()));
-      M[site][j].setZero();
-      M[site][j].block(0,0,row,min_col)=Q.block(j*row,0,row,min_col);
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-      tempM.noalias()=R*M[site+1][j];
-      M[site+1][j].setZero();
-      M[site+1][j].block(0,0,tempM.rows(),tempM.cols())=tempM;
-    }
-  }
-}
-template void TensorTrain<double>::moveRight(int site, bool print_EE);
-template void TensorTrain< std::complex<double> >::moveRight(int site, bool print_EE);
-
-template <typename T>
-void TensorTrain<T>::EE(vector<double>& EEs){
-	assert(tensors_allocated);
-  normalize();
-	int L  = length;
-	int bD = *std::max_element(bond_dims.begin(), bond_dims.end());
-	double * sv = new double [index_size*bD]();
-	int row, col, tDim;
-	Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, U, V;
-	for(int i = 0; i < L-1; i++){
-		row = M[i][0].rows();
-		col = M[i][0].cols();
-		TM.resize(index_size*row,col);
-		tDim = std::min(TM.rows(),TM.cols());
-		for(int j = 0; j < index_size; j++){
-			TM.block(j*row,0,row,col) = M[i][j].block(0,0,row,col);
-		}
-		SVD(TM,tDim,sv,U,V,'r');
-		double EEn = 0;
-		for(int j = 0; j < tDim; ++j){
-			if(sv[j]>1e-15) EEn -= sv[j]*sv[j]*log(sv[j]*sv[j]);
-		}
-		EEs.push_back(EEn);
-		for(int tid = 0; tid < index_size; tid++){
-			M[i][tid].setZero();
-			M[i][tid].block(0,0,row,U.cols()) = U.block(tid*row,0,row,U.cols());
-			Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tempM;
-			tempM.noalias() = V * M[i+1][tid];
-			M[i+1][tid].setZero();
-			M[i+1][tid].block(0,0,tempM.rows(),tempM.cols())=tempM;
-		}
-	}
-	delete [] sv;
-}
-template void TensorTrain<double>::EE(vector<double>& EEs);
-template void TensorTrain< std::complex<double> >::EE(vector<double>& EEs);
-
-template <typename T>
-void TensorTrain<T>::svd(double cutoff, bool dry_run){
-  rc();
-  int row, col;
-  double svd_tol = cutoff/2;
-  std::vector<double> sv;
-  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> TM, U, V;
-  // Left to Right
-  for(int i = 0; i < length-1; i++) {
-    row=M[i][0].rows();
-    col=M[i][0].cols();
-    TM.resize(index_size*row,col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(j*row,0,row,col)=M[i][j];
-    }
-    SVD(TM,sv,U,V,svd_tol,dry_run);
-    for(int j = 0; j < index_size; j++){
-      M[i][j]   = U.block(j*row,0,row,U.cols());
-      M[i+1][j] = V * M[i+1][j];
-    }
-  }
-  // Right to Left
-  for(int i = length-1; i > 0; i--) {
-    row=M[i][0].rows();
-    col=M[i][0].cols();
-    TM.resize(row,index_size*col);
-    for(int j = 0; j < index_size; j++) {
-      TM.block(0,j*col,row,col)=M[i][j];
-    }
-    TM.adjointInPlace();
-    svd_tol = cutoff;
-    SVD(TM,sv,U,V,svd_tol,dry_run);
-    U.adjointInPlace();
-    V.adjointInPlace();
-    for(int j = 0; j < index_size; j++){
-      M[i][j]   = U.block(0,j*col,U.rows(),col);
-      M[i-1][j] = M[i-1][j] * V;
-    }
-  }
-  // calibrate bond_dims
-  for(int i = 0; i < length; ++i){
-    bond_dims[i] = M[i][0].rows();
-  }
-}
-template void TensorTrain<double>::svd(double cutoff, bool dry_run);
-template void TensorTrain< std::complex<double> >::svd(double cutoff, bool dry_run);
-
-template <typename T>
-void TensorTrain<T>::fit(TensorTrain<T>& other, int max_iter, double cutoff, double tol, bool verbose){
-  assert(other.tensors_allocated);
-  // chop off some bond dimensions to a given cutoff
-  *this = other;
-  svd(cutoff);
-  // environment tensors
-  std::vector<dtensor<T>> TL(length);
-  std::vector<dtensor<T>> TR(length);
-  // build right environment TR
-  dtensor<T> t1,t2,t3,t4;
-  for (int i = length-1; i > 0 ; i--) {
-    t1 = std::move( to_tensor(i) ); t1.dag(); t1.mapPrime(1,0,Site);
-    t2 = std::move( other.to_tensor(i) );
-    if(i==length-1){
-      TR[i] = std::move(t1*t2);
-    }else{
-      t3 = std::move(t1*TR[i+1]);
-      TR[i] = std::move(t3*t2);
-    }
-  }
-  int step = 0;
-  double overlap = 0;
-  double delta = 1.0;
-  // Start the cycle of updating site and TL/TR
-  while(step<max_iter){
-    // Left to Right
-    for (int i = 0; i < length-1; i++) {
-      t4 = std::move( to_tensor(i) ); t4.dag(); t4.mapPrime(1,0,Site);
-      t2 = std::move( other.to_tensor(i) );
-      // update site
-      if(i==0){
-        t1 = std::move(TR[i+1]*t2);
-      }else{
-        t3 = std::move(TR[i+1]*t2);
-        t1 = std::move(TL[i-1]*t3);
-      }
-      int idx = 0;
-      for (int j = 0; j < index_size; j++) {
-        for (int k = 0; k < M[i][j].size(); k++) {
-          M[i][j].data()[k] = t1._T.data()[idx];
-          ++idx;
+  assert(site>=0 && site<int(length));
+  // Initialize center position if not in canonical form
+  if(center == -1) rc();
+  dtensor<T> U,V;
+  vector<double> S;
+  while( center!=site ){
+    vector<dtensor_index> left;
+    vector<dtensor_index> right;
+    dtensor_index mid;
+    if(center>site){
+      // Move center to the left
+      string LinkName = "ID"+to_string(_id)+"Link"+to_string(center);
+      for (size_t j = 0; j < A[center].rank; j++) {
+        string idx_name = A[center].idx_set[j].name();
+        if (idx_name == LinkName) {
+          left.push_back(A[center].idx_set[j]);
+          mid = A[center].idx_set[j];
+        }else{
+          right.push_back(A[center].idx_set[j]);
         }
       }
-      double tp = std::abs(t4.contract(t1));
-      delta = std::abs(overlap - tp)/std::max(overlap ,tp);
-      if(verbose) std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
-      overlap = tp;
-      moveRight(i);
-      // update env
-      t1 = std::move( to_tensor(i) ); t1.dag(); t1.mapPrime(1,0,Site);
-      if(i==0){
-        TL[i] = std::move(t1*t2);
-      }else{
-        t3 = std::move(TL[i-1]*t1);
-        TL[i] = std::move(t3*t2);
-      }
-    }
-    // Right to Left
-    for (int i = length-1; i > 0; i--) {
-      t4 = std::move( to_tensor(i) ); t4.dag(); t4.mapPrime(1,0,Site);
-      t2 = std::move( other.to_tensor(i) );
-      // update site
-      if(i==length-1){
-        t1 = std::move(TL[i-1]*t2);
-      }else{
-        t3 = std::move(TR[i+1]*t2);
-        t1 = std::move(TL[i-1]*t3);
-      }
-      int idx = 0;
-      for (int j = 0; j < index_size; j++) {
-        for (int k = 0; k < M[i][j].size(); k++) {
-          M[i][j].data()[k] = t1._T.data()[idx];
-          ++idx;
+      svd(A[center],left,right,U,V,S,MoveFromRight);
+      mid.resize(S.size());
+      bond_dims[center] = S.size();
+      A[center] = V;
+      A[center].idx_set[0] = mid;
+      A[center-1] = std::move(A[center-1]*U);
+      A[center-1].idx_set.back() = mid;
+      --center;
+    }else if(center<site){
+      // Move center to the right
+      string LinkName = "ID"+to_string(_id)+"Link"+to_string(center+1);
+      for (size_t j = 0; j < A[center].rank; j++) {
+        string idx_name = A[center].idx_set[j].name();
+        if (idx_name == LinkName) {
+          right.push_back(A[center].idx_set[j]);
+          mid = A[center].idx_set[j];
+        }else{
+          left.push_back(A[center].idx_set[j]);
         }
       }
-      double tp = std::abs(t4.contract(t1));
-      delta = std::abs(overlap - tp)/std::max(overlap ,tp);
-      if(verbose) std::cout << "delta = " << delta << " " << overlap << " " << tp << '\n';
-      overlap = tp;
-      moveLeft(i);
-      // update env
-      t1 = std::move( to_tensor(i) ); t1.dag(); t1.mapPrime(1,0,Site);
-      if(i==length-1){
-        TR[i] = std::move(t1*t2);
-      }else{
-        t3 = std::move(t1*TR[i+1]);
-        TR[i] = std::move(t3*t2);
-      }
-    }
-    if(delta<tol) break;
-    ++step;
-  }
-}
-template void TensorTrain<double>::fit(TensorTrain<double>& other, int max_iter, double cutoff, double tol, bool verbose);
-template void TensorTrain< std::complex<double> >::fit(TensorTrain< std::complex<double> >& other, int max_iter, double cutoff, double tol, bool verbose);
-
-template <typename T>
-dtensor<T> TensorTrain<T>::to_tensor(int site){
-  assert(tensors_allocated);
-  assert(site>=0 && site<length);
-  int_vec idx_sizes;
-  str_vec idx_names;
-  typ_vec idx_types;
-  int_vec idx_levels;
-  string Link_name_pref = "TT"+to_string(TensorTrain<T>::TTID)+"Link";
-  string Site_name = "Site"+to_string(site);
-  if(site==0){
-    idx_sizes.push_back(bond_dims[site+1]);
-    idx_sizes.push_back(index_size);
-    idx_names.push_back(Link_name_pref+to_string(site+1));
-    idx_names.push_back(Site_name);
-    idx_types.push_back(Link);
-    idx_types.push_back(Site);
-    idx_levels.push_back(0);
-    idx_levels.push_back(0);
-  }else if(site==TensorTrain<T>::length-1){
-    idx_sizes.push_back(bond_dims[site]);
-    idx_sizes.push_back(index_size);
-    idx_names.push_back(Link_name_pref+to_string(site));
-    idx_names.push_back(Site_name);
-    idx_types.push_back(Link);
-    idx_types.push_back(Site);
-    idx_levels.push_back(0);
-    idx_levels.push_back(0);
-  }else if(site>0 && site<length-1){
-    idx_sizes.push_back(bond_dims[site]);
-    idx_sizes.push_back(bond_dims[site+1]);
-    idx_sizes.push_back(index_size);
-    idx_names.push_back(Link_name_pref+to_string(site));
-    idx_names.push_back(Link_name_pref+to_string(site+1));
-    idx_names.push_back(Site_name);
-    idx_types.push_back(Link);
-    idx_types.push_back(Link);
-    idx_types.push_back(Site);
-    idx_levels.push_back(0);
-    idx_levels.push_back(0);
-    idx_levels.push_back(0);
-  }
-  dtensor<T> A(idx_sizes,idx_names,idx_types,idx_levels);
-  int k = 0;
-  for (int i = 0; i < index_size; i++) {
-    for (int j = 0; j < M[site][i].size(); j++) {
-      A._T.data()[k] = M[site][i].data()[j];
-      ++k;
+      svd(A[center],left,right,U,V,S,MoveFromLeft);
+      mid.resize(S.size());
+      bond_dims[center+1] = S.size();
+      A[center] = U;
+      A[center].idx_set.back() = mid;
+      A[center+1] = std::move(V*A[center+1]);
+      A[center+1].idx_set[0] = mid;
+      ++center;
     }
   }
-  return A;
+  double vNEE = 0.0;
+  for(auto sg:S){
+    if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
+  }
+  return vNEE;
 }
-template dtensor<double> TensorTrain<double>::to_tensor(int site);
-template dtensor< std::complex<double> > TensorTrain< std::complex<double> >::to_tensor(int site);
-
-
+template double dTensorTrain<double, 1>::position(int site);
+template double dTensorTrain<double, 2>::position(int site);
+template double dTensorTrain<std::complex<double>, 1>::position(int site);
+template double dTensorTrain<std::complex<double>, 2>::position(int site);
 
 #endif

@@ -1,13 +1,12 @@
-#ifndef DENSE_TENSORTRAIN_CLASS_H
-#define DENSE_TENSORTRAIN_CLASS_H
+#ifndef QUANTUM_NUMBERED_TENSORTRAIN_CLASS_H
+#define QUANTUM_NUMBERED_TENSORTRAIN_CLASS_H
 
 #include "../linalg/lapack_wrapper.h"
-#include "../dtensor/dtensor_index.h"
-#include "../dtensor/dtensor_index_op.h"
-#include "../dtensor/dtensor.h"
-#include "../dtensor/dtensor_view.h"
-#include "../dtensor/dtensor_op.h"
-#include "../dtensor/big_dtensor.h"
+#include "../qtensor/qtensor_index.h"
+#include "../qtensor/qtensor_index_op.h"
+#include "../qtensor/qtensor.h"
+#include "../qtensor/qtensor_op.h"
+#include "../qtensor/big_qtensor.h"
 #include "../models/sites/sites.h"
 #include "../util/ezh5.h"
 
@@ -17,7 +16,7 @@ This class is the base class of MPS and MPO.
 
 // N is the number of physical indices per site (1:MPS, 2:MPO)
 template <typename T, unsigned N>
-class dTensorTrain
+class qTensorTrain
 {
 public:
   //---------------------------------------------------------------------------
@@ -28,12 +27,14 @@ public:
   // Basic properties
   unsigned length;         // length of the tensor train
   unsigned phy_dim;        // dimension of each physical bond
-  int center;              // canonicalization center
   uint_vec bond_dims;       // dimensions of virtual bonds
+  int center;              // canonicalization center
+  int totalQ;              // total abelian quantum number
+  vector<int> phy_qn;      // quantum numbers of physical bonds
 
   //---------------------------------------------------------------------------
   // Data containers
-  vector< dtensor<T> > A;
+  vector< qtensor<T> > A;
 
   //---------------------------------------------------------------------------
   // Flag -- whether the tensors are allocated
@@ -41,21 +42,20 @@ public:
 
   //---------------------------------------------------------------------------
   // Constructors
-  dTensorTrain();
-  dTensorTrain(abstract_sites* s, unsigned bd = 1);
-  dTensorTrain(abstract_sites* s, str_vec product_string);
-  dTensorTrain(unsigned l, unsigned pd, unsigned bd = 1);
-  dTensorTrain(const dTensorTrain<T, N>& other);
-  dTensorTrain(dTensorTrain<T, N>&& other);
+  qTensorTrain();
+  qTensorTrain(abstract_sites* s, int Q = 0);
+  qTensorTrain(abstract_sites* s, str_vec product_string);
+  qTensorTrain(unsigned L, unsigned pD, vector<int>& phyQN, int Q);
+  qTensorTrain(unsigned L, unsigned pD, vector<int>& phyQN, uint_vec product_state);
+  qTensorTrain(const qTensorTrain<T, N>& other);
+  qTensorTrain(qTensorTrain<T, N>&& other);
   // Destructor
-  ~dTensorTrain(){};
+  ~qTensorTrain(){};
 
   //---------------------------------------------------------------------------
   // Set shapes
   void setLength(int L);
   void setPhysicalDim(int s);
-  void setBondDim(int bd);
-  void setBondDims(const uint_vec& bds);
 
   //---------------------------------------------------------------------------
   // Tensor data management
@@ -69,15 +69,15 @@ public:
 
   //---------------------------------------------------------------------------
   // Basic arithmetic operations
-  dTensorTrain<T, N>& operator = (const dTensorTrain<T, N>& other);
-  dTensorTrain<T, N>& operator = (dTensorTrain<T, N>&& other);
-  dTensorTrain<T, N>& operator *=(const T c);
-  dTensorTrain<T, N>& operator /=(const T c);
-  dTensorTrain<T, N>  operator * (const T c) const;
-  dTensorTrain<T, N>  operator / (const T c) const;
+  qTensorTrain<T, N>& operator = (const qTensorTrain<T, N>& other);
+  qTensorTrain<T, N>& operator = (qTensorTrain<T, N>&& other);
+  qTensorTrain<T, N>& operator *=(const T c);
+  qTensorTrain<T, N>& operator /=(const T c);
+  qTensorTrain<T, N>  operator * (const T c) const;
+  qTensorTrain<T, N>  operator / (const T c) const;
 
   //---------------------------------------------------------------------------
-  // Print dTensorTrain information
+  // Print qTensorTrain information
   void print(int level=0);
 
   //---------------------------------------------------------------------------
@@ -105,12 +105,12 @@ public:
 };
 
 
-// Definition of MPS and MPO through dTensorTrain
+// Definition of MPS and MPO through qTensorTrain
 template <typename T>
-using MPS =  dTensorTrain<T, 1>;
+using qMPS =  qTensorTrain<T, 1>;
 
 template <typename T>
-using MPO =  dTensorTrain<T, 2>;
+using qMPO =  qTensorTrain<T, 2>;
 
 
 #endif

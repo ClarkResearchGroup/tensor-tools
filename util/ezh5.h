@@ -3,23 +3,6 @@
 #ifndef EZH5_H
 #define EZH5_H
 
-#include "hdf5.h"
-
-#ifdef USE_OPENBLAS
-#define  EIGEN_USE_BLAS
-#endif
-
-#ifdef USE_MKL
-#define EIGEN_USE_MKL_ALL
-#endif
-
-#include <Eigen/Dense>
-#include <complex>
-#include <string>
-#include <vector>
-#include <cassert>
-#include <iostream>
-
 namespace ezh5{
   ///////////////////////////
   class ID{
