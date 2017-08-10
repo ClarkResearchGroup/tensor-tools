@@ -55,7 +55,7 @@ typedef vector<tblis::label_type>  lab_vec;
 
 
 //------------------------------------------------------------------------------
-// External library 2 -- Eigen -- needed, but only for tests and part of "EZH5"
+// External library 2 -- Eigen -- needed, but only for conducting easier tests
 //------------------------------------------------------------------------------
 // http://eigen.tuxfamily.org
 #include <Eigen/Dense>
@@ -63,7 +63,7 @@ typedef vector<tblis::label_type>  lab_vec;
 
 
 //------------------------------------------------------------------------------
-// External library 3 -- HDF5 -- optional, but required when saving/loading data
+// External library 3 -- HDF5 -- required when saving/loading data
 //------------------------------------------------------------------------------
 // Check https://support.hdfgroup.org/HDF5/ for instructions on
 // how to install HDF5
@@ -72,8 +72,6 @@ typedef vector<tblis::label_type>  lab_vec;
 // For easier user interface of HDF5 functions, a wrapper called "EZH5" is used.
 // By M. Chen
 // https://github.com/mileschen360/ezh5
-// Notice:
-// If not enabled, save/load functionality for many things will not work
 //------------------------------------------------------------------------------
 
 
