@@ -80,7 +80,7 @@ B.setRandom();
 B.print(1);
 // Repeated indices (same size, name, type and prime level) are contracted in multiplication
 // dtensor<T> supports move semantics, which removes unnecessary copy operation
-dtensor<double> C = std::move(A,B);
+dtensor<double> C = std::move(A*B);
 C.print(1);
 ```
 
