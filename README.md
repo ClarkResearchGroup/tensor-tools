@@ -123,7 +123,7 @@ C.print(1);
 ```
 
 -----------------
-II. DMRG interfaces
+III. DMRG interfaces
 ```C++
 unsigned N = 30;
 // Set sites
