@@ -252,7 +252,7 @@ template void updateEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<do
 
 
 template <typename T>
-T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart){
+T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep){
 	int L = H.length;
 	int direction, site=0;
 	psi.position(0);
@@ -262,7 +262,6 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 
 	//exit(1);
 	T Energy = psiHphi(psi, H, psi);
-	pout<<"Initial energy of the MPS: "<<Energy<<std::endl;
 	////////////////////////////////////////////
 	// Environment tensors
 	std::vector< dtensor<T> > TR(L);
@@ -270,8 +269,8 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	pout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
-	for(int l = 0; l < num_sweeps; l++) {
+	if(start_sweep==0) pout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	for(int l = start_sweep; l < num_sweeps; l++) {
 		pout<<l<<"\t ";
 		direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
 		for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
@@ -288,19 +287,37 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	psi.normalize();
 	return Energy;
 }
-template double dmrg(MPS<double>& psi, MPO<double>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
-template std::complex<double> dmrg(MPS< std::complex<double> >& psi, MPO< std::complex<double> >& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
-
+template double dmrg(MPS<double>& psi, MPO<double>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, int start_sweep);
+template std::complex<double> dmrg(MPS< std::complex<double> >& psi, MPO< std::complex<double> >& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep);
 
 
 template <typename T>
-T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart){
+T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
+  assert(max_bd.size() == cutoff.size());
+  assert(max_restart.size() == max_bd.size());
+
+  T Energy;
+  for(int sweep =0;sweep<num_sweeps;sweep++){
+    //allow sweeps to loop through
+    int l = sweep%(max_bd.size());
+    //always do two sweeps so that we go left to right
+    Energy = dmrg(psi,H,2*(sweep+1),max_bd[l],cutoff[l],'S',3,max_restart[l],2*sweep);
+  }
+ return Energy; 
+}
+template double dmrg(MPS<double>& psi, MPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
+
+template std::complex<double> dmrg(MPS< std::complex<double> >& psi, MPO< std::complex<double> >& H, int num_sweeps, 
+                                   const std::vector<int>& max_bd, const std::vector<double>& cutoff_vec,const std::vector<int>& max_restart);
+
+template <typename T>
+T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep){
 	int L = H.length;
 	int direction, site=0;
 	psi.position(0);
 	psi.normalize();
 	T Energy = psiHphi(psi, H, psi);
-	std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;
+	/*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
 	////////////////////////////////////////////
 	// Environment tensors
 	std::vector< qtensor<T> > TR(L);
@@ -308,8 +325,8 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	std::cout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
-	for(int l = 0; l < num_sweeps; l++) {
+	if (start_sweep==0) std::cout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	for(int l = start_sweep; l < num_sweeps; l++) {
 		std::cout<<l<<"\t ";
 		direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
 		for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
@@ -326,8 +343,25 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 	psi.normalize();
 	return Energy;
 }
-template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
-template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
+template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, int start_sweep);
+template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, int start_sweep);
 
+template <typename T>
+T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
+  assert(max_bd.size() == cutoff.size());
+  assert(max_restart.size() == max_bd.size());
 
+  T Energy;
+  for(int sweep =0;sweep<num_sweeps;sweep++){
+    //allow sweeps to loop through
+    int l = sweep%(max_bd.size());
+    //always do two sweeps so that we go left to right
+    Energy = dmrg(psi,H,2*(sweep+1),max_bd[l],cutoff[l],'S',3,max_restart[l],2*sweep);
+  }
+ return Energy; 
+}
+template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
+
+template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, int num_sweeps, 
+                                   const std::vector<int>& max_bd, const std::vector<double>& cutoff_vec,const std::vector<int>& max_restart);
 #endif

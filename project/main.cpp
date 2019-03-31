@@ -73,12 +73,16 @@ int main(int argc, char **argv)
     auto num   = psiHphi(psi,H,psi);
     auto denom = psiphi(psi,psi);
     perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
-    int nsweeps = 20;
-    int maxm = 60;
+    int nsweeps = 8;
+    /*int maxm = 60;
     double cutoff = 1e-8;
-    auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff);
+    int nsweeps = 5;*/
+    std::vector<int> maxm = {50,80,100,150,150,200,200,200};
+    std::vector<double> cutoff = {1E-6,1E-8,1E-10,1E-12,1E-12,1E-12,1E-12,1E-12};
+    std::vector<int> max_restart = {4,3,2,2,2,2,2,2};
+    //TODO: noise
+    auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
     if(world.rank==0) psi.print();
-
     pout << "Final Energy = "<<finalEnergy << '\n';
   }
   MPI_Finalize();

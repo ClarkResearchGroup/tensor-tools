@@ -16,8 +16,10 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector<dtensor<T>>& TR, std::vector
 template <typename T>
 void updateEnv(MPS<T>& psi, MPO<T>& H, std::vector<dtensor<T>>& TR, std::vector<dtensor<T>>& TL, const unsigned& site, int& direction);
 template <typename T>
-T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd = 100, double cutoff=1e-12, char mode='S', int search_space_size=3, int max_restart=1);
+T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd = 100, double cutoff=1e-12, char mode='S', int search_space_size=3, int max_restart=1,int start_sweep=0);
 
+template <typename T>
+T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 //-------------------------------------------------------------------------------------------
 // qMPS, qMPO
 template <typename T>
@@ -27,6 +29,8 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector<qtensor<T>>& TR, std::vect
 template <typename T>
 void updateEnv(qMPS<T>& psi, qMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL, const unsigned& site, int& direction);
 template <typename T>
-T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd = 100, double cutoff=1e-12, char mode='S', int search_space_size=3, int max_restart=1);
+T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd = 100, double cutoff=1e-12, char mode='S', int search_space_size=3, int max_restart=1,int start_sweep=0);
 
+template <typename T>
+T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 #endif
