@@ -35,10 +35,19 @@ int main(int argc, char const *argv[]) {
     Heisenberg< double > HB(&sites);
     HB.buildHam(H);
 
-    int nsweeps = 20;
+    double Energy = psiHphi(psi, H, psi);
+    std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;
+    /*int nsweeps = 20;
     int maxm = 60;
-    double cutoff = 1e-8;
-    dmrg(psi, H, nsweeps, maxm, cutoff);
+    double cutoff = 1e-8;*/
+
+    int nsweeps = 5;
+    std::vector<int> maxm = {50,80,100,150,150};
+    std::vector<double> cutoff = {1E-6,1E-8,1E-10,1E-12,1E-12};
+    std::vector<int> max_restart = {4,3,2,2,2};
+    //TODO: noise
+
+    dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
 
     psi.print();
 
