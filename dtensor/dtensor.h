@@ -87,6 +87,12 @@ public:
   void setRandom();
   void setZero();
   void setOne();
+  template <typename Func> void generate(Func& f){
+    assert(_initted);
+    for (size_t i = 0; i < size; i++) {
+      _T.data()[i] = f();
+    }
+  }
 
   //---------------------------------------------------------------------------
   // Permutate
