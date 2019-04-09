@@ -138,6 +138,9 @@ public:
   void primeSite(int inc=1);
   void mapPrime(unsigned from, unsigned to);
   void mapPrime(unsigned from, unsigned to, index_type type);
+  void mapPrime(dtensor_index& in,unsigned from, unsigned to);
+  void mapPrime(std::vector<dtensor_index>& vec_in,unsigned from, unsigned to);
+  void noPrime(index_type type=All);
 
   void dag(){};
   void conj();

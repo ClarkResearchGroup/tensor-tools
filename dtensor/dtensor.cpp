@@ -1495,6 +1495,41 @@ template void dtensor<double>::mapPrime(unsigned from, unsigned to, index_type t
 template void dtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to, index_type type);
 
 template <typename T>
+void dtensor<T>::mapPrime(dtensor_index& in, unsigned from, unsigned to){
+  for (size_t i = 0; i < rank; i++) {
+    if(idx_set[i] == in){
+      idx_set[i].mapPrime(from, to);
+      break;
+    }
+  }
+}
+template void dtensor<double>::mapPrime(dtensor_index& in, unsigned from, unsigned to);
+template void dtensor< std::complex<double> >::mapPrime(dtensor_index& in, unsigned from, unsigned to);
+
+template <typename T>
+void dtensor<T>::mapPrime(std::vector<dtensor_index>& vec_in, unsigned from, unsigned to){
+  for(auto in : vec_in){
+    for (size_t i = 0; i < rank; i++) {
+      if(idx_set[i] == in){
+        idx_set[i].mapPrime(from, to);
+        break;
+      }
+    }
+  }
+}
+template void dtensor<double>::mapPrime(std::vector<dtensor_index>& vec_in, unsigned from, unsigned to);
+template void dtensor< std::complex<double> >::mapPrime(std::vector<dtensor_index>& vec_in, unsigned from, unsigned to);
+
+template <typename T>
+void dtensor<T>::noPrime(index_type type){
+  for (size_t i = 0; i < rank; i++) {
+    idx_set[i].noPrime(type);
+  }
+}
+template void dtensor<double>::noPrime(index_type type);
+template void dtensor< std::complex<double> >::noPrime(index_type type);
+
+template <typename T>
 void dtensor<T>::conj(){
   if (std::is_same<T, std::complex<double>>::value) {
     for (size_t i = 0; i < size; i++) _T.data()[i] = cconj(_T.data()[i]);

@@ -50,6 +50,7 @@ public:
   inline void primeSite(int inc=1){if(_type==Site) _level+=inc;}
   inline void mapPrime(unsigned from, unsigned to){if(_level==from) _level=to;}
   inline void mapPrime(unsigned from, unsigned to, index_type type){if(_level==from&&_type==type) _level=to;}
+  inline void noPrime(index_type type=All){if(_type==All || _type==type) _level=0;}
 
 private:
   unsigned _size;
