@@ -309,6 +309,7 @@ dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (const dTensorTrain<T, N>& ot
     setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
     A = other.A;
+    center = other.center;
     tensors_allocated = true;
   }
   return *this;
@@ -328,6 +329,7 @@ dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (dTensorTrain<T, N>&& other){
     setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
     A = std::move(other.A);
+    center = other.center;
     tensors_allocated = true;
     other.tensors_allocated = false;
   }
