@@ -550,11 +550,15 @@ template void dTensorTrain<std::complex<double>, 2>::lc();
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::normalize(){
   assert(tensors_allocated);
-  double nm = norm();
-  if(center == -1)
+  if(center == -1){
+    //std::cerr<< "using norm()"<<std::endl;
+    double nm = norm();
     A[0] /= nm;
-  else
+  }
+  else{
+    double nm = A[center].norm();
     A[center] /= nm;
+  }
 }
 template void dTensorTrain<double, 1>::normalize();
 template void dTensorTrain<double, 2>::normalize();
