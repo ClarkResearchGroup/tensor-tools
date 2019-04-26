@@ -312,9 +312,9 @@ dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (const dTensorTrain<T, N>& ot
     freeTensors();
     setLength(other.length);
     setPhysicalDim(other.phy_dim);
-    cerr<<"The other bond dims are "<<endl;
+    /*cerr<<"The other bond dims are "<<endl;
     for (auto i : other.bond_dims)
-      cerr<<i<<endl;
+      cerr<<i<<endl;*/
 
     setBondDims(other.bond_dims);
     A = other.A;
@@ -501,10 +501,10 @@ void dTensorTrain<T, N>::rc(){
       }
     }
     // SVD
-    cerr<<"Rank: "<<A[i].__T.order<<endl;
+    /*cerr<<"Rank: "<<A[i].__T.order<<endl;
     cerr<<endl;
     for (int j=0;j<A[i].__T.order;j++)
-      cerr<<"Length: "<<i<<" is  "<<A[i].__T.lens[j]<<endl;
+      cerr<<"Length: "<<i<<" is  "<<A[i].__T.lens[j]<<endl;*/
 
     //for (auto j : A[i].__T.len)
     //      cerr<<j<<endl;
@@ -514,13 +514,13 @@ void dTensorTrain<T, N>::rc(){
     bond_dims[i] = S.size();
     A[i] = V;
     A[i].idx_set[0] = mid;
-    cerr<<"PRE STUFF"<<endl;
+    //cerr<<"PRE STUFF"<<endl;
     A[i-1] = std::move(A[i-1]*U);
-    cerr<<"POST STUFF"<<endl;
+    //cerr<<"POST STUFF"<<endl;
     A[i-1].idx_set.back() = mid;
 
     
-    cerr<<"Rank: "<<A[i].__T.order<<endl;
+    /*cerr<<"Rank: "<<A[i].__T.order<<endl;
     cerr<<endl;
     for (int j=0;j<A[i].__T.order;j++)
       cerr<<"Length A: "<<j<<" is  "<<A[i].__T.lens[j]<<endl;
@@ -530,7 +530,7 @@ void dTensorTrain<T, N>::rc(){
     cerr<<"Rank: "<<A[i-1].__T.order<<endl;
     cerr<<endl;
     for (int j=0;j<A[i-1].__T.order;j++)
-      cerr<<"Length B: "<<j<<" is  "<<A[i-1].__T.lens[j]<<endl;
+      cerr<<"Length B: "<<j<<" is  "<<A[i-1].__T.lens[j]<<endl;*/
 
 
     
@@ -600,15 +600,15 @@ double dTensorTrain<T, N>::norm(){
   assert(tensors_allocated);
   dTensorTrain<T, N> t;
   t = *this;
-  cerr<<"Pre bond dims"<<endl;
+  /*cerr<<"Pre bond dims"<<endl;
   for (auto i :bond_dims){
     cerr<<i<<endl;
-  }
+  }*/
   t.rc();
-  cerr<<"Post bond dims"<<endl;
+  /*cerr<<"Post bond dims"<<endl;
   for (auto i :bond_dims){
     cerr<<i<<endl;
-  }
+  }*/
 
   return t.A[0].norm();
 }

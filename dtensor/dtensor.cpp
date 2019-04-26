@@ -48,11 +48,38 @@ vector<char> indToVec(vector<dtensor_index> &indices,unordered_map<string,char> 
   return myVec;
 
 }
+
+string indToStrNP(vector<dtensor_index> &indices,unordered_map<string,char> &charMap)
+{
+  string myString="";
+  for (auto i: indices){
+    const string thisTag = noPrime(i).tag();
+    //cerr<<thisTag<<endl;
+    myString+=charMap[thisTag];
+  }
+  return myString;
+}
+string indicesToCharNP(vector<dtensor_index> &indices, unordered_map<string,char> &charMap)
+{
+  char ch='a';
+  for (auto i : charMap) //find highest char
+    if (i.second > ch)
+      ch=i.second;
+  if(ch!='a') ++ch; //increment from latest
+  for (auto i : indices){
+    auto it= charMap.find(noPrime(i).tag());
+    if (it==charMap.end()){ //new tag, add it to map
+      charMap[noPrime(i).tag()]=ch;
+      ++ch;
+    }
+  }
+  return indToStrNP(indices,charMap);
+}
+
 //-----------------------------------------------------------------------------
 // Constructors
 template <typename T>
 dtensor<T>::dtensor(){
-
   rank = 0;
   size = 0;
   _initted = false;
@@ -61,142 +88,23 @@ template dtensor<double>::dtensor();
 template dtensor< std::complex<double> >::dtensor();
 
 
-template <typename T>
-dtensor<T>::dtensor(uint_list idx_sizes){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  for (auto s : idx_sizes) {
-    idx_set.push_back(dtensor_index(s));
-    idx_lens.push_back(tblis::len_type(s));
-    ++rank;
-    size *= s;
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_list idx_sizes);
-template dtensor< std::complex<double> >::dtensor(uint_list idx_sizes);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_vec& idx_sizes){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  for (auto s : idx_sizes) {
-    idx_set.push_back(dtensor_index(s));
-    idx_lens.push_back(tblis::len_type(s));
-    ++rank;
-    size *= s;
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_vec& idx_sizes);
-template dtensor< std::complex<double> >::dtensor(uint_vec& idx_sizes);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_list idx_sizes, str_list names){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  uint_vec v_sizes(idx_sizes.begin(), idx_sizes.end());
-  str_vec v_names(names.begin(), names.end());
-  for (size_t i = 0; i < v_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(v_sizes[i],v_names[i]));
-    idx_lens.push_back(v_sizes[i]);
-    ++rank;
-    size *= v_sizes[i];
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_list idx_sizes, str_list names);
-template dtensor< std::complex<double> >::dtensor(uint_list idx_sizes, str_list names);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_vec& idx_sizes, str_vec& names){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  for (size_t i = 0; i < idx_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(idx_sizes[i],names[i]));
-    idx_lens.push_back(idx_sizes[i]);
-    ++rank;
-    size *= idx_sizes[i];
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_vec& idx_sizes, str_vec& names);
-template dtensor< std::complex<double> >::dtensor(uint_vec& idx_sizes, str_vec& names);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_list idx_sizes, str_list names, typ_list types){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  uint_vec v_sizes(idx_sizes.begin(), idx_sizes.end());
-  str_vec v_names(names.begin(), names.end());
-  typ_vec v_types(types.begin(), types.end());
-  for (size_t i = 0; i < v_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(v_sizes[i],v_names[i],v_types[i]));
-    idx_lens.push_back(v_sizes[i]);
-    ++rank;
-    size *= v_sizes[i];
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_list idx_sizes, str_list names, typ_list types);
-template dtensor< std::complex<double> >::dtensor(uint_list idx_sizes, str_list names, typ_list types);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  for (size_t i = 0; i < idx_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(idx_sizes[i],names[i],types[i]));
-    idx_lens.push_back(idx_sizes[i]);
-    ++rank;
-    size *= idx_sizes[i];
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types);
-template dtensor< std::complex<double> >::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types);
 
 
 template <typename T>
 dtensor<T>::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels){
-  
   rank = 0;
   size = 1;
-  ///  len_vec idx_lens;
+
   uint_vec v_sizes(idx_sizes.begin(), idx_sizes.end());
   str_vec v_names(names.begin(), names.end());
   typ_vec v_types(types.begin(), types.end());
   uint_vec v_levels(levels.begin(), levels.end());
   for (size_t i = 0; i < v_sizes.size(); i++) {
     idx_set.push_back(dtensor_index(v_sizes[i],v_names[i],v_types[i],v_levels[i]));
-    ///    idx_lens.push_back(v_sizes[i]);
     ++rank;
     size *= v_sizes[i];
   }
-  //  _T.reset(idx_lens);
+
   vector<int> idx_sizes_int(begin(idx_sizes),end(idx_sizes));
   __T=CTF::Tensor<>(idx_sizes.size(),idx_sizes_int.data());
   _initted = true;
@@ -204,86 +112,18 @@ dtensor<T>::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_li
 template dtensor<double>::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels);
 template dtensor< std::complex<double> >::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels);
 
-
-template <typename T>
-dtensor<T>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  for (size_t i = 0; i < idx_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(idx_sizes[i],names[i],types[i],levels[i]));
-    idx_lens.push_back(idx_sizes[i]);
-    ++rank;
-    size *= idx_sizes[i];
-  }
-  _T.reset(idx_lens);
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels);
-template dtensor< std::complex<double> >::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels, T* data_array){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  uint_vec v_sizes(idx_sizes.begin(), idx_sizes.end());
-  str_vec v_names(names.begin(), names.end());
-  typ_vec v_types(types.begin(), types.end());
-  uint_vec v_levels(levels.begin(), levels.end());
-  for (size_t i = 0; i < v_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(v_sizes[i],v_names[i],v_types[i],v_levels[i]));
-    idx_lens.push_back(v_sizes[i]);
-    ++rank;
-    size *= v_sizes[i];
-  }
-  _T.reset(idx_lens);
-  std::copy(data_array,data_array+size,_T.data());
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels, double* data_array);
-template dtensor< std::complex<double> >::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_list levels, std::complex<double>* data_array);
-
-
-template <typename T>
-dtensor<T>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels, T* data_array){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  len_vec idx_lens;
-  for (size_t i = 0; i < idx_sizes.size(); i++) {
-    idx_set.push_back(dtensor_index(idx_sizes[i],names[i],types[i],levels[i]));
-    idx_lens.push_back(idx_sizes[i]);
-    ++rank;
-    size *= idx_sizes[i];
-  }
-  _T.reset(idx_lens);
-  std::copy(data_array,data_array+size,_T.data());
-  _initted = true;
-}
-template dtensor<double>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels, double* data_array);
-template dtensor< std::complex<double> >::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels, std::complex<double>* data_array);
-
-
 template <typename T>
 dtensor<T>::dtensor(vector<dtensor_index>& idx_vec){
-  //  assert(1==2);
   rank = 0;
   size = 1;
   idx_set = idx_vec;
-  len_vec idx_lens;
-  vector<int> ind;
+  vector<int> idx_sizes;
   for (size_t i = 0; i < idx_vec.size(); i++) {
-    idx_lens.push_back(idx_vec[i].size());
     ++rank;
     size *= idx_vec[i].size();
-    ind.push_back(idx_vec[i].size());
+    idx_sizes.push_back(idx_vec[i].size());
   }
-  __T=CTF::Tensor<>(idx_vec.size(),ind.data()); //,syms.data(),*world,ldr); //FIX ME!
-  //  _T.reset(idx_lens);
+  __T=CTF::Tensor<>(idx_vec.size(),idx_sizes.data());
   _initted = true;
 }
 template dtensor<double>::dtensor(vector<dtensor_index>& idx_vec);
@@ -292,7 +132,6 @@ template dtensor< std::complex<double> >::dtensor(vector<dtensor_index>& idx_vec
 
 template <typename T>
 dtensor<T>::dtensor(initializer_list<dtensor_index> idx_list){
-  //assert(1==2);
   rank = 0;
   size = 1;
   std::vector<int> idx_lens;
@@ -302,7 +141,6 @@ dtensor<T>::dtensor(initializer_list<dtensor_index> idx_list){
     ++rank;
     size *= i.size();
   }
-  //_T.reset(idx_lens);
   __T=CTF::Tensor<>(idx_lens.size(),idx_lens.data());
   _initted = true;
 }
@@ -310,39 +148,17 @@ template dtensor<double>::dtensor(initializer_list<dtensor_index> idx_list);
 template dtensor< std::complex<double> >::dtensor(initializer_list<dtensor_index> idx_list);
 
 
-template <typename T>
-dtensor<T>::dtensor(vector<dtensor_index>& idx_vec, T* data_array){
-  assert(1==2);
-  rank = 0;
-  size = 1;
-  idx_set = idx_vec;
-  len_vec idx_lens;
-  for (size_t i = 0; i < idx_vec.size(); i++) {
-    idx_lens.push_back(idx_vec[i].size());
-    ++rank;
-    size *= idx_vec[i].size();
-  }
-  _T.reset(idx_lens);
-  std::copy(data_array,data_array+size,_T.data());
-  _initted = true;
-}
-template dtensor<double>::dtensor(vector<dtensor_index>& idx_vec, double* data_array);
-template dtensor< std::complex<double> >::dtensor(vector<dtensor_index>& idx_vec, std::complex<double>* data_array);
-
+//Will those actually work?
 template <typename T>
 dtensor<T>::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<T>& data_array){
   rank = 0;
   size = 1;
   idx_set = idx_vec;
-  len_vec idx_lens;
   for (size_t i = 0; i < idx_vec.size(); i++) {
-    idx_lens.push_back(idx_vec[i].size());
     ++rank;
     size *= idx_vec[i].size();
   }
-  //_T.reset(idx_lens);
   __T = std::move(data_array);
-  //std::copy(data_array,data_array+size,_T.data());
   _initted = true;
 }
 template dtensor<double>::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<double>& data_array);
@@ -350,11 +166,9 @@ template dtensor<double>::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<do
 
 template <typename T>
 dtensor<T>::dtensor(const dtensor<T>& other){
-  //  assert(1==2);
   rank = other.rank;
   size = other.size;
   idx_set = other.idx_set;
-  //  _T.reset(other._T);
   __T=other.__T;
   _initted = other._initted;
 }
@@ -362,26 +176,12 @@ template dtensor<double>::dtensor(const dtensor<double>& other);
 template dtensor< std::complex<double> >::dtensor(const dtensor< std::complex<double> >& other);
 
 
-template <typename T>
-dtensor<T>::dtensor(const dtensor_view<T>& other){
-  assert(1==2);
-  rank = other.rank;
-  size = other.size;
-  idx_set = other.idx_set;
-  _T.reset(other._T);
-  _initted = other._initted;
-}
-template dtensor<double>::dtensor(const dtensor_view<double>& other);
-template dtensor< std::complex<double> >::dtensor(const dtensor_view< std::complex<double> >& other);
-
 
 template <typename T>
 dtensor<T>::dtensor(dtensor<T>&& other){
-
   rank = other.rank;
   size = other.size;
   idx_set = std::move(other.idx_set);
-  //  _T.reset(std::move(other._T));
   __T = std::move(other.__T);
   _initted = other._initted;
 }
@@ -392,9 +192,11 @@ template dtensor< std::complex<double> >::dtensor(dtensor< std::complex<double> 
 
 //---------------------------------------------------------------------------
 // Reset
+
+//What's this being used for.  Should we be resetting the CTF tensor sizes??
+//What does a tblis reset have to do?
 template <typename T>
 void dtensor<T>::reset(vector<dtensor_index>& idx_vec, bool makeZero){
-  //assert(1==2);
   rank = 0;
   size = 1;
   idx_set = idx_vec;
@@ -413,63 +215,11 @@ template void dtensor< std::complex<double> >::reset(vector<dtensor_index>& idx_
 //-----------------------------------------------------------------------------
 
 
-//---------------------------------------------------------------------------
-// Resize indices
-// (data preserved when dimension of indices lowered, filled with val when enlarged)
-template <typename T>
-void dtensor<T>::resize(uint_vec& new_sizes, T val){
-  assert(1==2);
-  assert(_initted);
-  assert(new_sizes.size()==rank);
-  std::vector<long int> v;
-  size = 1;
-  for (size_t i = 0; i < rank; i++) {
-    if(idx_set[i].size()!=new_sizes[i]) idx_set[i].resize(new_sizes[i]);
-    v.push_back(new_sizes[i]);
-    size *= new_sizes[i];
-  }
-  _T.resize(v, val);
-}
-template void dtensor<double>::resize(uint_vec& new_sizes, double val);
-template void dtensor< std::complex<double> >::resize(uint_vec& new_sizes, std::complex<double> val);
-
-template <typename T>
-void dtensor<T>::resize(uint_list new_sizes, T val){
-  uint_vec new_sizes_vec;
-  for(auto v : new_sizes){
-    new_sizes_vec.push_back(v);
-  }
-  resize(new_sizes_vec, val);
-}
-template void dtensor<double>::resize(uint_list new_sizes, double val);
-template void dtensor< std::complex<double> >::resize(uint_list new_sizes, std::complex<double> val);
-
-template <typename T>
-void dtensor<T>::resize(vector<dtensor_index>& new_idx_set, T val){
-  assert(1==2);
-  assert(_initted);
-  assert(new_idx_set.size()==rank);
-  idx_set = new_idx_set;
-  std::vector<long int> v;
-  size = 1;
-  for (size_t i = 0; i < rank; i++) {
-    v.push_back(idx_set[i].size());
-    size *= idx_set[i].size();
-  }
-  _T.resize(v, val);
-}
-template void dtensor<double>::resize(vector<dtensor_index>& new_idx_set, double val);
-template void dtensor< std::complex<double> >::resize(vector<dtensor_index>& new_idx_set, std::complex<double> val);
-//-----------------------------------------------------------------------------
-
-
 //-----------------------------------------------------------------------------
 // Set values
 template <typename T>
 void dtensor<T>::setRandom(){
-
   assert(_initted);
-  //  random_array(_T.data(), size);
   __T.fill_random(0,1);
 }
 template void dtensor<double>::setRandom();
@@ -477,24 +227,16 @@ template void dtensor< std::complex<double> >::setRandom();
 
 template <typename T>
 void dtensor<T>::setZero(){
-  
   assert(_initted);
   __T.set_zero();
-  ///  for (size_t i = 0; i < size; i++) {
-  ///    _T.data()[i] = T(0.0);
-  ///  }
 }
 template void dtensor<double>::setZero();
 template void dtensor< std::complex<double> >::setZero();
 
+//This should be cleaner
 template <typename T>
 void dtensor<T>::setOne(){
-    //assert(1==2);
   assert(_initted);
-  /*for (size_t i = 0; i < size; i++) {
-    _T.data()[i] = T(1);
-  }
-  */
   //build generic set of indices
   string idxs;
   char i = 'a';
@@ -507,133 +249,14 @@ template void dtensor< std::complex<double> >::setOne();
 
 
 //-----------------------------------------------------------------------------
-// Permute
-#if !defined(USE_HPTT)
-template <typename T>
-void dtensor<T>::permute(uint_vec& perm)
-{
-    assert(1==2);
-  assert(_initted);
-  bool perm_needed = false;
-  for (size_t i = 0; i < perm.size(); i++) {
-    if(i!=perm[i]){
-      perm_needed = true;
-      break;
-    }
-  }
-  if (perm_needed){
-    vector<dtensor_index> idx_set_p(idx_set);
-    for (size_t i = 0; i < rank; i++) {
-      idx_set[i] = idx_set_p[perm[i]];
-    }
-    uint_vec stride1, stride2;
-    int s1 = 1, s2 = 1;
-    stride1.push_back(s1);
-    stride2.push_back(s2);
-    for (size_t i = 0; i < rank-1; i++) {
-      s1 *= idx_set_p[i].size();
-      s2 *= idx_set[i].size();
-      stride1.push_back(s1);
-      stride2.push_back(s2);
-    }
-    T* A = new T [size]();
-    std::copy(_T.data(), _T.data()+size, A);
-    ////////////////////////////////
-    char* p = std::getenv("OMP_NUM_THREADS");
-    int numThreads = 1;
-    if(p){
-      numThreads = atoi(p);
-    }
-    omp_set_num_threads(numThreads);
-    #pragma omp parallel for default(shared)
-    for (size_t i = 0; i < size; i++) {
-      int old_idx[rank];
-      int new_idx[rank];
-      for (size_t j = 0; j < rank; j++) {
-        old_idx[j] = int(i/stride1[j])%idx_set_p[j].size();
-      }
-      for (size_t j = 0; j < rank; j++) {
-        new_idx[j] = old_idx[perm[j]];
-      }
-      int idx = 0;
-      for (size_t j = 0; j < rank; j++) {
-        idx += new_idx[j] * stride2[j];
-      }
-      _T.data()[idx] = A[i];
-    }
-    delete [] A;
-  }
-}
-#else
-template <typename T>
-void dtensor<T>::permute(uint_vec& perm){
-    assert(1==2);
-  assert(_initted);
-  bool perm_needed = false;
-  for (size_t i = 0; i < perm.size(); i++) {
-    if(i!=perm[i]){
-      perm_needed = true;
-      break;
-    }
-  }
-  if (perm_needed){
-    vector<dtensor_index> idx_set_p(idx_set);
-    T* A = new T [size];
-    std::copy(_T.data(), _T.data()+size, A);
-    T* B = _T.data();
-    T alpha = 1;
-    T beta  = 0;
-    int idx_sizes[rank];
-    for (size_t i = 0; i < rank; i++) {
-      idx_sizes[i] = idx_set[i].size();
-      idx_set[i] = idx_set_p[perm[i]];
-    }
-    char* p = std::getenv("OMP_NUM_THREADS");
-    int numThreads = 1;
-    if(p){
-      numThreads = atoi(p);
-    }
-    omp_set_num_threads(numThreads);
-    // auto plan = hptt::create_plan((int *)perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::ESTIMATE,numThreads);
-    auto plan = hptt::create_plan((int *)perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::PATIENT,numThreads);
-    // auto plan = hptt::create_plan(perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::MEASURE,numThreads);
-    // auto plan = hptt::create_plan(perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::PATIENT,numThreads);
-    plan->execute();
-    delete [] A;
-  }
-}
-#endif
-template void dtensor<double>::permute(uint_vec& perm);
-template void dtensor< std::complex<double> >::permute(uint_vec& perm);
-
-template <typename T>
-void dtensor<T>::permute(uint_list perm){
-    assert(1==2);
-  uint_vec perm_vec;
-  for(auto s : perm){
-    perm_vec.push_back(s);
-  }
-  permute(perm_vec);
-}
-template void dtensor<double>::permute(uint_list perm);
-template void dtensor< std::complex<double> >::permute(uint_list perm);
-//-----------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------
 // Operator overloading
 template <typename T>
 dtensor<T>& dtensor<T>::operator=(const dtensor<T>& other){
-  //std::cerr<<"Line 581"<<std::endl;
-    //assert(1==2);
   if(this!=&other){
     rank = other.rank;
     size = other.size;
     idx_set = other.idx_set;
-    //_T.reset(other._T);
-    //other.__T.print();
     __T=other.__T;
-    //__T.print();
     _initted = other._initted;
   }
   return *this;
@@ -643,27 +266,11 @@ template dtensor< std::complex<double> >& dtensor< std::complex<double> >::opera
 
 
 template <typename T>
-dtensor<T>& dtensor<T>::operator=(const dtensor_view<T>& other){
-    assert(1==2);
-  rank = other.rank;
-  size = other.size;
-  idx_set = other.idx_set;
-  _T.reset(other._T);
-  
-  _initted = other._initted;
-  return *this;
-}
-template dtensor<double>& dtensor<double>::operator=(const dtensor_view<double> &other);
-template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator=(const dtensor_view< std::complex<double> > &other);
-
-
-template <typename T>
 dtensor<T>& dtensor<T>::operator=(dtensor<T>&& other){ //this is when you have A = std::move(A*V)
   if(this!=&other){
     rank = other.rank;
     size = other.size;
     idx_set = std::move(other.idx_set);
-    //    _T.reset(std::move(other._T));
     _initted = other._initted;
     __T=std::move(other.__T);
   }
@@ -673,123 +280,9 @@ template dtensor<double>& dtensor<double>::operator=(dtensor<double>&& other);
 template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator=(dtensor< std::complex<double> >&& other);
 
 
-// template <typename T>
-// dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
-//   assert(_initted || A._initted);
-//   if( _initted && !A._initted ){
-//     dtensor<T> res(*this);
-//     return res;
-//   }
-//   if( A._initted && !_initted ){
-//     dtensor<T> res(A);
-//     return res;
-//   }
-//   vector<dtensor_index> res_index_set;
-//   index_sets_difference(idx_set, A.idx_set, res_index_set);
-//   assert(res_index_set.size()>0); // result cannnot be a scalar
-//   lab_vec this_labels;
-//   lab_vec A_labels;
-//   lab_vec res_labels;
-//   char ch = 'a';
-//   unordered_map<string,char> labels_map;
-//   for (size_t i = 0; i < rank; i++) {
-//     if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-//       this_labels.push_back(ch);
-//       labels_map[idx_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       this_labels.push_back(labels_map.at(idx_set[i].tag()));
-//     }
-//   }
-//   for (size_t i = 0; i < A.rank; i++) {
-//     if(labels_map.find(A.idx_set[i].tag()) == labels_map.end()){
-//       A_labels.push_back(ch);
-//       labels_map[A.idx_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-//     }
-//   }
-//   for (size_t i = 0; i < res_index_set.size(); i++) {
-//     if(labels_map.find(res_index_set[i].tag()) == labels_map.end()){
-//       res_labels.push_back(ch);
-//       labels_map[res_index_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       res_labels.push_back(labels_map.at(res_index_set[i].tag()));
-//     }
-//   }
-//   dtensor<T> res(res_index_set);
-//   tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
-//   return res;
-// }
-// template dtensor<double> dtensor<double>::operator * (dtensor<double>& A);
-// template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator * (dtensor< std::complex<double> >& A);
-
-//
-// template <typename T>
-// dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
-//   assert(_initted || A._initted);
-//   if( _initted && !A._initted ){
-//     dtensor<T> res(*this);
-//     return res;
-//   }
-//   if( A._initted && !_initted ){
-//     dtensor<T> res(A);
-//     return res;
-//   }
-//   unordered_map<string,int>  labels_num_map;
-//   unordered_map<string,char> labels_char_map;
-//   char ch = 'a';
-//   // Get the number of times a index appears
-//   for (size_t i = 0; i < rank; i++) {
-//     if(labels_num_map.find(idx_set[i].tag()) == labels_num_map.end()){
-//       labels_num_map[idx_set[i].tag()] = 1;
-//       labels_char_map[idx_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       labels_num_map[idx_set[i].tag()] += 1;
-//     }
-//   }
-//   for (size_t i = 0; i < A.rank; i++) {
-//     if(labels_num_map.find(A.idx_set[i].tag()) == labels_num_map.end()){
-//       labels_num_map[A.idx_set[i].tag()] = 1;
-//       labels_char_map[A.idx_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       labels_num_map[A.idx_set[i].tag()] += 1;
-//     }
-//   }
-//   // Set up new dtensor_index
-//   vector<dtensor_index> res_index_set;
-//   lab_vec this_labels;
-//   lab_vec A_labels;
-//   lab_vec res_labels;
-//   for (size_t i = 0; i < rank; i++) {
-//     this_labels.push_back(labels_char_map[idx_set[i].tag()]);
-//     if (labels_num_map[idx_set[i].tag()] == 1){
-//       res_index_set.push_back(idx_set[i]);
-//       res_labels.push_back(labels_char_map[idx_set[i].tag()]);
-//     }
-//   }
-//   for (size_t i = 0; i < A.rank; i++) {
-//     A_labels.push_back(labels_char_map[A.idx_set[i].tag()]);
-//     if (labels_num_map[A.idx_set[i].tag()] == 1){
-//       res_index_set.push_back(A.idx_set[i]);
-//       res_labels.push_back(labels_char_map[A.idx_set[i].tag()]);
-//     }
-//   }
-//   dtensor<T> res(res_index_set);
-//   tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
-//   return res;
-// }
-// template dtensor<double> dtensor<double>::operator * (dtensor<double>& A);
-// template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator * (dtensor< std::complex<double> >& A);
-
-
+//This should be cleaned up
 template <typename T>
 dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
-  //    assert(1==2);
   assert(_initted || A._initted);
   if( _initted && !A._initted ){
     dtensor<T> res(*this);
@@ -838,29 +331,6 @@ dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
   }
   dtensor<T> res(res_index_set);
   
-  //  tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
-  /*for (auto i: res_labels)
-    cerr<<i<<endl;
-  for (int i=0;i<res.__T.order;i++)
-    cerr<<res.__T.lens[i]<<endl;
-  cerr<<endl;
-
-  
-  cerr<<endl;
-    for (auto i: this_labels)
-    cerr<<i<<endl;
-  for (int i=0;i<__T.order;i++)
-    cerr<<__T.lens[i]<<endl;
-  cerr<<endl;
-
-    cerr<<endl;
-    cerr<<endl;
-  for (auto i: A_labels)
-    cerr<<i<<endl;
-  for (int i=0;i<A.__T.order;i++)
-    cerr<<A.__T.lens[i]<<endl;
-  cerr<<endl;*/
-
   
   
     auto a=  res.__T[res_labels.data()];
@@ -882,296 +352,8 @@ template dtensor< std::complex<double> > dtensor< std::complex<double> >::operat
 
 
 template <typename T>
-dtensor<T> dtensor<T>::operator * (dtensor_view<T>& A){
-    assert(1==2);
-  assert(_initted || A._initted);
-  if( _initted && !A._initted ){
-    dtensor<T> res(*this);
-    return res;
-  }
-  if( A._initted && !_initted ){
-    dtensor<T> res(A);
-    return res;
-  }
-  unordered_map<string,int>  labels_num_map;
-  unordered_map<string,char> labels_char_map;
-  char ch = 'a';
-  // Get the number of times a index appears
-  for (size_t i = 0; i < rank; i++) {
-    labels_num_map[idx_set[i].tag()] = 1;
-    labels_char_map[idx_set[i].tag()] = ch;
-    ++ch;
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    if(labels_num_map.find(A.idx_set[i].tag()) == labels_num_map.end()){
-      labels_num_map[A.idx_set[i].tag()] = 1;
-      labels_char_map[A.idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      labels_num_map[A.idx_set[i].tag()] += 1;
-    }
-  }
-  // Set up new dtensor_index
-  vector<dtensor_index> res_index_set;
-  lab_vec this_labels;
-  lab_vec A_labels;
-  lab_vec res_labels;
-  for (size_t i = 0; i < rank; i++) {
-    this_labels.push_back(labels_char_map[idx_set[i].tag()]);
-    if (labels_num_map[idx_set[i].tag()] == 1){
-      res_index_set.push_back(idx_set[i]);
-      res_labels.push_back(labels_char_map[idx_set[i].tag()]);
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_char_map[A.idx_set[i].tag()]);
-    if (labels_num_map[A.idx_set[i].tag()] == 1){
-      res_index_set.push_back(A.idx_set[i]);
-      res_labels.push_back(labels_char_map[A.idx_set[i].tag()]);
-    }
-  }
-  dtensor<T> res(res_index_set);
-  tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
-  return res;
-}
-template dtensor<double> dtensor<double>::operator * (dtensor_view<double>& A);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator * (dtensor_view< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T> dtensor<T>::operator + (dtensor<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  dtensor<T> res = *this;
-  tblis::add(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
-  return res;
-}
-template dtensor<double> dtensor<double>::operator + (dtensor<double>& A);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator + (dtensor< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T> dtensor<T>::operator + (dtensor_view<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  dtensor<T> res = *this;
-  tblis::add(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
-  return res;
-}
-template dtensor<double> dtensor<double>::operator + (dtensor_view<double>& A);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator + (dtensor_view< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T> dtensor<T>::operator - (dtensor<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  dtensor<T> res = *this;
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
-  return res;
-}
-template dtensor<double> dtensor<double>::operator - (dtensor<double>& A);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator - (dtensor< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T> dtensor<T>::operator - (dtensor_view<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  dtensor<T> res = *this;
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
-  return res;
-}
-template dtensor<double> dtensor<double>::operator - (dtensor_view<double>& A);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator - (dtensor_view< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T>& dtensor<T>::operator += (dtensor<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  tblis::add(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
-  return *this;
-}
-template dtensor<double>& dtensor<double>::operator += (dtensor<double>& A);
-template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator += (dtensor< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T>& dtensor<T>::operator += (dtensor_view<T>& A){
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  tblis::add(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
-  return *this;
-}
-template dtensor<double>& dtensor<double>::operator += (dtensor_view<double>& A);
-template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator += (dtensor_view< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T>& dtensor<T>::operator -= (dtensor<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
-  return *this;
-}
-template dtensor<double>& dtensor<double>::operator -= (dtensor<double>& A);
-template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator -= (dtensor< std::complex<double> >& A);
-
-
-template <typename T>
-dtensor<T>& dtensor<T>::operator -= (dtensor_view<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank==A.rank);
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-      this_labels.push_back(ch);
-      labels_map[idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      this_labels.push_back(labels_map.at(idx_set[i].tag()));
-    }
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-  }
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
-  return *this;
-}
-template dtensor<double>& dtensor<double>::operator -= (dtensor_view<double>& A);
-template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator -= (dtensor_view< std::complex<double> >& A);
-
-
-template <typename T>
 dtensor<T>& dtensor<T>::operator *= (const T c){
-    //assert(1==2);
   assert(_initted);
-  /*for (size_t i = 0; i < size; i++) {
-    _T.data()[i] *= c;
-  }*/
   unordered_map<string,char> charMap;
   auto indA = indicesToChar(idx_set,charMap);
   CTF::Scalar<T> cs(c);
@@ -1181,13 +363,10 @@ dtensor<T>& dtensor<T>::operator *= (const T c){
 template dtensor<double>& dtensor<double>::operator*=(const double c);
 template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator*=(const std::complex<double> c);
 
+//This should be cleaned up
 template <typename T>
 dtensor<T>& dtensor<T>::operator /= (const T c){
-   
   assert(_initted);
-  //  for (size_t i = 0; i < size; i++) {
-  //    _T.data()[i] /= c;
-  //  }
   string letters="";
   char ch='a';
   for (unsigned i=0;i<rank;i++){
@@ -1200,75 +379,9 @@ dtensor<T>& dtensor<T>::operator /= (const T c){
 template dtensor<double>& dtensor<double>::operator/=(const double c);
 template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator/=(const std::complex<double> c);
 
-template <typename T>
-dtensor<T> dtensor<T>::operator*(const T c){
-    assert(1==2);
-  assert(_initted);
-  dtensor A(*this);
-  for (size_t i = 0; i < A.size; i++) {
-    A._T.data()[i] *= c;
-  }
-  return A;
-}
-template dtensor<double> dtensor<double>::operator*(const double c);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator*(const std::complex<double> c);
-
-template <typename T>
-dtensor<T> dtensor<T>::operator/(const T c){
-    assert(1==2);
-  assert(_initted);
-  dtensor A(*this);
-  for (size_t i = 0; i < A.size; i++) {
-    A._T.data()[i] /= c;
-  }
-  return A;
-}
-template dtensor<double> dtensor<double>::operator/(const double c);
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::operator/(const std::complex<double> c);
-//-----------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------
-// Contract to scalar
-// template <typename T>
-// T dtensor<T>::contract(dtensor<T>& A){
-//   assert(_initted && A._initted);
-//   assert(rank>0 && A.rank>0);
-//   vector<dtensor_index> res_index_set;
-//   index_sets_difference(idx_set, A.idx_set, res_index_set);
-//   assert(res_index_set.size()==0); // contract to a scalar
-//   lab_vec this_labels;
-//   lab_vec A_labels;
-//   char ch = 'a';
-//   unordered_map<string,char> labels_map;
-//   for (size_t i = 0; i < rank; i++) {
-//     if(labels_map.find(idx_set[i].tag()) == labels_map.end()){
-//       this_labels.push_back(ch);
-//       labels_map[idx_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       this_labels.push_back(labels_map.at(idx_set[i].tag()));
-//     }
-//   }
-//   for (size_t i = 0; i < A.rank; i++) {
-//     if(labels_map.find(A.idx_set[i].tag()) == labels_map.end()){
-//       A_labels.push_back(ch);
-//       labels_map[A.idx_set[i].tag()] = ch;
-//       ++ch;
-//     }else{
-//       A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-//     }
-//   }
-//   T res = 0;
-//   tblis::dot(_T,this_labels.data(),A._T,A_labels.data(),res);
-//   return res;
-// }
-// template double dtensor<double>::contract(dtensor<double>& A);
-// template std::complex<double> dtensor< std::complex<double> >::contract(dtensor< std::complex<double> >& A);
-
+//This shoud be cleaned up.
 template <typename T>
 T dtensor<T>::contract(dtensor<T>& A){
-
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
   vector<dtensor_index> res_index_set;
@@ -1301,72 +414,13 @@ T dtensor<T>::contract(dtensor<T>& A){
 template double dtensor<double>::contract(dtensor<double>& A);
 template std::complex<double> dtensor< std::complex<double> >::contract(dtensor< std::complex<double> >& A);
 
-
-template <typename T>
-T dtensor<T>::contract(dtensor_view<T>& A){
-    assert(1==2);
-  assert(_initted && A._initted);
-  assert(rank>0 && A.rank>0);
-  vector<dtensor_index> res_index_set;
-  index_sets_difference(idx_set, A.idx_set, res_index_set);
-  assert(res_index_set.size()==0); // contract to a scalar
-  lab_vec this_labels;
-  lab_vec A_labels;
-  char ch = 'a';
-  unordered_map<string,char> labels_map;
-  for (size_t i = 0; i < rank; i++) {
-    this_labels.push_back(ch);
-    labels_map[idx_set[i].tag()] = ch;
-    ++ch;
-  }
-  for (size_t i = 0; i < A.rank; i++) {
-    if(labels_map.find(A.idx_set[i].tag()) == labels_map.end()){
-      A_labels.push_back(ch);
-      labels_map[A.idx_set[i].tag()] = ch;
-      ++ch;
-    }else{
-      A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
-    }
-  }
-  T res = 0;
-  tblis::dot(_T,this_labels.data(),A._T,A_labels.data(),res);
-  return res;
-}
-template double dtensor<double>::contract(dtensor_view<double>& A);
-template std::complex<double> dtensor< std::complex<double> >::contract(dtensor_view< std::complex<double> >& A);
-//-----------------------------------------------------------------------------
-
-
 //---------------------------------------------------------------------------
-string indToStrNP(vector<dtensor_index> &indices,unordered_map<string,char> &charMap)
-{
-  string myString="";
-  for (auto i: indices){
-    const string thisTag = noPrime(i).tag();
-    //cerr<<thisTag<<endl;
-    myString+=charMap[thisTag];
-  }
-  return myString;
-}
-string indicesToCharNP(vector<dtensor_index> &indices, unordered_map<string,char> &charMap)
-{
-  char ch='a';
-  for (auto i : charMap) //find highest char
-    if (i.second > ch)
-      ch=i.second;
-  if(ch!='a') ++ch; //increment from latest
-  for (auto i : indices){
-    auto it= charMap.find(noPrime(i).tag());
-    if (it==charMap.end()){ //new tag, add it to map
-      charMap[noPrime(i).tag()]=ch;
-      ++ch;
-    }
-  }
-  return indToStrNP(indices,charMap);
-}
+
+
 // Get diagonal subtensor
 // only possible when some tensor indices com in "pairs",
 // meaning same name but different prime level
+//This should be cleaned up.
 template <typename T>
 dtensor<T> dtensor<T>::diagonal(){
   //assert(1==2);
@@ -1435,6 +489,8 @@ dtensor<T> dtensor<T>::diagonal(){
 template dtensor<double> dtensor<double>::diagonal();
 template dtensor< std::complex<double> > dtensor< std::complex<double> >::diagonal();
 
+
+//This should be cleaned up.
 template <typename T>
 dtensor<T> dtensor<T>::diagonal(index_type type){
   //assert(1==2);
@@ -1537,152 +593,12 @@ template void dtensor<double>::print(unsigned print_level);
 template void dtensor< std::complex<double> >::print(unsigned print_level);
 
 
-//-----------------------------------------------------------------------------
-// Save/Load
-template <typename T>
-void dtensor<T>::save(string fn){
-    assert(1==2);
-  assert(_initted);
-  uint_vec idx_sizes;
-  str_vec idx_names;
-  uint_vec idx_types;
-  uint_vec idx_levels;
-  vector<T> d(_T.data(),_T.data()+size);
-  for (size_t i = 0; i < rank; i++) {
-    idx_sizes.push_back(idx_set[i].size());
-    idx_names.push_back(idx_set[i].name());
-    idx_types.push_back(idx_set[i].type());
-    idx_levels.push_back(idx_set[i].level());
-  }
-  std::string idx_name_pref = "idx_name_";
-  ezh5::File fh5W (fn, H5F_ACC_TRUNC);
-  fh5W["rank"] = rank;
-  fh5W["size"] = size;
-  fh5W["idx_sizes"] = idx_sizes;
-  fh5W["idx_types"] = idx_types;
-  fh5W["idx_levels"] = idx_levels;
-  for (size_t i = 0; i < rank; i++) {
-    std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
-    fh5W[idx_name_pref+std::to_string(i)] = vec;
-  }
-  fh5W["T"] = d;
-}
-template void dtensor<double>::save(string fn);
-template void dtensor< std::complex<double> >::save(string fn);
-
-
-template <typename T>
-void dtensor<T>::save(ezh5::Node& fW){
-    assert(1==2);
-  assert(_initted);
-  uint_vec idx_sizes;
-  str_vec idx_names;
-  uint_vec idx_types;
-  uint_vec idx_levels;
-  vector<T> d(_T.data(),_T.data()+size);
-  for (size_t i = 0; i < rank; i++) {
-    idx_sizes.push_back(idx_set[i].size());
-    idx_names.push_back(idx_set[i].name());
-    idx_types.push_back(idx_set[i].type());
-    idx_levels.push_back(idx_set[i].level());
-  }
-  std::string idx_name_pref = "idx_name_";
-  fW["rank"] = rank;
-  fW["size"] = size;
-  fW["idx_sizes"] = idx_sizes;
-  fW["idx_types"] = idx_types;
-  fW["idx_levels"] = idx_levels;
-  for (size_t i = 0; i < rank; i++) {
-    std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
-    fW[idx_name_pref+std::to_string(i)] = vec;
-  }
-  fW["T"] = d;
-}
-template void dtensor<double>::save(ezh5::Node& fW);
-template void dtensor< std::complex<double> >::save(ezh5::Node& fW);
-
-
-template <typename T>
-void dtensor<T>::load(string fn){
-    assert(1==2);
-  uint_vec idx_sizes;
-  str_vec idx_names;
-  uint_vec idx_types_int;
-  typ_vec idx_types;
-  uint_vec idx_levels;
-  len_vec idx_lens;
-  vector<T> d;
-  std::string idx_name_pref = "idx_name_";
-  ezh5::File fh5R (fn, H5F_ACC_RDONLY);
-  fh5R["rank"] >> rank;
-  fh5R["size"] >> size;
-  fh5R["idx_sizes"] >> idx_sizes;
-  fh5R["idx_types"] >> idx_types_int;
-  fh5R["idx_levels"] >> idx_levels;
-  for (size_t i = 0; i < rank; i++) {
-    std::vector<char> vec;
-    fh5R[idx_name_pref+std::to_string(i)] >> vec;
-    std::string s = std::string(vec.begin(),vec.end());
-    idx_names.push_back(s);
-  }
-  idx_set.clear();
-  for (size_t i = 0; i < rank; i++) {
-    idx_types.push_back(index_type(idx_types_int[i]));
-    idx_set.push_back(dtensor_index(idx_sizes[i],idx_names[i],idx_types[i],idx_levels[i]));
-    idx_lens.push_back(tblis::len_type(idx_sizes[i]));
-  }
-  _T.reset(idx_lens);
-  fh5R["T"] >> d;
-  std::copy(d.begin(),d.end(),_T.data());
-  _initted = true;
-}
-template void dtensor<double>::load(string fn);
-template void dtensor< std::complex<double> >::load(string fn);
-
-
-template <typename T>
-void dtensor<T>::load(ezh5::Node& fR){
-    assert(1==2);
-  uint_vec idx_sizes;
-  str_vec idx_names;
-  uint_vec idx_types_int;
-  typ_vec idx_types;
-  uint_vec idx_levels;
-  len_vec idx_lens;
-  vector<T> d;
-  std::string idx_name_pref = "idx_name_";
-  fR["rank"] >> rank;
-  fR["size"] >> size;
-  fR["idx_sizes"] >> idx_sizes;
-  fR["idx_types"] >> idx_types_int;
-  fR["idx_levels"] >> idx_levels;
-  for (size_t i = 0; i < rank; i++) {
-    std::vector<char> vec;
-    fR[idx_name_pref+std::to_string(i)] >> vec;
-    std::string s = std::string(vec.begin(),vec.end());
-    idx_names.push_back(s);
-  }
-  idx_set.clear();
-  for (size_t i = 0; i < rank; i++) {
-    idx_types.push_back(index_type(idx_types_int[i]));
-    idx_set.push_back(dtensor_index(idx_sizes[i],idx_names[i],idx_types[i],idx_levels[i]));
-    idx_lens.push_back(tblis::len_type(idx_sizes[i]));
-  }
-  _T.reset(idx_lens);
-  fR["T"] >> d;
-  std::copy(d.begin(),d.end(),_T.data());
-  _initted = true;
-}
-template void dtensor<double>::load(ezh5::Node& fR);
-template void dtensor< std::complex<double> >::load(ezh5::Node& fR);
-//-----------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
 // Prime level manipulation
 template <typename T>
 void dtensor<T>::prime(int inc){
-    //assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].prime(inc);
   }
@@ -1692,7 +608,6 @@ template void dtensor< std::complex<double> >::prime(int inc);
 
 template <typename T>
 void dtensor<T>::primeLink(int inc){
-    //assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].primeLink(inc);
   }
@@ -1700,41 +615,10 @@ void dtensor<T>::primeLink(int inc){
 template void dtensor<double>::primeLink(int inc);
 template void dtensor< std::complex<double> >::primeLink(int inc);
 
-template <typename T>
-void dtensor<T>::primeSite(int inc){
-    assert(1==2);
-  for (size_t i = 0; i < rank; i++) {
-    idx_set[i].primeSite(inc);
-  }
-}
-template void dtensor<double>::primeSite(int inc);
-template void dtensor< std::complex<double> >::primeSite(int inc);
 
-template <typename T>
-void dtensor<T>::mapPrime(unsigned from, unsigned to){
-    assert(1==2);
-  for (size_t i = 0; i < rank; i++) {
-    idx_set[i].mapPrime(from, to);
-  }
-}
-template void dtensor<double>::mapPrime(unsigned from, unsigned to);
-template void dtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to);
-
-template <typename T>
-void dtensor<T>::mapPrime(unsigned from, unsigned to, index_type type){
-    assert(1==2);
-  for (size_t i = 0; i < rank; i++) {
-    idx_set[i].mapPrime(from, to, type);
-  }
-}
-template void dtensor<double>::mapPrime(unsigned from, unsigned to, index_type type);
-template void dtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to, index_type type);
-
-
-
+//This shoudl be cleaned up
 template <typename T>
 void dtensor<T>::conj(){
-  //    assert(1==2);
   string letters="";
   char ch='a';
   for (unsigned i=0;i<rank;i++){
@@ -1744,16 +628,14 @@ void dtensor<T>::conj(){
   if (std::is_same<T, std::complex<double>>::value) {
     ////C++ sdf    
     CTF::Transform<T>([](T & d){ d= std::conj(d); })(__T[letters.c_str()]);
-    //    for (size_t i = 0; i < size; i++) _T.data()[i] = cconj(_T.data()[i]);
   }
-  // tensor3["ijab"] = CTF::Function<T,T2>([](T d,T2 v){return d+v;})(tensor["ijkl"],tensor2["klab"]);
   
 }
 template void dtensor<double>::conj();
 template void dtensor< std::complex<double> >::conj();
 //---------------------------------------------------------------------------
 
-
+///What does this do and this should be cleaned up
 //---------------------------------------------------------------------------
 // special arithmetic operations with another tensor in the same format/pattern
 template <typename T>
@@ -1774,6 +656,7 @@ template void dtensor<double>::add(dtensor<double>& A, double c);
 template void dtensor< std::complex<double> >::add(dtensor< std::complex<double> >& A, std::complex<double> c);
 
 
+///Is this the best way to do this!  Hack with conj stuff running around here
 template <typename T>
 T dtensor<T>::inner_product(dtensor<T>& A){
   //assert(1==2);
@@ -1800,13 +683,9 @@ template std::complex<double> dtensor< std::complex<double> >::inner_product(dte
 //-----------------------------------------------------------------------------
 // Norm
 template <typename T>
-double dtensor<T>::norm(){ //FI ME
-  //    assert(1==2);
+double dtensor<T>::norm(){
   double res = 0.0;
-  /*for (size_t i = 0; i < size; i++) {
-    res += std::real(__T.data[i]*std::conj(__T.data[i])); //HACK FIX ME!
-  }*/
-  return std::real(__T.norm2()); //std::sqrt(res);
+  return std::real(__T.norm2()); 
 }
 template double dtensor<double>::norm();
 template double dtensor< std::complex<double> >::norm();
@@ -1814,11 +693,7 @@ template double dtensor< std::complex<double> >::norm();
 
 template <typename T>
 double dtensor<T>::normalize(){
-   //assert(1==2);
   double res = 0.0;
-  /*for (size_t i = 0; i < size; i++) {
-    res += std::real(_T.data()[i]*std::conj(_T.data()[i]));
-  }*/
   res = norm();
   (*this)/=res;
   return res;

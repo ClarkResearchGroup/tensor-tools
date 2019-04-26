@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     MPO< double > H;
     Heisenberg< double > HB(&sites);
     HB.buildHam(H);
-    H.print(2);
+    //H.print(2);
     cerr<<"Initial overlap"<<psiHphi(psi,H,psi)<<" "<<psiphi(psi,psi) <<endl;
 
     int nsweeps = 20;
