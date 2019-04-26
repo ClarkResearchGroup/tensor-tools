@@ -607,13 +607,16 @@ void dTensorTrain<T, N>::normalize(){
   assert(tensors_allocated);
   //cerr<<"pre norm"<<endl;
 
-  double nm = norm();
+  if(center == -1){
+    double nm = norm();
+    A[0] /= nm;
+  }
+  else{
+    double nm = A[center].norm();
+    A[center] /= nm;
+  }
   //cerr<<"post norm"<<endl;
   //exit(1);
-  if(center == -1)
-    A[0] /= nm;
-  else
-    A[center] /= nm;
 }
 template void dTensorTrain<double, 1>::normalize();
 template void dTensorTrain<double, 2>::normalize();
