@@ -72,7 +72,6 @@ void index_sets_difference(const vector<dtensor_index>& Ac, const vector<dtensor
 }
 
 void index_sets_intersection(const vector<dtensor_index>& Ac, const vector<dtensor_index>& Bc, vector<dtensor_index>& res){
-  res.resize(Ac.size()+Bc.size());
   vector<dtensor_index>::iterator it;
   vector<dtensor_index> A(Ac.begin(), Ac.end());
   vector<dtensor_index> B(Bc.begin(), Bc.end());
@@ -83,6 +82,7 @@ void index_sets_intersection(const vector<dtensor_index>& Ac, const vector<dtens
   A.resize(std::distance(A.begin(),it));
   it = std::unique (B.begin(), B.end());
   B.resize(std::distance(B.begin(),it));
+  res.resize(Ac.size()+Bc.size());
   it = std::set_intersection(A.begin(), A.end(), B.begin(), B.end(), res.begin());
   res.resize(it-res.begin());
 }

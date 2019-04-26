@@ -73,7 +73,8 @@ bool dtensor_index::operator != (const dtensor_index& A) const{
 }
 
 bool dtensor_index::operator <  (const dtensor_index& A) const{
-  return (_tag<A._tag && _level<A._level);
+  //return (_tag<A._tag && _level<A._level);
+  return std::tie(_tag,_level) < std::tie(A._tag,A._level);
 }
 
 
