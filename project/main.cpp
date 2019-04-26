@@ -10,24 +10,7 @@
 #include "../algos/dmrg/dmrg.h"
 
 #include "../util/timer.h"
-using namespace std;
-
-
-  #include "../util/types_and_headers.h"
-#include "../linalg/lapack_wrapper.h"
-#include "../dtensor/dtensor_all.h"
-#include "../qtensor/qtensor_all.h"
-#include "../mps/mps_all.h"
-
-#include "../models/sites/spinhalf.h"
-#include "../models/hams/Heisenberg.h"
-
-#include "../algos/dmrg/dmrg.h"
-
-#include "../util/timer.h"
 #include <ctf.hpp>
-
-
 using namespace std;
 
 #include "tblis.h"
@@ -38,6 +21,12 @@ typedef vector<tblis::label_type>  lab_vec;
 #ifdef USE_HPTT
 #include <hptt.h>
 #endif
+
+filebuf fbuf;
+ostream perr(&fbuf);
+filebuf fbufo;
+ostream pout(&fbufo);
+
 typedef pair<int, unsigned> quantum_number;
 int main(int argc, char **argv)
 {
@@ -52,11 +41,18 @@ int main(int argc, char **argv)
       ps.push_back("Up");
   }
 
-  std::cout.precision(8);
+  //std::cout.precision(8);
+  //std::cerr.precision(8);
 
   {
     CTF::World world(argc,argv);
-    if(world.rank==0) std::cout << "\n" << "Test MPS DMRG." << '\n';
+    if (world.rank == 0){
+      perr.rdbuf(cerr.rdbuf());
+      pout.rdbuf(cout.rdbuf());
+      perr.precision(8);
+      pout.precision(8);
+    }
+    perr << "\n" << "Test MPS DMRG." << '\n';
     MPS< double > psi(&sites,2);
     ///    psi.setRandom();
     for (int i=0;i<psi.length;i++){
@@ -76,14 +72,14 @@ int main(int argc, char **argv)
     //H.print(2);
     auto num   = psiHphi(psi,H,psi);
     auto denom = psiphi(psi,psi);
-    if(world.rank==0) cerr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
+    perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
     int nsweeps = 20;
     int maxm = 60;
     double cutoff = 1e-8;
     auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff);
     if(world.rank==0) psi.print();
 
-    if(world.rank==0) std::cout << "Final Energy = "<<finalEnergy << '\n';
+    pout << "Final Energy = "<<finalEnergy << '\n';
   }
   MPI_Finalize();
   return 0;

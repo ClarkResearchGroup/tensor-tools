@@ -284,20 +284,20 @@ template void dTensorTrain<std::complex<double>, 2>::setRandom();
 // Print dTensorTrain information
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::print(int level){
-  std::cout<<"---------------------------------------------------"<<'\n';
-  std::cout << "length = " << length << ",  phy_dim = " << phy_dim << ", center = " << center << ", id = " << _id << '\n';
-  std::cout << "bond_dims vector = " << " ";
+  pout<<"---------------------------------------------------"<<'\n';
+  pout << "length = " << length << ",  phy_dim = " << phy_dim << ", center = " << center << ", id = " << _id << '\n';
+  pout << "bond_dims vector = " << " ";
   for(auto v : bond_dims) std::cout << v << " ";
-  std::cout<<std::endl;
+  pout<<std::endl;
   if(level>=1){
-    std::cout << "Information of individual tensors:" << '\n';
+    pout << "Information of individual tensors:" << '\n';
     if(tensors_allocated){
       for (size_t i = 0; i < length; i++) {
         A[i].print(std::max(level-1,0));
       }
     }
   }
-  std::cout<<"---------------------------------------------------"<<'\n';
+  pout<<"---------------------------------------------------"<<'\n';
 }
 template void dTensorTrain<double, 1>::print(int level);
 template void dTensorTrain<double, 2>::print(int level);
@@ -491,8 +491,6 @@ void dTensorTrain<T, N>::rc(){
     vector<dtensor_index> right;
     dtensor_index mid;
     string LinkName = "ID"+to_string(_id)+"Link"+to_string(i);
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
     // Separate dtensor_index
     for (size_t j = 0; j < A[i].rank; j++) {
