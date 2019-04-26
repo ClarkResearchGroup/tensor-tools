@@ -71,6 +71,8 @@ template void buildEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<dou
 
 template <typename T>
 void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector< dtensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart){
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	if(direction==MoveFromLeft){
 		// Set up big_dtensor for two site optimization
 		big_dtensor<T> A;
@@ -101,7 +103,7 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 			for(auto sg:S){
 				if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
 			}
-			std::cout << vNEE << " ";
+			if(rank==0) std::cout << vNEE << " ";
 		}
 	}else{
 		// Set up big_dtensor for two site optimization
@@ -133,7 +135,7 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 			for(auto sg:S){
 				if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
 			}
-			std::cout << vNEE << " ";
+			if(rank==0) std::cout << vNEE << " ";
 		}
 	}
 }
@@ -261,12 +263,18 @@ template void updateEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<do
 
 template <typename T>
 T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart){
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	int L = H.length;
 	int direction, site=0;
 	psi.position(0);
+	//cerr<<"Pre normalize"<<endl;
+
 	psi.normalize();
+	//cerr<<"post normalize"<<endl;
+	//exit(1);
 	T Energy = psiHphi(psi, H, psi);
-	std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;
+	if(rank==0) std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;
 	////////////////////////////////////////////
 	// Environment tensors
 	std::vector< dtensor<T> > TR(L);
@@ -274,9 +282,9 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	std::cout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	if(rank==0) std::cout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
 	for(int l = 0; l < num_sweeps; l++) {
-		std::cout<<l<<"\t ";
+		if(rank==0) std::cout<<l<<"\t ";
 		direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
 		for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
 		{
@@ -285,7 +293,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart);
 			updateEnv(psi, H, TR, TL, site, direction);
 		}
-		std::cout<<Energy<<std::endl;
+		if(rank==0) std::cout<<Energy<<std::endl;
 	}
 	psi.position(0);
 	psi.normalize();

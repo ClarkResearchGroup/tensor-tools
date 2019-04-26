@@ -44,8 +44,13 @@ void Heisenberg<T>::addOperators(MPO<T>& H, unsigned site, unsigned r, unsigned 
 	  const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
 
     //cerr<<site<<" "<<val * (*_s).d_bra_op_ket(b, op, k)<<endl;
-	  H.A[site].__T.write(1, inds.data(), myData.data());
+	  int rank;
+	  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	  if(rank==0)
 
+	    H.A[site].__T.write(1, inds.data(), myData.data());
+	  else
+	    H.A[site].__T.write(0, inds.data(), myData.data());
     //H.A[site].__T.print();
 	  //	  H.A[site].__T(0,k, b,c) = val * (*_s).d_bra_op_ket(b, op, k);
         }else{
@@ -55,8 +60,12 @@ void Heisenberg<T>::addOperators(MPO<T>& H, unsigned site, unsigned r, unsigned 
 	  //vector<long int> inds = {r,k,b,c};
 	  vector<long int> inds = {s0*r + k*s1 + b*s2 + s3*c};
 	  const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
-	  H.A[site].__T.write(1, inds.data(), myData.data());
-	  
+	  int rank;
+	  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	  if(rank==0)
+	    H.A[site].__T.write(1, inds.data(), myData.data());
+	  else
+	    H.A[site].__T.write(0, inds.data(), myData.data());
 	  //	  H.A[site].__T(r ,k,b,c) = val * (*_s).d_bra_op_ket(b, op, k);
         }
       }

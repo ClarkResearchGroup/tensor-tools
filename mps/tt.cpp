@@ -204,6 +204,7 @@ void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
 	    //A[i]._T.data()[j] = 1.0;
 	    vector<long int> t={j};
 	    vector<T> d={1.0};
+	    assert(1==2);
 	    A[i].__T.write(1,t.data(),d.data());
 			//            }
 	  }
@@ -490,6 +491,9 @@ void dTensorTrain<T, N>::rc(){
     vector<dtensor_index> right;
     dtensor_index mid;
     string LinkName = "ID"+to_string(_id)+"Link"+to_string(i);
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    
     // Separate dtensor_index
     for (size_t j = 0; j < A[i].rank; j++) {
       string idx_name = A[i].idx_set[j].name();
@@ -510,15 +514,32 @@ void dTensorTrain<T, N>::rc(){
     //      cerr<<j<<endl;
     
     svd(A[i],left,right,U,V,S,MoveFromRight);
+
     mid.resize(S.size());
     bond_dims[i] = S.size();
     A[i] = V;
     A[i].idx_set[0] = mid;
-    //cerr<<"PRE STUFF"<<endl;
-    A[i-1] = std::move(A[i-1]*U);
-    //cerr<<"POST STUFF"<<endl;
-    A[i-1].idx_set.back() = mid;
+    /*if (rank==0)
+      cerr<<"PRE STUFF"<<endl;
+    A[i-1].__T.print();
+    if (rank==0)
+      for (int j=0;j<A[i-1].__T.order;j++)
+	cerr<<A[i-1].__T.lens[j]<<" ";
+    if (rank==0)
+      cerr<<endl;*/
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    /*if (rank==0)
+      for (int j=0;j<U.__T.order;j++)
+	cerr<<U.__T.lens[j]<<" ";
+    if (rank==0)
+      cerr<<endl;
+    U.__T.print();*/
+    MPI_Barrier(MPI_COMM_WORLD);
+    A[i-1] = std::move(A[i-1]*U);
+    A[i-1].idx_set.back() = mid;
+    //if (rank==0)
+    //  cerr<<"Post stuff"<<endl;
     
     /*cerr<<"Rank: "<<A[i].__T.order<<endl;
     cerr<<endl;
@@ -536,6 +557,7 @@ void dTensorTrain<T, N>::rc(){
     
   }
   center = 0;
+
 }
 template void dTensorTrain<double, 1>::rc();
 template void dTensorTrain<double, 2>::rc();
@@ -583,7 +605,11 @@ template void dTensorTrain<std::complex<double>, 2>::lc();
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::normalize(){
   assert(tensors_allocated);
+  //cerr<<"pre norm"<<endl;
+
   double nm = norm();
+  //cerr<<"post norm"<<endl;
+  //exit(1);
   if(center == -1)
     A[0] /= nm;
   else
@@ -605,6 +631,9 @@ double dTensorTrain<T, N>::norm(){
     cerr<<i<<endl;
   }*/
   t.rc();
+    //cerr<<"post this "<<endl;
+    //exit(1);
+
   /*cerr<<"Post bond dims"<<endl;
   for (auto i :bond_dims){
     cerr<<i<<endl;

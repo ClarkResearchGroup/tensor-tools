@@ -42,7 +42,6 @@ typedef pair<int, unsigned> quantum_number;
 int main(int argc, char **argv)
 {
   MPI_Init(&argc, &argv);
-  CTF::World world(argc,argv);
   unsigned N = 10;
   spinhalf sites(N);
   str_vec ps;
@@ -56,9 +55,13 @@ int main(int argc, char **argv)
   std::cout.precision(8);
 
   {
-    std::cout << "\n" << "Test MPS DMRG." << '\n';
+    CTF::World world(argc,argv);
+    if(world.rank==0) std::cout << "\n" << "Test MPS DMRG." << '\n';
     MPS< double > psi(&sites,2);
-    psi.setRandom();
+    ///    psi.setRandom();
+    for (int i=0;i<psi.length;i++){
+      psi.A[i].setOne();
+    }
     /*auto psi2 = psi;
     cerr<<"NORM:"<<psiphi(psi,psi)<<endl;
     psi.normalize();
@@ -71,19 +74,21 @@ int main(int argc, char **argv)
     Heisenberg< double > HB(&sites);
     HB.buildHam(H);
     //H.print(2);
-    cerr<<"Initial overlap"<<psiHphi(psi,H,psi)<<" "<<psiphi(psi,psi) <<endl;
-
+    auto num   = psiHphi(psi,H,psi);
+    auto denom = psiphi(psi,psi);
+    if(world.rank==0) cerr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
     int nsweeps = 20;
     int maxm = 60;
     double cutoff = 1e-8;
-    dmrg(psi, H, nsweeps, maxm, cutoff);
-    psi.print();
-    exit(1);
+    auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff);
+    if(world.rank==0) psi.print();
 
-    std::cout << psiHphi(psi,H,psi) << '\n';
+    if(world.rank==0) std::cout << "Final Energy = "<<finalEnergy << '\n';
   }
+  MPI_Finalize();
+  return 0;
   exit(1);
-  {
+  /*{
     std::cout << "\n" << "Test qMPS DMRG." << '\n';
     qMPS< double > psi(&sites,ps);
     psi.normalize();
@@ -100,7 +105,7 @@ int main(int argc, char **argv)
     psi.print();
 
     std::cout << psiHphi(psi,H,psi) << '\n';
-  }
+  }*/
   //------------------------------------
   return 0;
 }
