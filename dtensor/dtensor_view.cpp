@@ -6,6 +6,7 @@
 // Constructors
 template <typename T>
 dtensor_view<T>::dtensor_view(uint_list idx_sizes, str_list names, typ_list types, uint_list levels, T* data_array){
+  assert(1==2);
   rank = 0;
   size = 1;
   len_vec idx_lens;
@@ -28,6 +29,7 @@ template dtensor_view< std::complex<double> >::dtensor_view(uint_list idx_sizes,
 
 template <typename T>
 dtensor_view<T>::dtensor_view(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_vec& levels, T* data_array){
+  assert(1==2);
   rank = 0;
   size = 1;
   len_vec idx_lens;
@@ -46,6 +48,7 @@ template dtensor_view< std::complex<double> >::dtensor_view(uint_vec& idx_sizes,
 
 template <typename T>
 dtensor_view<T>::dtensor_view(vector<dtensor_index>& idx_vec, T* data_array){
+  assert(1==2);
   rank = 0;
   size = 1;
   idx_set = idx_vec;
@@ -64,6 +67,7 @@ template dtensor_view< std::complex<double> >::dtensor_view(vector<dtensor_index
 
 template <typename T>
 dtensor_view<T>::dtensor_view(const dtensor<T>& other){
+  assert(1==2);
   rank = other.rank;
   size = other.size;
   idx_set = other.idx_set;
@@ -80,6 +84,7 @@ template dtensor_view< std::complex<double> >::dtensor_view(const dtensor< std::
 
 template <typename T>
 dtensor_view<T>::dtensor_view(const dtensor_view<T>& other){
+  assert(1==2);
   rank = other.rank;
   size = other.size;
   idx_set = other.idx_set;
@@ -92,6 +97,7 @@ template dtensor_view< std::complex<double> >::dtensor_view(const dtensor_view< 
 
 template <typename T>
 dtensor_view<T>::dtensor_view(dtensor_view<T>&& other){
+  assert(1==2);
   rank = other.rank;
   size = other.size;
   idx_set = std::move(other.idx_set);
@@ -107,6 +113,7 @@ template dtensor_view< std::complex<double> >::dtensor_view(dtensor_view< std::c
 // Update data pointer
 template <typename T>
 void dtensor_view<T>::update(T* data_array){
+  assert(1==2);
   assert(_initted);
   len_vec idx_lens;
   for (size_t i = 0; i < rank; i++) {
@@ -122,6 +129,7 @@ template void dtensor_view< std::complex<double> >::update(std::complex<double>*
 // Set values
 template <typename T>
 void dtensor_view<T>::setRandom(){
+  assert(1==2);
   assert(_initted);
   random_array(_T.data(), size);
 }
@@ -130,6 +138,7 @@ template void dtensor_view< std::complex<double> >::setRandom();
 
 template <typename T>
 void dtensor_view<T>::setZero(){
+  assert(1==2);
   assert(_initted);
   for (size_t i = 0; i < size; i++) {
     _T.data()[i] = T(0.0);
@@ -146,6 +155,7 @@ template void dtensor_view< std::complex<double> >::setZero();
 template <typename T>
 void dtensor_view<T>::permute(uint_vec& perm)
 {
+  assert(1==2);
   assert(_initted);
   bool perm_needed = false;
   for (size_t i = 0; i < perm.size(); i++) {
@@ -200,6 +210,7 @@ void dtensor_view<T>::permute(uint_vec& perm)
 #else
 template <typename T>
 void dtensor_view<T>::permute(uint_vec& perm){
+  assert(1==2);
   assert(_initted);
   bool perm_needed = false;
   for (size_t i = 0; i < perm.size(); i++) {
@@ -239,6 +250,7 @@ template void dtensor_view< std::complex<double> >::permute(uint_vec& perm);
 
 template <typename T>
 void dtensor_view<T>::permute(uint_list perm){
+  assert(1==2);
   uint_vec perm_vec;
   for(auto s : perm){
     perm_vec.push_back(s);
@@ -254,6 +266,7 @@ template void dtensor_view< std::complex<double> >::permute(uint_list perm);
 // Operator overloading
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator=(const dtensor_view<T>& other){
+  assert(1==2);
   if(this!=&other){
     rank = other.rank;
     size = other.size;
@@ -269,6 +282,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator=(dtensor_view<T>&& other){
+  assert(1==2);
   if(this!=&other){
     rank = other.rank;
     size = other.size;
@@ -284,6 +298,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator * (dtensor_view<T>& A){
+  assert(1==2);
   assert(_initted || A._initted);
   if( _initted && !A._initted ){
     dtensor<T> res(*this);
@@ -340,6 +355,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator * (dtensor<T>& A){
+  assert(1==2);
   assert(_initted || A._initted);
   if( _initted && !A._initted ){
     dtensor<T> res(*this);
@@ -396,6 +412,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator + (dtensor_view<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -424,6 +441,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator + (dtensor<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -452,6 +470,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator - (dtensor_view<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -480,6 +499,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator - (dtensor<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -508,6 +528,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator += (dtensor_view<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -535,6 +556,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator += (dtensor<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -562,6 +584,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator -= (dtensor_view<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -589,6 +612,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator -= (dtensor<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   lab_vec this_labels;
@@ -626,6 +650,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor_view<T>& dtensor_view<T>::operator /= (const T c){
+  assert(1==2);
   assert(_initted);
   for (size_t i = 0; i < size; i++) {
     _T.data()[i] /= c;
@@ -637,6 +662,7 @@ template dtensor_view< std::complex<double> >& dtensor_view< std::complex<double
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator*(const T c){
+  assert(1==2);
   assert(_initted);
   dtensor<T> A(*this);
   for (size_t i = 0; i < A.size; i++) {
@@ -649,6 +675,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 
 template <typename T>
 dtensor<T> dtensor_view<T>::operator/(const T c){
+  assert(1==2);
   assert(_initted);
   dtensor<T> A(*this);
   for (size_t i = 0; i < A.size; i++) {
@@ -665,6 +692,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::o
 // Contract to scalar
 template <typename T>
 T dtensor_view<T>::contract(dtensor_view<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
   vector<dtensor_index> res_index_set;
@@ -698,6 +726,7 @@ template std::complex<double> dtensor_view< std::complex<double> >::contract(dte
 
 template <typename T>
 T dtensor_view<T>::contract(dtensor<T>& A){
+  assert(1==2);
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
   vector<dtensor_index> res_index_set;
@@ -736,6 +765,7 @@ template std::complex<double> dtensor_view< std::complex<double> >::contract(dte
 // meaning same name string but different prime level
 template <typename T>
 dtensor<T> dtensor_view<T>::diagonal(){
+  assert(1==2);
   assert(_initted && rank>1);
   vector<dtensor_index> new_idx_set;
   vector< std::pair<int,int> > idx_pairs;
@@ -794,6 +824,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::d
 
 template <typename T>
 dtensor<T> dtensor_view<T>::diagonal(index_type type){
+  assert(1==2);
   assert(_initted && rank>1);
   vector<dtensor_index> new_idx_set;
   vector< std::pair<int,int> > idx_pairs;
@@ -856,6 +887,7 @@ template dtensor< std::complex<double> > dtensor_view< std::complex<double> >::d
 // Print Info
 template <typename T>
 void dtensor_view<T>::print(unsigned print_level){
+  assert(1==2);
   std::cout<<"-------------------------------------"<<'\n';
   std::cout<<"(1) Tensor's rank = "<<rank<<'\n';
   std::cout<<"(2) Tensor's size = "<<size<<'\n';
@@ -886,6 +918,7 @@ template void dtensor_view< std::complex<double> >::print(unsigned print_level);
 // Save/Load
 template <typename T>
 void dtensor_view<T>::save(string fn){
+  assert(1==2);
   assert(_initted);
   uint_vec idx_sizes;
   str_vec idx_names;
@@ -956,6 +989,7 @@ template void dtensor_view< std::complex<double> >::save(string fn);
 // Prime level manipulation
 template <typename T>
 void dtensor_view<T>::prime(int inc){
+  assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].prime(inc);
   }
@@ -965,6 +999,7 @@ template void dtensor_view< std::complex<double> >::prime(int inc);
 
 template <typename T>
 void dtensor_view<T>::primeLink(int inc){
+  assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].primeLink(inc);
   }
@@ -974,6 +1009,7 @@ template void dtensor_view< std::complex<double> >::primeLink(int inc);
 
 template <typename T>
 void dtensor_view<T>::primeSite(int inc){
+    assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].primeSite(inc);
   }
@@ -983,6 +1019,7 @@ template void dtensor_view< std::complex<double> >::primeSite(int inc);
 
 template <typename T>
 void dtensor_view<T>::mapPrime(unsigned from, unsigned to){
+    assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].mapPrime(from, to);
   }
@@ -992,6 +1029,7 @@ template void dtensor_view< std::complex<double> >::mapPrime(unsigned from, unsi
 
 template <typename T>
 void dtensor_view<T>::mapPrime(unsigned from, unsigned to, index_type type){
+    assert(1==2);
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].mapPrime(from, to, type);
   }
@@ -1001,6 +1039,7 @@ template void dtensor_view< std::complex<double> >::mapPrime(unsigned from, unsi
 
 template <typename T>
 void dtensor_view<T>::conj(){
+    assert(1==2);
   if (std::is_same<T, std::complex<double>>::value) {
     for (size_t i = 0; i < size; i++) _T.data()[i] = cconj(_T.data()[i]);
   }
@@ -1014,6 +1053,7 @@ template void dtensor_view< std::complex<double> >::conj();
 // Norm
 template <typename T>
 double dtensor_view<T>::norm(){
+    assert(1==2);
   double res = 0.0;
   for (size_t i = 0; i < size; i++) {
       res += std::real(_T.data()[i]*std::conj(_T.data()[i]));
@@ -1026,6 +1066,7 @@ template double dtensor_view< std::complex<double> >::norm();
 
 template <typename T>
 double dtensor_view<T>::normalize(){
+    assert(1==2);
   double res = 0.0;
   for (size_t i = 0; i < size; i++) {
       res += std::real(_T.data()[i]*std::conj(_T.data()[i]));

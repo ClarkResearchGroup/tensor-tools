@@ -7,10 +7,14 @@ template <typename T>
 void elemWiseDivide(dtensor<T>& A, double theta, dtensor<T>& B){
   assert(A._initted && B._initted);
   assert(A.size == B.size);
-  for (unsigned i = 0; i < A.size; i++) {
+  /*for (unsigned i = 0; i < A.size; i++) {
     if( B._T.data()[i]!=T(theta) )
       A._T.data()[i] = A._T.data()[i]/(B._T.data()[i] - theta);
-  }
+  }*/
+ unordered_map<string,char> charMap;
+ auto indA = indicesToChar(A.idx_set,charMap);
+ auto indB = indicesToChar(B.idx_set,charMap);
+ CTF::Transform<T,T>([theta](T b, T& a){ if(b!=T(theta)) a/=(b-theta); })(B.__T[indB.c_str()],A.__T[indA.c_str()]);
 }
 template void elemWiseDivide(dtensor<double>& A, double theta, dtensor<double>& B);
 template void elemWiseDivide(dtensor< std::complex<double> >& A, double theta, dtensor< std::complex<double> >& B);

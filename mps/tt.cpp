@@ -170,6 +170,7 @@ template void dTensorTrain<std::complex<double>, 2>::setBondDims(const uint_vec&
 // Tensor data management
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
+  //  assert(1==2);
   if(!tensors_allocated) {
     string Link_name_pref = "ID"+to_string(_id)+"Link";
     string Site_name_pref = "Site";
@@ -193,15 +194,19 @@ void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
       if(product_state!=nullptr){
         for (size_t i = 0; i < length; i++) {
           A[i].setZero();
-          unsigned s0 = A[i]._T.stride(0);
-          unsigned s1 = A[i]._T.stride(1);
-          unsigned s2 = A[i]._T.stride(2);
-          for (size_t j = 0; j < A[i].size; j++) {
-            unsigned phy_idx = unsigned(j/s1)%phy_dim;
-            if(phy_idx==product_state[i]){
-              A[i]._T.data()[j] = 1.0;
-            }
-          }
+	  // HACK! FIX ME! Commented out.
+	  //	  unsigned s0 = A[i]._T.stride(0);
+	  //	  unsigned s1 = A[i]._T.stride(1);
+	  //	  unsigned s2 = A[i]._T.stride(2);
+	  for (size_t j = 0; j < A[i].size; j++) {
+	  //unsigned phy_idx = unsigned(j/s1)%phy_dim;
+	    // if(phy_idx==product_state[i]){
+	    //A[i]._T.data()[j] = 1.0;
+	    vector<long int> t={j};
+	    vector<T> d={1.0};
+	    A[i].__T.write(1,t.data(),d.data());
+			//            }
+	  }
         }
       }
     }
@@ -307,6 +312,10 @@ dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (const dTensorTrain<T, N>& ot
     freeTensors();
     setLength(other.length);
     setPhysicalDim(other.phy_dim);
+    cerr<<"The other bond dims are "<<endl;
+    for (auto i : other.bond_dims)
+      cerr<<i<<endl;
+
     setBondDims(other.bond_dims);
     A = other.A;
     tensors_allocated = true;
@@ -492,13 +501,39 @@ void dTensorTrain<T, N>::rc(){
       }
     }
     // SVD
+    cerr<<"Rank: "<<A[i].__T.order<<endl;
+    cerr<<endl;
+    for (int j=0;j<A[i].__T.order;j++)
+      cerr<<"Length: "<<i<<" is  "<<A[i].__T.lens[j]<<endl;
+
+    //for (auto j : A[i].__T.len)
+    //      cerr<<j<<endl;
+    
     svd(A[i],left,right,U,V,S,MoveFromRight);
     mid.resize(S.size());
     bond_dims[i] = S.size();
     A[i] = V;
     A[i].idx_set[0] = mid;
+    cerr<<"PRE STUFF"<<endl;
     A[i-1] = std::move(A[i-1]*U);
+    cerr<<"POST STUFF"<<endl;
     A[i-1].idx_set.back() = mid;
+
+    
+    cerr<<"Rank: "<<A[i].__T.order<<endl;
+    cerr<<endl;
+    for (int j=0;j<A[i].__T.order;j++)
+      cerr<<"Length A: "<<j<<" is  "<<A[i].__T.lens[j]<<endl;
+
+
+        
+    cerr<<"Rank: "<<A[i-1].__T.order<<endl;
+    cerr<<endl;
+    for (int j=0;j<A[i-1].__T.order;j++)
+      cerr<<"Length B: "<<j<<" is  "<<A[i-1].__T.lens[j]<<endl;
+
+
+    
   }
   center = 0;
 }
@@ -565,7 +600,16 @@ double dTensorTrain<T, N>::norm(){
   assert(tensors_allocated);
   dTensorTrain<T, N> t;
   t = *this;
+  cerr<<"Pre bond dims"<<endl;
+  for (auto i :bond_dims){
+    cerr<<i<<endl;
+  }
   t.rc();
+  cerr<<"Post bond dims"<<endl;
+  for (auto i :bond_dims){
+    cerr<<i<<endl;
+  }
+
   return t.A[0].norm();
 }
 template double dTensorTrain<double, 1>::norm();

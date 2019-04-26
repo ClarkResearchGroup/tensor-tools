@@ -50,6 +50,7 @@ public:
   inline void primeSite(int inc=1){if(_type==Site) _level+=inc;}
   inline void mapPrime(unsigned from, unsigned to){if(_level==from) _level=to;}
   inline void mapPrime(unsigned from, unsigned to, index_type type){if(_level==from&&_type==type) _level=to;}
+  inline void noPrime(index_type type=All){if(type==All || _type==type) _level=0;}
 
 private:
   unsigned _size;
@@ -58,5 +59,7 @@ private:
   string _name;
   string _tag; // to make it hashable
 };
+
+dtensor_index noPrime(dtensor_index& index);
 
 #endif

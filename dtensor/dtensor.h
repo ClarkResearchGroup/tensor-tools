@@ -6,6 +6,11 @@
 #include "dtensor_index.h"
 #include "dtensor_index_op.h"
 #include "dtensor_view.h"
+#include <ctf.hpp>
+
+string indToStr(vector<dtensor_index> &indices,unordered_map<string,char> &charMap);
+string indicesToChar(vector<dtensor_index> &indices, unordered_map<string,char> &charMap);
+unsigned indicesToSize(vector<dtensor_index> &indices);
 
 /*
 Design of the templated dtensor class:
@@ -58,6 +63,7 @@ public:
   dtensor(vector<dtensor_index>& idx_vec);
   dtensor(initializer_list<dtensor_index> idx_list);
   dtensor(vector<dtensor_index>& idx_vec, T* data_array);
+  dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<T>& data_array);
   dtensor(const dtensor<T>& other);       // copy constructor
   dtensor(const dtensor_view<T>& other);  // copy constructor
   dtensor(dtensor<T>&& other);            // move constructor
@@ -66,7 +72,7 @@ public:
   ~dtensor(){}
   //---------------------------------------------------------------------------
   // Reset
-  void reset(vector<dtensor_index>& idx_vec);
+  void reset(vector<dtensor_index>& idx_vec, bool makeZero=true);
   //---------------------------------------------------------------------------
   // Resize indices
   // (data preserved when dimension of indices lowered, filled with val when enlarged)
@@ -80,6 +86,7 @@ public:
   unsigned rank;                  // number of indices
   vector<dtensor_index> idx_set;   // full set of tensor indices (dtensor_index.h)
   tblis::tensor<T> _T;            // tblis::tensor_view<T>, provide tensor functionality (does not own data)
+  CTF::Tensor<T> __T; 
   bool _initted;                  // initilization flag
 
   //---------------------------------------------------------------------------

@@ -8,6 +8,10 @@
 #include "dtensor.h"
 #include "dtensor_view.h"
 
+string indToStr(vector<dtensor_index> &indices,unordered_map<string,char> &charMap);
+string indicesToChar(vector<dtensor_index> &indices, unordered_map<string,char> &charMap);
+unsigned indicesToSize(vector<dtensor_index> &indices);
+
 template <typename T>
 void qr(dtensor<T>& A,
         vector<dtensor_index>& left, vector<dtensor_index>& right,

@@ -76,4 +76,11 @@ bool dtensor_index::operator <  (const dtensor_index& A) const{
   return (_tag<A._tag && _level<A._level);
 }
 
+
+dtensor_index noPrime(dtensor_index& index) {
+  dtensor_index newIndex = index;
+  newIndex.noPrime();
+  newIndex.setTag();
+  return newIndex;
+}
 #endif
