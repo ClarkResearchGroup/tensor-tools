@@ -99,7 +99,7 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		// EE
 		if(site==psi.length/2 - 1){
       double vNEE = calcEntropy(S);
-			pout << vNEE << " ";
+			perr << vNEE << " ";
 		}
 	}else{
 		// Set up big_dtensor for two site optimization
@@ -129,7 +129,7 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		// EE
 		if(site==psi.length/2){
       double vNEE = calcEntropy(S);
-      pout << vNEE << " ";
+      perr << vNEE << " ";
 		}
 	}
 }
@@ -255,7 +255,7 @@ template <typename T>
 T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep){
 	int L = H.length;
 	int direction, site=0;
-	psi.position(0);
+	if(start_sweep%2==0) psi.position(0); else psi.position(L-1);
 
 
 	psi.normalize();
@@ -269,9 +269,9 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	if(start_sweep==0) pout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
 	for(int l = start_sweep; l < num_sweeps; l++) {
-		pout<<l<<"\t ";
+		perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
 		direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
 		for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
 		{
@@ -281,9 +281,9 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 			updateEnv(psi, H, TR, TL, site, direction);
 
 		}
-		pout<<Energy<<std::endl;
+		perr<<Energy<<std::endl;
 	}
-	psi.position(0);
+	//psi.position(0);
 	psi.normalize();
 	return Energy;
 }
@@ -303,6 +303,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
     //always do two sweeps so that we go left to right
     Energy = dmrg(psi,H,2*(sweep+1),max_bd[l],cutoff[l],'S',3,max_restart[l],2*sweep);
   }
+  if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
  return Energy; 
 }
 template double dmrg(MPS<double>& psi, MPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
