@@ -31,7 +31,7 @@ typedef pair<int, unsigned> quantum_number;
 int main(int argc, char **argv)
 {
   MPI_Init(&argc, &argv);
-  unsigned N = 10;
+  unsigned N = 16;
   spinhalf sites(N);
   str_vec ps;
   for (size_t i = 0; i < sites.N(); i++) {

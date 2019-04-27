@@ -164,6 +164,13 @@ public:
   // Print
   void print(unsigned print_level=0);
 
+  //---------------------------------------------------------------------------
+  // index functions for CTF
+  string getIndices(unordered_map<string,char> &charMap);
+
+private:
+  string _indices;
+
 };
 
 //Calculate Entanglement Entropy from a rank 1 CTF tensor

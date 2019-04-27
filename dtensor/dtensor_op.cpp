@@ -31,7 +31,7 @@ void svd(dtensor<T>& A,
   
   CTF::Tensor<T> _S;
   auto indS = string(1,charMap[mid.tag()]);
-  auto indA = indToStr(A.idx_set,charMap);
+  auto indA = A.getIndices(charMap);
   A.__T[indA.c_str()].svd(U.__T[indU.c_str()],_S[indS.c_str()],V.__T[indV.c_str()]); //,R+3); //Does this work independent of what's in U and V
   U_idx_set.back()=dtensor_index(U.__T.lens[U.__T.order-1],U_idx_set.back().name(),U_idx_set.back().type(),U_idx_set.back().level());
   V_idx_set.front()=dtensor_index(V.__T.lens[0],V_idx_set.front().name(),V_idx_set.front().type(),V_idx_set.front().level());
@@ -144,7 +144,7 @@ void svd(dtensor<T>& A,
   
   CTF::Tensor<T> _S;
   auto indS = string(1,charMap[mid.tag()]);
-  auto indA = indToStr(A.idx_set,charMap);
+  auto indA = A.getIndices(charMap);
   //auto indU = indToStr(U_idx_set,charMap);
   //auto indV = indToStr(V_idx_set,charMap);
   //cout<<indA<<" "<<indU<<" "<<indS<<" "<<indV<<endl;

@@ -373,9 +373,8 @@ template <typename T>
 dtensor<T>& dtensor<T>::operator *= (const T c){
   assert(_initted);
   unordered_map<string,char> charMap;
-  auto indA = indicesToChar(idx_set,charMap);
   CTF::Scalar<T> cs(c);
-  __T[indA.c_str()]*=cs[""];
+  __T[getIndices(charMap).c_str()]*=cs[""];
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator*=(const double c);
@@ -663,8 +662,8 @@ void dtensor<T>::add(dtensor<T>& A, T c){
   assert(rank==A.rank);
   //for (size_t i = 0; i < size; i++) _T.data()[i] += c*A._T.data()[i];
   unordered_map<string,char> charMap;
-  auto indThis = indicesToChar(idx_set,charMap);
-  auto indA = indicesToChar(A.idx_set,charMap);
+  auto indThis = getIndices(charMap);
+  auto indA    = A.getIndices(charMap);
   //HACK
   CTF::Scalar<T> cs(c);
   __T[indThis.c_str()] += cs[""]*(A.__T[indA.c_str()]);
@@ -683,14 +682,12 @@ T dtensor<T>::inner_product(dtensor<T>& A){
   /*T res = 0;
   for (size_t i = 0; i < size; i++) res += cconj(_T.data()[i])*A._T.data()[i];*/
   unordered_map<string,char> charMap;
-  auto indThis = indicesToChar(idx_set,charMap);
-  auto indA = indicesToChar(A.idx_set,charMap);
-  //HACK: need to conj this
   CTF::Scalar<T> tot;
-  tot[""] = __T[indThis.c_str()]*A.__T[indA.c_str()];
-  T res = tot;
+  auto left  =   __T[getIndices(charMap).c_str()];
+  auto right = A.__T[A.getIndices(charMap).c_str()];
+  tot[""] += CTF::Function<T,T,T>([](T l, T r){ return cconj(l)*r;})(left,right);
 
-  return res;
+  return tot;
 }
 template double dtensor<double>::inner_product(dtensor<double>& A);
 template std::complex<double> dtensor< std::complex<double> >::inner_product(dtensor< std::complex<double> >& A);
@@ -720,5 +717,12 @@ template double dtensor<double>::normalize();
 template double dtensor< std::complex<double> >::normalize();
 //-----------------------------------------------------------------------------
 
+template <typename T>
+string dtensor<T>::getIndices(unordered_map<string,char> &charMap){
+  _indices = indicesToChar(idx_set,charMap);
+  return _indices;
+}
+template string dtensor<double>::getIndices(unordered_map<string,char> &charMap);
+template string dtensor<std::complex<double> >::getIndices(unordered_map<string,char> &charMap);
 
 #endif
