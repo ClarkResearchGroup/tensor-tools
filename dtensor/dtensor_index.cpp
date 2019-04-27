@@ -11,7 +11,7 @@ dtensor_index::dtensor_index(){
   setTag();
 }
 
-dtensor_index::dtensor_index(unsigned size){
+dtensor_index::dtensor_index(int64_t size){
   _size = size;
   _level = 0;
   _name = "i"+to_string(int(1e8*thread_safe_random_double()+1e5*thread_safe_random_double()));
@@ -19,7 +19,7 @@ dtensor_index::dtensor_index(unsigned size){
   setTag();
 }
 
-dtensor_index::dtensor_index(unsigned size, string name){
+dtensor_index::dtensor_index(int64_t size, string name){
   _size = size;
   _level = 0;
   _name = name;
@@ -27,7 +27,7 @@ dtensor_index::dtensor_index(unsigned size, string name){
   setTag();
 }
 
-dtensor_index::dtensor_index(unsigned size, string name, index_type type){
+dtensor_index::dtensor_index(int64_t size, string name, index_type type){
   _size = size;
   _level = 0;
   _name = name;
@@ -35,7 +35,7 @@ dtensor_index::dtensor_index(unsigned size, string name, index_type type){
   setTag();
 }
 
-dtensor_index::dtensor_index(unsigned size, string name, index_type type, unsigned level){
+dtensor_index::dtensor_index(int64_t size, string name, index_type type, unsigned level){
   _size = size;
   _level = level;
   _name = name;

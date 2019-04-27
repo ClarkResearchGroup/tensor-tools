@@ -6,24 +6,24 @@
 class dtensor_index{
 public:
   dtensor_index();
-  dtensor_index(unsigned size);
-  dtensor_index(unsigned size, string name);
-  dtensor_index(unsigned size, string name, index_type type);
-  dtensor_index(unsigned size, string name, index_type type, unsigned level);
+  dtensor_index(int64_t size);
+  dtensor_index(int64_t size, string name);
+  dtensor_index(int64_t size, string name, index_type type);
+  dtensor_index(int64_t size, string name, index_type type, unsigned level);
   dtensor_index(const dtensor_index& other);
 
   ~dtensor_index(){}
 
   inline void setTag(){_tag = to_string(_size)+" "+_name+" "+to_string(_type)+" ";}
   inline void rename(string name){_name=name; setTag();}
-  inline void resize(unsigned size){_size=size; setTag();}
+  inline void resize(int64_t size){_size=size; setTag();}
 
   dtensor_index operator = (const dtensor_index& other);
   bool operator == (const dtensor_index& A) const;
   bool operator != (const dtensor_index& A) const;
   bool operator <  (const dtensor_index& A) const;
 
-  inline unsigned size(){return _size;}
+  inline int64_t size(){return _size;}
   inline unsigned level(){return _level;}
   inline string name(){return _name;}
   inline index_type type(){return _type;}
@@ -53,7 +53,7 @@ public:
   inline void noPrime(index_type type=All){if(type==All || _type==type) _level=0;}
 
 private:
-  unsigned _size;
+  int64_t _size;
   unsigned _level;
   index_type _type;
   string _name;
