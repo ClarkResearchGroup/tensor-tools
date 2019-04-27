@@ -13,9 +13,9 @@
 #include <ctf.hpp>
 using namespace std;
 
-#include "tblis.h"
-typedef vector<tblis::len_type>    len_vec;
-typedef vector<tblis::label_type>  lab_vec;
+//#include "tblis.h"
+//typedef vector<tblis::len_type>    len_vec;
+//typedef vector<tblis::label_type>  lab_vec;
 #include <Eigen/Dense>
 #include "hdf5.h"
 #ifdef USE_HPTT

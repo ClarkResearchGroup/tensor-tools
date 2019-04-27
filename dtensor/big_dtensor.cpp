@@ -25,7 +25,7 @@ dtensor<T> big_dtensor<T>::product(dtensor<T>& v){
 template dtensor<double> big_dtensor<double>::product(dtensor<double>& v);
 template dtensor< std::complex<double> > big_dtensor< std::complex<double> >::product(dtensor< std::complex<double> >& v);
 
-template <typename T>
+/*template <typename T>
 dtensor<T> big_dtensor<T>::product(dtensor_view<T>& v){
     assert(1==2);
   // contract pattern:
@@ -43,7 +43,7 @@ dtensor<T> big_dtensor<T>::product(dtensor_view<T>& v){
   return res;
 }
 template dtensor<double> big_dtensor<double>::product(dtensor_view<double>& v);
-template dtensor< std::complex<double> > big_dtensor< std::complex<double> >::product(dtensor_view< std::complex<double> >& v);
+template dtensor< std::complex<double> > big_dtensor< std::complex<double> >::product(dtensor_view< std::complex<double> >& v);*/
 
 template <typename T>
 T big_dtensor<T>::expec(dtensor<T>& v){
@@ -65,7 +65,7 @@ T big_dtensor<T>::expec(dtensor<T>& v){
 template double big_dtensor<double>::expec(dtensor<double>& v);
 template std::complex<double> big_dtensor< std::complex<double> >::expec(dtensor< std::complex<double> >& v);
 
-template <typename T>
+/*template <typename T>
 T big_dtensor<T>::expec(dtensor_view<T>& v){
     assert(1==2);
   // contract pattern:
@@ -86,7 +86,7 @@ T big_dtensor<T>::expec(dtensor_view<T>& v){
   return ans;
 }
 template double big_dtensor<double>::expec(dtensor_view<double>& v);
-template std::complex<double> big_dtensor< std::complex<double> >::expec(dtensor_view< std::complex<double> >& v);
+template std::complex<double> big_dtensor< std::complex<double> >::expec(dtensor_view< std::complex<double> >& v);*/
 
 template <typename T>
 dtensor<T> big_dtensor<T>::diagonal(){

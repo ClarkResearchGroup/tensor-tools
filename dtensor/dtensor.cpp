@@ -201,9 +201,7 @@ void dtensor<T>::reset(vector<dtensor_index>& idx_vec, bool makeZero){
   rank = 0;
   size = 1;
   idx_set = idx_vec;
-  len_vec idx_lens;
   for (size_t i = 0; i < idx_vec.size(); i++) {
-    idx_lens.push_back(idx_vec[i].size());
     ++rank;
     size *= idx_vec[i].size();
   }
@@ -315,9 +313,9 @@ dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
   }
   // Set up new dtensor_index
   vector<dtensor_index> res_index_set;
-  lab_vec this_labels;
-  lab_vec A_labels;
-  lab_vec res_labels;
+  std::vector<char> this_labels;
+  std::vector<char> A_labels;
+  std::vector<char> res_labels;
   for (size_t i = 0; i < rank; i++) {
     this_labels.push_back(labels_char_map[idx_set[i].tag()]);
     if (labels_num_map[idx_set[i].tag()] == 1){
@@ -404,8 +402,8 @@ T dtensor<T>::contract(dtensor<T>& A){
   vector<dtensor_index> res_index_set;
   index_sets_difference(idx_set, A.idx_set, res_index_set);
   assert(res_index_set.size()==0); // contract to a scalar
-  lab_vec this_labels;
-  lab_vec A_labels;
+  std::vector<char> this_labels;
+  std::vector<char> A_labels;
   char ch = 'a';
   unordered_map<string,char> labels_map;
   for (size_t i = 0; i < rank; i++) {

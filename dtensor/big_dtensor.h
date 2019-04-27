@@ -2,7 +2,7 @@
 #define BIG_DENSE_TENSOR_CLASS_HEADER
 
 #include "dtensor.h"
-#include "dtensor_view.h"
+//#include "dtensor_view.h"
 
 /*
 Big dtensor class:
@@ -62,12 +62,12 @@ public:
   void addMid(dtensor<T>* m) {mid.push_back(m);}
 
   dtensor<T> product(dtensor<T>& v);
-  dtensor<T> product(dtensor_view<T>& v);
+  //dtensor<T> product(dtensor_view<T>& v);
 
   dtensor<T> diagonal(); // does not include bias term
 
   T expec(dtensor<T>& v);
-  T expec(dtensor_view<T>& v);
+  //T expec(dtensor_view<T>& v);
 
 private:
   // Left/Right environment

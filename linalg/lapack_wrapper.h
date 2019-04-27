@@ -15,6 +15,7 @@ extern "C" void dsposv_(char*,int*,int*,double*,int*,double*,int*,double*,int*,d
 extern "C" void dsysvx_(char*,char*,int*,int*,double*,int*,double*,int*,int*,double*,int*,double*,int*,double*,double*,double*,double*,int*,int*,int*);
 extern "C" void dposvx_(char*,char*,int*,int*,double*,int*,double*,int*,char*,double*,double*,int*,double*,int*,double*,double*,double*,double*,int*,int*);
 extern "C" void dsyev_(char*,char*,int*,double*,int*,double*,double*,int*,int*);
+extern "C" void dgemm_(char*,char*,int*,int*,int*,double*,double*,int*,double*,int*,double*,double*,int*);
 extern "C" void zgemm_(char*,char*,int*,int*,int*,std::complex<double>*,std::complex<double>*,int*,std::complex<double>*,int*,std::complex<double>*,std::complex<double>*,int*);
 extern "C" void zgeqrf_(int*, int*, std::complex<double>*, int*, std::complex<double>*, std::complex<double>*, int*, int*);
 extern "C" void zungqr_(int*, int*, int*, std::complex<double>*, int*, std::complex<double>*, std::complex<double>*, int*, int*);

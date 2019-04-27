@@ -6,7 +6,7 @@
 #include "../dtensor/dtensor_index.h"
 #include "../dtensor/dtensor_index_op.h"
 #include "../dtensor/dtensor.h"
-#include "../dtensor/dtensor_view.h"
+//#include "../dtensor/dtensor_view.h"
 #include "../dtensor/dtensor_op.h"
 #include "../dtensor/big_dtensor.h"
 #include "../models/sites/sites.h"

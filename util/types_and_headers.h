@@ -48,9 +48,9 @@ using std::complex;
 // In comparison, a popular but not optimal tensor contraction strategy consists
 // of 3 steps: transposition, d/s/zgemm, transposition.
 // However, TBLIS does not support sparse tensor (at least for now).
-#include "tblis.h"
-typedef vector<tblis::len_type>    len_vec;
-typedef vector<tblis::label_type>  lab_vec;
+//#include "tblis.h"
+//typedef vector<tblis::len_type>    len_vec;
+//typedef vector<tblis::label_type>  lab_vec;
 //------------------------------------------------------------------------------
 
 

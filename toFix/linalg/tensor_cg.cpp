@@ -5,12 +5,13 @@
 
 template <typename T>
 void elemWiseDivide(dtensor<T>& A, dtensor<T>& B){
-  assert(A._initted && B._initted);
+  assert(1==2);
+  /*assert(A._initted && B._initted);
   assert(A.size == B.size);
   for (size_t i = 0; i < A.size; i++) {
     if( B._T.data()[i]!=T(0) && B._T.data()[i]>1e-16 )
       A._T.data()[i] = A._T.data()[i]/B._T.data()[i];
-  }
+  }*/
 }
 template void elemWiseDivide(dtensor<double>& A, dtensor<double>& B);
 template void elemWiseDivide(dtensor< std::complex<double> >& A, dtensor< std::complex<double> >& B);

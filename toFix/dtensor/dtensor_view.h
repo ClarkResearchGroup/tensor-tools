@@ -37,7 +37,7 @@ public:
   unsigned size;                  // total size (number of elements) of the tensor
   unsigned rank;                  // number of indices
   vector<dtensor_index> idx_set;   // full set of tensor indices (dtensor_index.h)
-  tblis::tensor_view<T> _T;            // tblis::tensor_view<T>, provide tensor functionality (does not own data)
+  //tblis::tensor_view<T> _T;            // tblis::tensor_view<T>, provide tensor functionality (does not own data)
   bool _initted;                  // initilization flag
 
   //---------------------------------------------------------------------------

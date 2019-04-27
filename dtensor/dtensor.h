@@ -5,7 +5,7 @@
 #include "../util/ezh5.h"
 #include "dtensor_index.h"
 #include "dtensor_index_op.h"
-#include "dtensor_view.h"
+//#include "dtensor_view.h"
 #include <ctf.hpp>
 
 string indToStr(vector<dtensor_index> &indices,unordered_map<string,char> &charMap);
@@ -65,7 +65,7 @@ public:
   dtensor(vector<dtensor_index>& idx_vec, T* data_array);
   dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<T>& data_array);
   dtensor(const dtensor<T>& other);       // copy constructor
-  dtensor(const dtensor_view<T>& other);  // copy constructor
+  //dtensor(const dtensor_view<T>& other);  // copy constructor
   dtensor(dtensor<T>&& other);            // move constructor
   //---------------------------------------------------------------------------
   // Destructor
@@ -85,7 +85,7 @@ public:
   unsigned size;                  // total size (number of elements) of the tensor
   unsigned rank;                  // number of indices
   vector<dtensor_index> idx_set;   // full set of tensor indices (dtensor_index.h)
-  tblis::tensor<T> _T;            // tblis::tensor_view<T>, provide tensor functionality (does not own data)
+  //tblis::tensor<T> _T;            // tblis::tensor_view<T>, provide tensor functionality (does not own data)
   CTF::Tensor<T> __T; 
   bool _initted;                  // initilization flag
 
@@ -103,18 +103,18 @@ public:
   //---------------------------------------------------------------------------
   // Overloaded operator
   dtensor<T>& operator = (const dtensor<T>& other);      // copy assignment
-  dtensor<T>& operator = (const dtensor_view<T>& other); // copy assignment
+  //dtensor<T>& operator = (const dtensor_view<T>& other); // copy assignment
   dtensor<T>& operator = (dtensor<T>&& other);           // move assignment
   dtensor<T>  operator * (dtensor<T>& A);                // repeated indices are summed over
-  dtensor<T>  operator * (dtensor_view<T>& A);           // repeated indices are summed over
+  //dtensor<T>  operator * (dtensor_view<T>& A);           // repeated indices are summed over
   dtensor<T>& operator += (dtensor<T>& A);               //
-  dtensor<T>& operator += (dtensor_view<T>& A);          //
+  //dtensor<T>& operator += (dtensor_view<T>& A);          //
   dtensor<T>& operator -= (dtensor<T>& A);               //
-  dtensor<T>& operator -= (dtensor_view<T>& A);          //
+  //dtensor<T>& operator -= (dtensor_view<T>& A);          //
   dtensor<T>  operator + (dtensor<T>& A);                //
-  dtensor<T>  operator + (dtensor_view<T>& A);           //
+  //dtensor<T>  operator + (dtensor_view<T>& A);           //
   dtensor<T>  operator - (dtensor<T>& A);                //
-  dtensor<T>  operator - (dtensor_view<T>& A);           //
+  //dtensor<T>  operator - (dtensor_view<T>& A);           //
   dtensor<T>& operator *= (const T c);                   // scaling
   dtensor<T>& operator /= (const T c);                   // scaling
   dtensor<T>  operator * (const T c);                    // scaling
@@ -123,7 +123,7 @@ public:
   //---------------------------------------------------------------------------
   // Full contraction (ends in a scalar)
   T contract(dtensor<T>& A);
-  T contract(dtensor_view<T>& A);
+  //T contract(dtensor_view<T>& A);
 
   //---------------------------------------------------------------------------
   // Get diagonal subtensor
