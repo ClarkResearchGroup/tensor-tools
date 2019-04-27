@@ -82,7 +82,8 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		dtensor<T> x = std::move(psi.A[site]*psi.A[site+1]);
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
 		// SVD and move canonical center
-		vector<double> S;
+		//vector<double> S;
+		dtensor<T> S;
 		dtensor_index mid;
 		string LinkName = "ID"+to_string(psi._id)+"Link"+to_string(site+1);
 		for (size_t i = 0; i < psi.A[site].rank; i++) {
@@ -93,14 +94,11 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 			}
 		}
 		svd_bond(x,psi.A[site],psi.A[site+1],mid,S,MoveFromLeft,cutoff,max_bd);
-		psi.bond_dims[site+1] = S.size();
+		psi.bond_dims[site+1] = S.size;
 		psi.center = site+1;
 		// EE
 		if(site==psi.length/2 - 1){
-			double vNEE = 0.0;
-			for(auto sg:S){
-				if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
-			}
+      double vNEE = calcEntropy(S);
 			pout << vNEE << " ";
 		}
 	}else{
@@ -114,7 +112,8 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		dtensor<T> x = std::move(psi.A[site-1]*psi.A[site]);
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
 		// SVD and move canonical center
-		vector<double> S;
+		//vector<double> S;
+    dtensor<T> S;
 		dtensor_index mid;
 		string LinkName = "ID"+to_string(psi._id)+"Link"+to_string(site);
 		for (size_t i = 0; i < psi.A[site-1].rank; i++) {
@@ -125,15 +124,12 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 			}
 		}
 		svd_bond(x,psi.A[site-1],psi.A[site],mid,S,MoveFromRight,cutoff,max_bd);
-		psi.bond_dims[site] = S.size();
+		psi.bond_dims[site] = S.size;
 		psi.center = site - 1;
 		// EE
 		if(site==psi.length/2){
-			double vNEE = 0.0;
-			for(auto sg:S){
-				if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
-			}
-			pout << vNEE << " ";
+      double vNEE = calcEntropy(S);
+      pout << vNEE << " ";
 		}
 	}
 }
@@ -170,9 +166,6 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		// EE
 		if(site==psi.length/2 - 1){
 			double vNEE = 0.0;
-			for(auto sg:S){
-				if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
-			}
 			std::cout << vNEE << " ";
 		}
 	}else{
@@ -202,9 +195,6 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		// EE
 		if(site==psi.length/2){
 			double vNEE = 0.0;
-			for(auto sg:S){
-				if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
-			}
 			std::cout << vNEE << " ";
 		}
 	}
@@ -223,9 +213,11 @@ void updateEnv(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vecto
 	t3 = psi.A[site];
 	////////////////////////////////////////////////
 	if(direction == MoveFromLeft){
+
 		t4 = std::move(t1*TL[site]);
 		t5 = std::move(t4*t2);
 		TL[site+1] = std::move(t5*t3);
+
 	}else if(direction == MoveFromRight){
 		t4 = std::move(t1*TR[site]);
 		t5 = std::move(t4*t2);
@@ -264,10 +256,10 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	int L = H.length;
 	int direction, site=0;
 	psi.position(0);
-	//cerr<<"Pre normalize"<<endl;
+
 
 	psi.normalize();
-	//cerr<<"post normalize"<<endl;
+
 	//exit(1);
 	T Energy = psiHphi(psi, H, psi);
 	pout<<"Initial energy of the MPS: "<<Energy<<std::endl;
@@ -288,6 +280,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 			if(direction==MoveFromRight) site = L-1-i;
 			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart);
 			updateEnv(psi, H, TR, TL, site, direction);
+
 		}
 		pout<<Energy<<std::endl;
 	}
@@ -325,6 +318,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 			if(direction==MoveFromRight) site = L-1-i;
 			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart);
 			updateEnv(psi, H, TR, TL, site, direction);
+
 		}
 		std::cout<<Energy<<std::endl;
 	}

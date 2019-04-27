@@ -166,4 +166,13 @@ public:
 
 };
 
+//Calculate Entanglement Entropy from a rank 1 CTF tensor
+
+template<typename T>
+double calcEntropy(dtensor<T>& S, double cutoff=1e-24){
+  assert(S.rank==1); assert(S._initted==true);
+  CTF::Scalar<double> vNEE = 0.0;
+  vNEE[""] += CTF::Function<T,double>([cutoff](T sg){ if(real(sg)>cutoff) return -norm(sg)*std::log(norm(sg)); else return 0.0; })(S.__T["i"]);
+  return vNEE;
+}
 #endif

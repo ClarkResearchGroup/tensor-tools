@@ -83,6 +83,7 @@ dtensor<T>::dtensor(){
   rank = 0;
   size = 0;
   _initted = false;
+  //__T=CTF::Tensor<>();
 }
 template dtensor<double>::dtensor();
 template dtensor< std::complex<double> >::dtensor();
@@ -283,6 +284,8 @@ template dtensor< std::complex<double> >& dtensor< std::complex<double> >::opera
 //This should be cleaned up
 template <typename T>
 dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
+
+
   assert(_initted || A._initted);
   if( _initted && !A._initted ){
     dtensor<T> res(*this);
@@ -330,10 +333,22 @@ dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
     }
   }
   dtensor<T> res(res_index_set);
-  
-  
-  
-    auto a=  res.__T[res_labels.data()];
+  // cerr<<"START"<<endl;
+  // for (int i=0;i<res.__T.order;i++){
+  //   cerr<<res.__T.lens[i]<<" "<<res.idx_set[i].tag()<<endl;
+  // }
+  // cerr<<endl;
+  // for (int i=0;i<__T.order;i++){
+  //   cerr<<__T.lens[i]<<" "<<idx_set[i].tag()<<endl;
+  // }
+  // cerr<<endl;
+  // for (int i=0;i<A.__T.order;i++){
+  //   cerr<<A.__T.lens[i]<<" "<<A.idx_set[i].tag()<<endl;
+  // }
+  // cerr<<"END"<<endl;
+  // cerr<<endl;
+
+  auto a=  res.__T[res_labels.data()];
    auto b=  __T[this_labels.data()];
    auto c= A.__T[A_labels.data()];
   T one=T(1);
@@ -344,6 +359,9 @@ dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
   //cerr<<"Pre contraction"<<endl;
   a+=b*c;
   //cerr<<"post contraction"<<endl;
+  for (int i=0;i<__T.order;i++)
+    assert(__T.lens[i]==idx_set[i].size());
+   
 
   return res;
 }

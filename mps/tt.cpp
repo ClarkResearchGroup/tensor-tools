@@ -484,8 +484,7 @@ template void dTensorTrain<std::complex<double>, 2>::load(ezh5::Node& fh5);
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::rc(){
   assert(tensors_allocated);
-  dtensor<T> U,V;
-  vector<double> S;
+  dtensor<T> U,V,S;
   for (size_t i = length-1; i > 0; i--) {
     vector<dtensor_index> left;
     vector<dtensor_index> right;
@@ -513,8 +512,8 @@ void dTensorTrain<T, N>::rc(){
     
     svd(A[i],left,right,U,V,S,MoveFromRight);
 
-    mid.resize(S.size());
-    bond_dims[i] = S.size();
+    mid.resize(S.size);
+    bond_dims[i] = S.size;
     A[i] = V;
     A[i].idx_set[0] = mid;
     /*if (rank==0)
@@ -657,7 +656,8 @@ double dTensorTrain<T, N>::position(int site){
   // Initialize center position if not in canonical form
   if(center == -1) rc();
   dtensor<T> U,V;
-  vector<double> S;
+  dtensor<T> S;
+  if(center == site) return 0.0; //hack since rc didn't return S...
   while( center!=site ){
     vector<dtensor_index> left;
     vector<dtensor_index> right;
@@ -675,8 +675,8 @@ double dTensorTrain<T, N>::position(int site){
         }
       }
       svd(A[center],left,right,U,V,S,MoveFromRight);
-      mid.resize(S.size());
-      bond_dims[center] = S.size();
+      mid.resize(S.size);
+      bond_dims[center] = S.size;
       A[center] = V;
       A[center].idx_set[0] = mid;
       A[center-1] = std::move(A[center-1]*U);
@@ -695,8 +695,8 @@ double dTensorTrain<T, N>::position(int site){
         }
       }
       svd(A[center],left,right,U,V,S,MoveFromLeft);
-      mid.resize(S.size());
-      bond_dims[center+1] = S.size();
+      mid.resize(S.size);
+      bond_dims[center+1] = S.size;
       A[center] = U;
       A[center].idx_set.back() = mid;
       A[center+1] = std::move(V*A[center+1]);
@@ -704,10 +704,7 @@ double dTensorTrain<T, N>::position(int site){
       ++center;
     }
   }
-  double vNEE = 0.0;
-  for(auto sg:S){
-    if(sg>1e-24) vNEE -= sg*sg*std::log(sg*sg);
-  }
+  double vNEE = calcEntropy(S);
   return vNEE;
 }
 template double dTensorTrain<double, 1>::position(int site);

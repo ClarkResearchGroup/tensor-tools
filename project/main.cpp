@@ -54,10 +54,10 @@ int main(int argc, char **argv)
     }
     perr << "\n" << "Test MPS DMRG." << '\n';
     MPS< double > psi(&sites,2);
-    ///    psi.setRandom();
-    for (int i=0;i<psi.length;i++){
-      psi.A[i].setOne();
-    }
+    psi.setRandom();
+    //    for (int i=0;i<psi.length;i++){
+    //      psi.A[i].setOne();
+    //    }
     /*auto psi2 = psi;
     cerr<<"NORM:"<<psiphi(psi,psi)<<endl;
     psi.normalize();

@@ -8,6 +8,7 @@ dtensor<T> big_dtensor<T>::product(dtensor<T>& v){
   //assert(1==2);
   // contract pattern:
   // L-v-mid-R
+
   dtensor<T> res;
   if(L!=nullptr) res = std::move((*L)*v);
   for(auto m : mid){
@@ -18,6 +19,7 @@ dtensor<T> big_dtensor<T>::product(dtensor<T>& v){
   }
   if(R!=nullptr) res = std::move(res*(*R));
   res.prime(-1);
+
   return res;
 }
 template dtensor<double> big_dtensor<double>::product(dtensor<double>& v);
@@ -88,6 +90,7 @@ template std::complex<double> big_dtensor< std::complex<double> >::expec(dtensor
 
 template <typename T>
 dtensor<T> big_dtensor<T>::diagonal(){
+
   //  assert(1==2);
   dtensor<T> res;
   // if(L!=nullptr) (*L).print();
@@ -99,6 +102,7 @@ dtensor<T> big_dtensor<T>::diagonal(){
   // if(R!=nullptr) (*R).print();
   if(R!=nullptr) res = std::move(res*(*R));
   res = std::move(res.diagonal(Link));
+
   return res;
 }
 template dtensor<double> big_dtensor<double>::diagonal();
