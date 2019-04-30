@@ -194,20 +194,23 @@ template dtensor< std::complex<double> >::dtensor(dtensor< std::complex<double> 
 //---------------------------------------------------------------------------
 // Reset
 
-//What's this being used for.  Should we be resetting the CTF tensor sizes??
-//What does a tblis reset have to do?
 template <typename T>
 void dtensor<T>::reset(vector<dtensor_index>& idx_vec, bool makeZero){
   rank = 0;
   size = 1;
   idx_set = idx_vec;
+  std::vector<int> idx_sizes(idx_vec.size());
   for (size_t i = 0; i < idx_vec.size(); i++) {
     ++rank;
     size *= idx_vec[i].size();
+    idx_sizes[i] = idx_vec[i].size();
   }
-  //_T.reset(idx_lens);
-  _initted = true;
-  if(makeZero) setZero();
+  if(makeZero) {
+    _initted = true;
+    __T=CTF::Tensor<>(idx_vec.size(),idx_sizes.data());
+    setZero();
+  }
+  else { _initted = false; }//this may not be true always, but best to be safe
 }
 template void dtensor<double>::reset(vector<dtensor_index>& idx_vec, bool makeZero);
 template void dtensor< std::complex<double> >::reset(vector<dtensor_index>& idx_vec, bool makeZero);
@@ -232,7 +235,6 @@ void dtensor<T>::setZero(){
 template void dtensor<double>::setZero();
 template void dtensor< std::complex<double> >::setZero();
 
-//This should be cleaner
 template <typename T>
 void dtensor<T>::setOne(){
   assert(_initted);
@@ -367,6 +369,8 @@ dtensor<T>& dtensor<T>::operator /= (const T c){
   auto ind = getIndices();
   CTF::Transform<T>([c,ind](T & d){ d= d/c; })(__T[ind.c_str()]);
   return *this;
+  //alternative
+  return (*this)*=1.0/c;
 }
 template dtensor<double>& dtensor<double>::operator/=(const double c);
 template dtensor< std::complex<double> >& dtensor< std::complex<double> >::operator/=(const std::complex<double> c);

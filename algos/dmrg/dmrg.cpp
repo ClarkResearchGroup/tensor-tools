@@ -2,6 +2,7 @@
 #define DMRG_CLASS
 
 #include "dmrg.h"
+#include "../../util/timer.h"
 
 template <typename T>
 void buildEnv(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector< dtensor<T> >& TL){
@@ -269,8 +270,10 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) #"<<std::endl;
+  Timer t("time");
 	for(int l = start_sweep; l < num_sweeps; l++) {
+    t.Start();
 		perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
 		direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
 		for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
@@ -281,7 +284,9 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 			updateEnv(psi, H, TR, TL, site, direction);
 
 		}
-		perr<<Energy<<std::endl;
+    t.Stop();
+		perr<<Energy<<"\t"<<t.Time()<<std::endl;
+    t.Clear();
 	}
 	//psi.position(0);
 	psi.normalize();

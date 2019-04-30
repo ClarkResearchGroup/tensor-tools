@@ -138,18 +138,21 @@ void svd(dtensor<T>& A,
   vector<dtensor_index> midVec = {_S.lens[0]};
   S.reset(midVec,false);
   S.__T = std::move(_S);
+  S._initted=true;
   
   if(direction==MoveFromLeft){
-    U.reset(U_idx_set,false);
+    U.reset(U_idx_set,false); U._initted=true;//data already allocated
     V = U; V.dag(); V.conj(); V.idx_set.back().prime();
     V = std::move(V*A);    
     V.idx_set[0].prime(-1);
 
   }
   else if(direction==MoveFromRight){
-    V.reset(V_idx_set,false);
+    V.reset(V_idx_set,false); V._initted=true; //data already allocated
     U = V; U.dag(); U.conj(); U.idx_set[0].prime(); U = std::move(A*U); U.idx_set.back().prime(-1);
   }
+  //U.__T.print_lens();
+  //V.__T.print_lens();
   for (int i=0;i<A.__T.order;i++)
     assert(A.__T.lens[i]==A.idx_set[i].size());
 
