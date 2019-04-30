@@ -149,7 +149,7 @@ template dtensor<double>::dtensor(initializer_list<dtensor_index> idx_list);
 template dtensor< std::complex<double> >::dtensor(initializer_list<dtensor_index> idx_list);
 
 
-//Will those actually work?
+
 template <typename T>
 dtensor<T>::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<T>& data_array){
   rank = 0;
@@ -163,7 +163,7 @@ dtensor<T>::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<T>& data_array){
   _initted = true;
 }
 template dtensor<double>::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<double>& data_array);
-//:template dtensor< std::complex<double> >::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<std::complex<double> >& data_array);
+template dtensor< std::complex<double> >::dtensor(vector<dtensor_index>& idx_vec, CTF::Tensor<std::complex<double> >& data_array);
 
 template <typename T>
 dtensor<T>::dtensor(const dtensor<T>& other){
@@ -237,10 +237,7 @@ template <typename T>
 void dtensor<T>::setOne(){
   assert(_initted);
   //build generic set of indices
-  string idxs;
-  char i = 'a';
-  for(auto idx: idx_set) idxs+= i++;
-  __T[idxs.c_str()] = 1.0;
+  __T[getIndices().c_str()] = 1.0;
 }
 template void dtensor<double>::setOne();
 template void dtensor< std::complex<double> >::setOne();
@@ -331,24 +328,10 @@ dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
     }
   }
   dtensor<T> res(res_index_set);
-  // cerr<<"START"<<endl;
-  // for (int i=0;i<res.__T.order;i++){
-  //   cerr<<res.__T.lens[i]<<" "<<res.idx_set[i].tag()<<endl;
-  // }
-  // cerr<<endl;
-  // for (int i=0;i<__T.order;i++){
-  //   cerr<<__T.lens[i]<<" "<<idx_set[i].tag()<<endl;
-  // }
-  // cerr<<endl;
-  // for (int i=0;i<A.__T.order;i++){
-  //   cerr<<A.__T.lens[i]<<" "<<A.idx_set[i].tag()<<endl;
-  // }
-  // cerr<<"END"<<endl;
-  // cerr<<endl;
 
   auto a=  res.__T[res_labels.data()];
-   auto b=  __T[this_labels.data()];
-   auto c= A.__T[A_labels.data()];
+  auto b=  __T[this_labels.data()];
+  auto c= A.__T[A_labels.data()];
   T one=T(1);
   T zero=T(0);
   c.mult_scl((char*)&one);
@@ -370,9 +353,8 @@ template dtensor< std::complex<double> > dtensor< std::complex<double> >::operat
 template <typename T>
 dtensor<T>& dtensor<T>::operator *= (const T c){
   assert(_initted);
-  unordered_map<string,char> charMap;
   CTF::Scalar<T> cs(c);
-  __T[getIndices(charMap).c_str()]*=cs[""];
+  __T[getIndices().c_str()]*=cs[""];
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator*=(const double c);
@@ -382,13 +364,8 @@ template dtensor< std::complex<double> >& dtensor< std::complex<double> >::opera
 template <typename T>
 dtensor<T>& dtensor<T>::operator /= (const T c){
   assert(_initted);
-  string letters="";
-  char ch='a';
-  for (unsigned i=0;i<rank;i++){
-    letters.push_back(ch);
-    ++ch;
-  }
-  CTF::Transform<T>([c](T & d){ d= d/c; })(__T[letters.c_str()]);
+  auto ind = getIndices();
+  CTF::Transform<T>([c,ind](T & d){ d= d/c; })(__T[ind.c_str()]);
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator/=(const double c);
@@ -399,7 +376,7 @@ template <typename T>
 T dtensor<T>::contract(dtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
-  vector<dtensor_index> res_index_set;
+  /*vector<dtensor_index> res_index_set;
   index_sets_difference(idx_set, A.idx_set, res_index_set);
   assert(res_index_set.size()==0); // contract to a scalar
   std::vector<char> this_labels;
@@ -419,9 +396,12 @@ T dtensor<T>::contract(dtensor<T>& A){
     }else{
       A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
     }
-  }
+  }*/
+  std::unordered_map<string,char> charMap;
+  auto this_labels = getIndices(charMap);
+  auto A_labels    = getIndices(charMap);
   T res = 0;
-  res=__T[this_labels.data()]*A.__T[A_labels.data()];
+  res=__T[this_labels.c_str()]*A.__T[A_labels.c_str()];
  
   //  tblis::dot(_T,this_labels.data(),A._T,A_labels.data(),res);
   return res;
@@ -436,7 +416,7 @@ template std::complex<double> dtensor< std::complex<double> >::contract(dtensor<
 // only possible when some tensor indices com in "pairs",
 // meaning same name but different prime level
 //This should be cleaned up.
-template <typename T>
+/*template <typename T>
 dtensor<T> dtensor<T>::diagonal(){
   //assert(1==2);
   assert(_initted && rank>1);
@@ -489,7 +469,7 @@ dtensor<T> dtensor<T>::diagonal(){
       idx += this_idx[j] * _T.stride(j);
     }
     A._T.data()[i] = _T.data()[idx];
-  }*/
+  }
   unordered_map<string,char> charMap;
 
   auto indOrig = indicesToCharNP(idx_set,charMap);
@@ -502,16 +482,15 @@ dtensor<T> dtensor<T>::diagonal(){
   return A;
 }
 template dtensor<double> dtensor<double>::diagonal();
-template dtensor< std::complex<double> > dtensor< std::complex<double> >::diagonal();
+template dtensor< std::complex<double> > dtensor< std::complex<double> >::diagonal();*/
 
 
 //This should be cleaned up.
 template <typename T>
 dtensor<T> dtensor<T>::diagonal(index_type type){
-  //assert(1==2);
   assert(_initted && rank>1);
   vector<dtensor_index> new_idx_set;
-  vector< std::pair<int,int> > idx_pairs;
+  //determine which indices are unique and should be in the final tensor
   for (size_t i = 0; i < rank; i++) {
     bool is_shared = false;
     for (size_t j = 0; j < rank; j++) {
@@ -522,7 +501,6 @@ dtensor<T> dtensor<T>::diagonal(index_type type){
     }
     if(!is_shared){
       new_idx_set.push_back(idx_set[i]);
-      idx_pairs.push_back(std::make_pair(i,-1));
     }
   }
   for (size_t i = 0; i < rank; i++) {
@@ -533,7 +511,6 @@ dtensor<T> dtensor<T>::diagonal(index_type type){
         }else{
           new_idx_set.push_back(idx_set[j]);
         }
-        idx_pairs.push_back(std::make_pair(i,j));
         break;
       }
     }
@@ -563,11 +540,9 @@ dtensor<T> dtensor<T>::diagonal(index_type type){
   unordered_map<string,char> charMap;
 
   dtensor<T> A(new_idx_set);
+  //when making indices, ignore primes so that they are repeated ('diagonal)
   auto indNew  = indicesToCharNP(new_idx_set,charMap);
   auto indOrig = indicesToCharNP(idx_set,charMap);
-  //cerr<<indNew << " " << indOrig<<endl;
-  //print();
-  //__T.print();
   A.__T[indNew.c_str()] = __T[indOrig.c_str()];
 
   return A;
@@ -581,28 +556,28 @@ template dtensor< std::complex<double> > dtensor< std::complex<double> >::diagon
 // Print Info
 template <typename T>
 void dtensor<T>::print(unsigned print_level){
-  std::cout<<"-------------------------------------"<<'\n';
-  std::cout<<"(1) Tensor's rank = "<<rank<<'\n';
-  std::cout<<"(2) Tensor's size = "<<size<<'\n';
-  std::cout<<"(3) Tensor's index (size, name, type, prime level)"<<'\n';
+  pout<<"-------------------------------------"<<'\n';
+  pout<<"(1) Tensor's rank = "<<rank<<'\n';
+  pout<<"(2) Tensor's size = "<<size<<'\n';
+  pout<<"(3) Tensor's index (size, name, type, prime level)"<<'\n';
   for (size_t i = 0; i < rank; i++) {
-    std::cout<<"                   ("<<idx_set[i].size()<<", "<<idx_set[i].name()<<", ";
+    pout<<"                   ("<<idx_set[i].size()<<", "<<idx_set[i].name()<<", ";
     if(idx_set[i].type()==Link){
-      std::cout<<"Link"<<", ";
+      pout<<"Link"<<", ";
     }else{
-      std::cout<<"Site"<<", ";
+      pout<<"Site"<<", ";
     }
-    std::cout<<idx_set[i].level()<<")"<<'\n';
+    pout<<idx_set[i].level()<<")"<<'\n';
   }
   if (print_level>0) {
-    std::cout<<"(4) Tensor data:"<<'\n';
+    pout<<"(4) Tensor data:"<<'\n';
     /*for (size_t i = 0; i < size; i++) {
       std::cout<<_T.data()[i]<<" ";
     }*/
     __T.print();
-    std::cout<<'\n';
+    pout<<'\n';
   }
-  std::cout << "-------------------------------------" << '\n';
+  pout << "-------------------------------------" << '\n';
 }
 template void dtensor<double>::print(unsigned print_level);
 template void dtensor< std::complex<double> >::print(unsigned print_level);
@@ -634,15 +609,10 @@ template void dtensor< std::complex<double> >::primeLink(int inc);
 //This shoudl be cleaned up
 template <typename T>
 void dtensor<T>::conj(){
-  string letters="";
-  char ch='a';
-  for (unsigned i=0;i<rank;i++){
-    letters.push_back(ch);
-    ++ch;
-  }
   if (std::is_same<T, std::complex<double>>::value) {
+    auto ind = getIndices();
     ////C++ sdf    
-    CTF::Transform<T>([](T & d){ d= std::conj(d); })(__T[letters.c_str()]);
+    CTF::Transform<T>([ind](T & d){ d= std::conj(d); })(__T[ind.c_str()]);
   }
   
 }
@@ -715,6 +685,15 @@ template double dtensor<double>::normalize();
 template double dtensor< std::complex<double> >::normalize();
 //-----------------------------------------------------------------------------
 
+template <typename T>
+string dtensor<T>::getIndices(){
+  char ch='a';
+  _indices = string(ch,rank);
+  for (unsigned i=0;i<rank;i++){ _indices[i]=ch++; }
+  return _indices;
+}
+template string dtensor<double>::getIndices();
+template string dtensor<std::complex<double> >::getIndices();
 template <typename T>
 string dtensor<T>::getIndices(unordered_map<string,char> &charMap){
   _indices = indicesToChar(idx_set,charMap);

@@ -38,18 +38,18 @@ public:
   }
 
   inline bool similar(const dtensor_index& A, index_type type){
-    return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&((_level==A._level+1)||(_level+1==A._level));
+    return (_size==A._size)&&(_name==A._name)&&(_type==A._type || type==All)&&(_type==type || type==All)&&((_level==A._level+1)||(_level+1==A._level));
   }
 
   inline bool similar(dtensor_index& A, index_type type){
-    return (_size==A._size)&&(_name==A._name)&&(_type==A._type)&&(_type==type)&&((_level==A._level+1)||(_level+1==A._level));
+    return (_size==A._size)&&(_name==A._name)&&(_type==A._type || type==All)&&(_type==type || type==All)&&((_level==A._level+1)||(_level+1==A._level));
   }
 
   inline void prime(int inc=1){_level+=inc;}
   inline void primeLink(int inc=1){if(_type==Link) _level+=inc;}
   inline void primeSite(int inc=1){if(_type==Site) _level+=inc;}
   inline void mapPrime(unsigned from, unsigned to){if(_level==from) _level=to;}
-  inline void mapPrime(unsigned from, unsigned to, index_type type){if(_level==from&&_type==type) _level=to;}
+  inline void mapPrime(unsigned from, unsigned to, index_type type){if(_level==from&&(_type==type||type==All)) _level=to;}
   inline void noPrime(index_type type=All){if(type==All || _type==type) _level=0;}
 
 private:

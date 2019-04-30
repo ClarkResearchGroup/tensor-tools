@@ -22,7 +22,7 @@ void qr(dtensor_view<T>& A,
         vector<dtensor_index>& left, vector<dtensor_index>& right,
         dtensor<T>& Q, dtensor<T>& R);*/
 
-template <typename T>
+/*template <typename T>
 void svd(dtensor<T>& A,
          vector<dtensor_index>& left, vector<dtensor_index>& right,
          dtensor<T>& U, dtensor<T>& V, vector<double>& S,
@@ -33,7 +33,7 @@ void svd(dtensor<T>& A,
     vector<dtensor_index>& left,
     vector<dtensor_index>& right,
     dtensor<T>& U, dtensor<T>& V, dtensor<T>& S,
-    int direction);
+    int direction);*/
 
 /*template <typename T>
 void svd(dtensor_view<T>& A,
@@ -41,11 +41,11 @@ void svd(dtensor_view<T>& A,
         dtensor<T>& U, dtensor<T>& V, vector<double>& S,
         int direction);*/
 
-template <typename T>
+/*template <typename T>
 void svd(dtensor<T>& A,
         vector<dtensor_index>& left, vector<dtensor_index>& right,
         dtensor<T>& U, dtensor<T>& V, vector<double>& S,
-        int direction, double cutoff);
+        int direction, double cutoff);*/
 
 /*template <typename T>
 void svd(dtensor_view<T>& A,
@@ -57,7 +57,7 @@ template <typename T>
 void svd(dtensor<T>& A,
         vector<dtensor_index>& left, vector<dtensor_index>& right,
         dtensor<T>& U, dtensor<T>& V, vector<double>& S,
-        int direction, double cutoff, long unsigned K);
+        int direction, double cutoff=0, long unsigned K=0);
 
 /*template <typename T>
 void svd(dtensor_view<T>& A,
@@ -70,12 +70,12 @@ void svd(dtensor<T>& A,
     vector<dtensor_index>& left,
     vector<dtensor_index>& right,
     dtensor<T>& U, dtensor<T>& V, dtensor<T>& S,
-    int direction,double cutoff, long unsigned K);
+    int direction,double cutoff=0, long unsigned K=0);
 
-template <typename T>
+/*template <typename T>
 void svd_bond(dtensor<T>& A_left, dtensor<T>& A_right,
         dtensor_index& mid, vector<double>& S,
-        int direction);
+        int direction);*/
 
 /*template <typename T>
 void svd_bond(dtensor_view<T>& A_left, dtensor_view<T>& A_right,
@@ -85,12 +85,12 @@ void svd_bond(dtensor_view<T>& A_left, dtensor_view<T>& A_right,
 template <typename T>
 void svd_bond(dtensor<T>& A_left, dtensor<T>& A_right,
         dtensor_index& mid, vector<double>& S,
-        int direction, double cutoff, long unsigned K);
+        int direction, double cutoff=0, long unsigned K=0);
 
   template <typename T>
 void svd_bond(dtensor<T>& combined, dtensor<T>& A_left, dtensor<T>& A_right,
     dtensor_index& mid, dtensor<T>& S,
-    int direction, double cutoff, long unsigned K);
+    int direction, double cutoff=0, long unsigned K=0);
 
 /*template <typename T>
 void svd_bond(dtensor_view<T>& A_left, dtensor_view<T>& A_right,
@@ -100,7 +100,7 @@ void svd_bond(dtensor_view<T>& A_left, dtensor_view<T>& A_right,
 template <typename T>
 void svd_bond(dtensor<T>& combined, dtensor<T>& A_left, dtensor<T>& A_right,
         dtensor_index& mid, vector<double>& S,
-        int direction, double cutoff, long unsigned K);
+        int direction, double cutoff=0, long unsigned K=0);
 
 /*template <typename T>
 void svd_bond(dtensor<T>& combined, dtensor_view<T>& A_left, dtensor_view<T>& A_right,

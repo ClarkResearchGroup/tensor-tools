@@ -129,8 +129,8 @@ public:
   // Get diagonal subtensor
   // only possible when tensor indices come in "pairs",
   // meaning same name string but different prime level
-  dtensor<T> diagonal();
-  dtensor<T> diagonal(index_type type);
+  //dtensor<T> diagonal();
+  dtensor<T> diagonal(index_type type=All);
 
   //---------------------------------------------------------------------------
   // Prime level manipulation
@@ -166,6 +166,7 @@ public:
 
   //---------------------------------------------------------------------------
   // index functions for CTF
+  string getIndices(); //prints string based on rank
   string getIndices(unordered_map<string,char> &charMap);
 
 private:

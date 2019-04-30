@@ -1476,7 +1476,7 @@ void svd(dtensor<T>& A,
 // }
 
 
-template <typename T>
+/*template <typename T>
 void svd_bond(dtensor<T>& A_left, dtensor<T>& A_right,
         dtensor_index& mid, vector<double>& S,
         int direction)
@@ -1509,7 +1509,7 @@ void svd_bond(dtensor<T>& A_left, dtensor<T>& A_right,
   A_left.idx_set.back() = mid;
 }
 template void svd_bond(dtensor<double>& A_left, dtensor<double>& A_right, dtensor_index& mid, vector<double>& S, int direction);
-template void svd_bond(dtensor< std::complex<double> >& A_left, dtensor< std::complex<double> >& A_right, dtensor_index& mid, vector<double>& S, int direction);
+template void svd_bond(dtensor< std::complex<double> >& A_left, dtensor< std::complex<double> >& A_right, dtensor_index& mid, vector<double>& S, int direction);*/
 
 
 /*template <typename T>
@@ -1656,7 +1656,7 @@ void svd_bond(dtensor<T>& combined, dtensor_view<T>& A_left, dtensor_view<T>& A_
 template void svd_bond(dtensor<double>& combined, dtensor_view<double>& A_left, dtensor_view<double>& A_right, dtensor_index& mid, vector<double>& S, int direction, double cutoff, long unsigned K);
 template void svd_bond(dtensor< std::complex<double> >& combined, dtensor_view< std::complex<double> >& A_left, dtensor_view< std::complex<double> >& A_right, dtensor_index& mid, vector<double>& S, int direction, double cutoff, long unsigned K);*/
 
-template <typename T>
+/*template <typename T>
 void svd(dtensor<T>& A,
          vector<dtensor_index>& left,
          vector<dtensor_index>& right,
@@ -1708,7 +1708,7 @@ void svd(dtensor<T>& A,
   }
 }
 template void svd(dtensor<double>& A,vector<dtensor_index>& left, vector<dtensor_index>& right, dtensor<double>& U, dtensor<double>& V, vector<double>& S, int direction);
-template void svd(dtensor< std::complex<double> >& A,vector<dtensor_index>& left, vector<dtensor_index>& right, dtensor< std::complex<double> >& U, dtensor< std::complex<double> >& V, vector<double>& S, int direction);
+template void svd(dtensor< std::complex<double> >& A,vector<dtensor_index>& left, vector<dtensor_index>& right, dtensor< std::complex<double> >& U, dtensor< std::complex<double> >& V, vector<double>& S, int direction);*/
 
 template <typename T>
 void svd_bond(dtensor<T>& combined, dtensor<T>& A_left, dtensor<T>& A_right,

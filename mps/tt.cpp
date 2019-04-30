@@ -198,15 +198,24 @@ void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
 	  //	  unsigned s0 = A[i]._T.stride(0);
 	  //	  unsigned s1 = A[i]._T.stride(1);
 	  //	  unsigned s2 = A[i]._T.stride(2);
+    auto s0 = 1;
+    auto s1 = A[i].idx_set[0].size()*s0;
+    auto s2 = A[i].idx_set[1].size()*s1;
 	  for (size_t j = 0; j < A[i].size; j++) {
-	  //unsigned phy_idx = unsigned(j/s1)%phy_dim;
-	    // if(phy_idx==product_state[i]){
-	    //A[i]._T.data()[j] = 1.0;
-	    vector<long int> t={j};
-	    vector<T> d={1.0};
-	    assert(1==2);
-	    A[i].__T.write(1,t.data(),d.data());
-			//            }
+      unsigned phy_idx = unsigned(j/s1)%phy_dim;
+	    if(phy_idx==product_state[i]){
+        //A[i]._T.data()[j] = 1.0;
+        vector<long int> inds={static_cast<long int>(j)};
+        vector<T> data={1.0};
+        assert(1==2);
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        if(rank==0)
+          A[i].__T.write(1,inds.data(),data.data());
+        else
+          A[i].__T.write(0,inds.data(),data.data());
+
+			}
 	  }
         }
       }

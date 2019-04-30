@@ -30,43 +30,35 @@ void Heisenberg<T>::addOperators(MPO<T>& H, unsigned site, unsigned r, unsigned 
     auto s3 = H.A[site].idx_set[2].size()*s2;
     for (size_t k = 0; k < 2; k++) {
       for (size_t b = 0; b < 2; b++) {
-        //unsigned s0 = H.A[site]._T.stride(0);
-	//        unsigned s1 = H.A[site]._T.stride(1);
-	//        unsigned s2 = H.A[site]._T.stride(2);
-	//        unsigned s3 = H.A[site]._T.stride(3);
         if(site==0){
-	  //          assert(k*s1 + b*s2 + s3*c < H.A[site].size);
-	  ///          H.A[site]._T.data()[k*s1 + b*s2 + s3*c] = val * (*_s).d_bra_op_ket(b, op, k);
-	  
-	  //vector<long int> inds = {0,k,b,c};
-	  vector<long int> inds = {k*s1 + b*s2 + s3*c};
+          // assert(k*s1 + b*s2 + s3*c < H.A[site].size);
 
-	  const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
+          //vector<long int> inds = {0,k,b,c};
+          //TODO: throw if unsigned long int doesnt fit in long int
+          vector<long int> inds = {static_cast<long int>(k*s1 + b*s2 + s3*c)};
 
-    //cerr<<site<<" "<<val * (*_s).d_bra_op_ket(b, op, k)<<endl;
-	  int rank;
-	  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	  if(rank==0)
+          const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
 
-	    H.A[site].__T.write(1, inds.data(), myData.data());
-	  else
-	    H.A[site].__T.write(0, inds.data(), myData.data());
-    //H.A[site].__T.print();
-	  //	  H.A[site].__T(0,k, b,c) = val * (*_s).d_bra_op_ket(b, op, k);
+          //cerr<<site<<" "<<val * (*_s).d_bra_op_ket(b, op, k)<<endl;
+          int rank;
+          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+          if(rank==0)
+            H.A[site].__T.write(1, inds.data(), myData.data());
+          else
+            H.A[site].__T.write(0, inds.data(), myData.data());
         }else{
-	  //          assert(s0*r + k*s1 + b*s2 + s3*c < H.A[site].size);
-	  //          H.A[site]._T.data()[s0*r + k*s1 + b*s2 + s3*c] = val * (*_s).d_bra_op_ket(b, op, k);
+          //  assert(s0*r + k*s1 + b*s2 + s3*c < H.A[site].size);
 
-	  //vector<long int> inds = {r,k,b,c};
-	  vector<long int> inds = {s0*r + k*s1 + b*s2 + s3*c};
-	  const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
-	  int rank;
-	  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	  if(rank==0)
-	    H.A[site].__T.write(1, inds.data(), myData.data());
-	  else
-	    H.A[site].__T.write(0, inds.data(), myData.data());
-	  //	  H.A[site].__T(r ,k,b,c) = val * (*_s).d_bra_op_ket(b, op, k);
+          //vector<long int> inds = {r,k,b,c};
+          vector<long int> inds = {static_cast<long int>(s0*r + k*s1 + b*s2 + s3*c)};
+          const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
+          int rank;
+          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+          if(rank==0)
+            H.A[site].__T.write(1, inds.data(), myData.data());
+          else
+            H.A[site].__T.write(0, inds.data(), myData.data());
+          //	  H.A[site].__T(r ,k,b,c) = val * (*_s).d_bra_op_ket(b, op, k);
         }
       }
     }
