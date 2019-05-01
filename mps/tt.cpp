@@ -170,7 +170,6 @@ template void dTensorTrain<std::complex<double>, 2>::setBondDims(const uint_vec&
 // Tensor data management
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
-  //  assert(1==2);
   if(!tensors_allocated) {
     string Link_name_pref = "ID"+to_string(_id)+"Link";
     string Site_name_pref = "Site";
@@ -193,30 +192,36 @@ void dTensorTrain<T, N>::allocateTensors(unsigned* product_state){
       // Set product state
       if(product_state!=nullptr){
         for (size_t i = 0; i < length; i++) {
-          A[i].setZero();
-	  // HACK! FIX ME! Commented out.
-	  //	  unsigned s0 = A[i]._T.stride(0);
-	  //	  unsigned s1 = A[i]._T.stride(1);
-	  //	  unsigned s2 = A[i]._T.stride(2);
-    auto s0 = 1;
-    auto s1 = A[i].idx_set[0].size()*s0;
-    auto s2 = A[i].idx_set[1].size()*s1;
-	  for (size_t j = 0; j < A[i].size; j++) {
-      unsigned phy_idx = unsigned(j/s1)%phy_dim;
-	    if(phy_idx==product_state[i]){
-        //A[i]._T.data()[j] = 1.0;
-        vector<long int> inds={static_cast<long int>(j)};
-        vector<T> data={1.0};
-        assert(1==2);
-        int rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        if(rank==0)
-          A[i].__T.write(1,inds.data(),data.data());
-        else
-          A[i].__T.write(0,inds.data(),data.data());
+          A[i].setRandom();
+          auto s0 = 1;
+          auto s1 = A[i].idx_set[0].size()*s0;
+          auto s2 = A[i].idx_set[1].size()*s1;
+          int rank;
+          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+          for (size_t j = 0; j < A[i].size; j++) {
+            unsigned phy_idx = unsigned(j/s1)%phy_dim;
+            vector<long int> inds={static_cast<long int>(j)};
+            if(phy_idx==product_state[i]){
+              //A[i]._T.data()[j] = 1.0;
+              vector<T> data={1.0};
+              //assert(1==2);
+              if(rank==0)
+                A[i].__T.write(1,inds.data(),data.data());
+              else
+                A[i].__T.write(0,inds.data(),data.data());
 
-			}
-	  }
+            }
+            else{
+              //HACK? 
+              vector<T> data={std::numeric_limits<T>::epsilon()};
+              //vector<T> data={1e-1};
+              //assert(1==2);
+              if(rank==0)
+                A[i].__T.write(1,inds.data(),data.data());
+              else
+                A[i].__T.write(0,inds.data(),data.data());
+            }
+          }
         }
       }
     }
