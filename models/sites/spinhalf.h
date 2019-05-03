@@ -6,6 +6,7 @@
 class spinhalf : public abstract_sites
 {
 public:
+  spinhalf() : abstract_sites(0,2),Dn(0),Up(1) {} 
   spinhalf(unsigned L) : abstract_sites(L,2), Dn(0), Up(1) {
     abstract_sites::_phyQN.push_back(-1);
     abstract_sites::_phyQN.push_back(+1);

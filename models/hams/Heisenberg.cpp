@@ -126,6 +126,74 @@ template void Heisenberg< std::complex<double> >::buildHam(MPO< std::complex<dou
 
 
 template <typename T>
+void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
+  auto N = (*_s).N();
+  std::vector<unsigned> maxSite(N,1); //start with onsite terms
+
+  //for each operator string, determine the row and column mapping 
+  //this is done by having each operator string be related to a unique virtual bond 
+  //which in turn helps us form the "W" representaiton to build the MPO
+  //TODO: that this could be done far more effeciently, by eliminating redudent operators
+  std::vector<std::vector<std::pair<unsigned,unsigned>>> rcVals(ampo.terms().size());
+  int stringIdx = 0;
+  unsigned r,c;
+  for(auto& ht : ampo.terms()){
+    //onsite terms
+    if(ht.Nops()==1){
+      rcVals[stringIdx].emplace_back(1,0);
+    }
+    else{
+      int site = ht.first().i;
+      //we need to get the next availible virtual bonds for each site in our string
+      //note only when we add a new row do we need to increment, hence the last one is isn't incremented 
+      //this is very inefficient but I guess it works..
+      std::vector<unsigned> cList(ht.Nops()-1);
+      for(int l=site;l<=ht.last().i-1;l++) cList[l-site] = ++maxSite[l];
+      //first operator goes into row 1, so that site==0 is a row and site==N-1 is a col
+      r = 1;
+      c = cList[0];
+      rcVals[stringIdx].emplace_back(r,c);
+
+      for(int l=1;l<ht.Nops();l++){//determine r,c mapping 
+        site = ht.ops[l].i;
+        c    = cList[l-1];
+        //if(maxSite[site]>c) perr<<"!! bad "<<maxSite[site]<< " "<<c<<endl;
+        if(l==ht.Nops()-1) rcVals[stringIdx].emplace_back(c,0);        //this is always based on the last site
+        else               rcVals[stringIdx].emplace_back(c,cList[l]); //move to potentially new row/col
+      }
+    }
+    stringIdx++;
+  }
+  //for (auto d : maxSite) perr<<d<<" ";
+  //perr<<endl;
+  //TODO: pass maxSite direct so we don't have overcomplete tensors near the edge
+  unsigned bd = 1+ *std::max_element(maxSite.begin(),maxSite.end()); 
+  perr<<"Warning! MPO max bond dim is "<<bd<<endl;
+  MPO<T> A((*_s).N(), (*_s).phy_dim(), bd);
+  A.setZero();
+  H = A;
+  //setup identities
+  //TODO: they might not be needed always... but for reasonable Hams they are
+  for (size_t site = 0; site < H.length; site++) {
+    // Identity block
+    if(site>0)          addOperators(H, site, 0, 0, "Id", 1.0);
+    if(site<H.length-1) addOperators(H, site, 1, 1, "Id", 1.0);
+  }
+  stringIdx=0;
+  for(auto& ht : ampo.terms()){
+    //perr<<real(ht.coef)<<" ";
+    for(int l=0;l<ht.Nops();l++){
+      std::tie(r,c) = rcVals[stringIdx][l];
+      //perr<<ht.ops[l]<<" "<<r<<" "<<c<<" ";
+      addOperators(H,ht.ops[l].i,r,c,ht.ops[l].op, (l==0)? real(ht.coef) : 1.0);
+    }
+    //perr<<endl;
+    stringIdx++;
+  }
+}
+template void Heisenberg<double>::buildHam(AutoMPO& ampo,MPO<double>&  H);
+template void Heisenberg< std::complex<double> >::buildHam(AutoMPO& ampo,MPO< std::complex<double> >&  H);
+template <typename T>
 void Heisenberg<T>::buildHam(qMPO<T>& H){
   qMPO<T> A(_s);
   A.setZero();
