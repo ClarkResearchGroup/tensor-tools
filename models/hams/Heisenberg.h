@@ -4,6 +4,7 @@
 #include "../sites/spinhalf.h"
 #include "../../mps/tt.h"
 #include "../../mps/qtt.h"
+#include "AutoMPO.h"
 
 
 /*
@@ -184,6 +185,7 @@ public:
   void addOperators(qMPO<T>& A, unsigned site, unsigned r, unsigned c, string op, double val, int Qi, int Qo);
 
   void buildHam(MPO<T>&  H);
+  void buildHam(AutoMPO& ampo, MPO<T>&  H);
   void buildHam(qMPO<T>& H);
 
 private:
