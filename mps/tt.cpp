@@ -416,23 +416,34 @@ template dTensorTrain< std::complex<double>, 2> dTensorTrain<std::complex<double
 
 
 template <typename T, unsigned N>
-void dTensorTrain<T, N>::save(std::string fn){
+void dTensorTrain<T, N>::save(std::string fn, std::string wfn){
   assert(tensors_allocated);
-  ezh5::File fh5 (fn, H5F_ACC_TRUNC);
+  ezh5::File fh5 (fn+".h5", H5F_ACC_TRUNC);
+  if(wfn.size()==0) wfn=fn+"__T.bin";
+  MPI_File file;
+  MPI_File_open(MPI_COMM_WORLD, wfn.c_str(),  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+  std::vector<char> wfnC(wfn.begin(),wfn.end());
+  fh5["wfn"]    = wfnC;
   fh5["length"] = length;
   fh5["phy_dim"] = phy_dim;
   fh5["bond_dims"] = bond_dims;
   fh5["center"] = center;
   fh5["id"] = _id;
+  int64_t offset=0;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
-    A[i].save(nd);
+    nd["T"] = wfnC;
+    nd["offset"] = offset;
+    A[i].save(nd,offset);
+    A[i].__T.write_dense_to_file(file,offset);
+    offset+= A[i].__T.get_tot_size(false)*sizeof(T);
   }
+  MPI_File_close(&file);
 }
-template void dTensorTrain<double, 1>::save(std::string fn);
-template void dTensorTrain<double, 2>::save(std::string fn);
-template void dTensorTrain<std::complex<double>, 1>::save(std::string fn);
-template void dTensorTrain<std::complex<double>, 2>::save(std::string fn);
+template void dTensorTrain<double, 1>::save(std::string fn, std::string wfn);
+template void dTensorTrain<double, 2>::save(std::string fn, std::string wfn);
+template void dTensorTrain<std::complex<double>, 1>::save(std::string fn, std::string wfn);
+template void dTensorTrain<std::complex<double>, 2>::save(std::string fn, std::string wfn);
 
 
 template <typename T, unsigned N>
@@ -444,11 +455,19 @@ void dTensorTrain<T, N>::load(std::string fn){
   fh5["bond_dims"] >> bond_dims;
   fh5["center"] >> center;
   fh5["id"] >> _id;
+  std::vector<char> wfnC; fh5["wfn"] >> wfnC;
   allocateTensors();
+  MPI_File file;
+  MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
+                MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  int64_t offset=0;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
+    nd["offset"] >> offset;
     A[i].load(nd);
+    A[i].__T.read_dense_from_file(file,offset);
   }
+  MPI_File_close(&file);
 }
 template void dTensorTrain<double, 1>::load(std::string fn);
 template void dTensorTrain<double, 2>::load(std::string fn);
@@ -458,15 +477,20 @@ template void dTensorTrain<std::complex<double>, 2>::load(std::string fn);
 
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::save(ezh5::Node& fh5){
+  assert(1==2);
   assert(tensors_allocated);
   fh5["length"] = length;
   fh5["phy_dim"] = phy_dim;
   fh5["bond_dims"] = bond_dims;
   fh5["center"] = center;
   fh5["id"] = _id;
+  int64_t offset=0;
+  std::vector<char> wfnC; fh5["T"] >> wfnC;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
-    A[i].save(nd);
+    nd["T"] = wfnC;
+    A[i].save(nd,offset);
+    offset+= A[i].__T.get_tot_size(false)*sizeof(T);
   }
 }
 template void dTensorTrain<double, 1>::save(ezh5::Node& fh5);
@@ -477,6 +501,7 @@ template void dTensorTrain<std::complex<double>, 2>::save(ezh5::Node& fh5);
 
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::load(ezh5::Node& fh5){
+  assert(1==2);
   freeTensors();
   fh5["length"] >> length;
   fh5["phy_dim"] >> phy_dim;

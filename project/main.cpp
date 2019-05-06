@@ -128,7 +128,7 @@ int main(int argc, char **argv)
     auto num   = psiHphi(psi,H,psi);
     auto denom = psiphi(psi,psi);
     perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
-    int nsweeps = 8;
+    int nsweeps = 2;
     /*int maxm = 60;
     double cutoff = 1e-8;
     int nsweeps = 5;*/
@@ -142,6 +142,12 @@ int main(int argc, char **argv)
     auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
     if(world.rank==0) psi.print();
     pout << "Final Energy = "<<finalEnergy << '\n';
+    psi.save("output");
+    pout <<"Saved!"<<endl;
+    MPS<double> psi2;
+    psi2.load("output.h5");
+    auto fe = psiHphi(psi2,H,psi2);
+    perr<<"Loaded E ="<<fe<<endl;
   }
   MPI_Finalize();
   return 0;

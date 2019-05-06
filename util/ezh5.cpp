@@ -61,8 +61,9 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator = (int val);
-        template Node& Node::operator = (unsigned val);
-        template Node& Node::operator = (unsigned long val);
+  template Node& Node::operator = (unsigned val);
+  template Node& Node::operator = (unsigned long val);
+  template Node& Node::operator = (long val);
 	template Node& Node::operator = (float val);
 	template Node& Node::operator = (double val);
 	template Node& Node::operator = (char val);
@@ -78,8 +79,9 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator >> (int& val);
-  	template Node& Node::operator >> (unsigned& val);
-    	template Node& Node::operator >> (unsigned long& val);
+	template Node& Node::operator >> (long& val);
+  template Node& Node::operator >> (unsigned& val);
+  template Node& Node::operator >> (unsigned long& val);
 	template Node& Node::operator >> (float& val);
 	template Node& Node::operator >> (double& val);
 	template Node& Node::operator >> (char& val);
@@ -103,8 +105,9 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator = (std::vector<int>& vec);
-  	template Node& Node::operator = (std::vector<unsigned>& vec);
-  	template Node& Node::operator = (std::vector<unsigned long>& vec);
+	template Node& Node::operator = (std::vector<long>& vec);
+  template Node& Node::operator = (std::vector<unsigned>& vec);
+  template Node& Node::operator = (std::vector<unsigned long>& vec);
 	template Node& Node::operator = (std::vector<float>& vec);
 	template Node& Node::operator = (std::vector<double>& vec);
 	template Node& Node::operator = (std::vector<char>& vec);
@@ -126,6 +129,7 @@ namespace ezh5{
 		return *this;
 	}
 	template Node& Node::operator >> (std::vector<int>& vec);
+	template Node& Node::operator >> (std::vector<long>& vec);
   	template Node& Node::operator >> (std::vector<unsigned>& vec);
   	template Node& Node::operator >> (std::vector<unsigned long>& vec);
 	template Node& Node::operator >> (std::vector<float>& vec);

@@ -587,6 +587,149 @@ template void dtensor<double>::print(unsigned print_level);
 template void dtensor< std::complex<double> >::print(unsigned print_level);
 
 
+//-----------------------------------------------------------------------------
+// Save/Load
+template <typename T>
+void dtensor<T>::save(string fn){
+  assert(_initted);
+  uint_vec idx_sizes;
+  str_vec idx_names;
+  uint_vec idx_types;
+  uint_vec idx_levels;
+  for (size_t i = 0; i < rank; i++) {
+    idx_sizes.push_back(idx_set[i].size());
+    idx_names.push_back(idx_set[i].name());
+    idx_types.push_back(idx_set[i].type());
+    idx_levels.push_back(idx_set[i].level());
+  }
+  std::string idx_name_pref = "idx_name_";
+  ezh5::File fh5W (fn, H5F_ACC_TRUNC);
+  fh5W["rank"] = rank;
+  fh5W["size"] = size;
+  fh5W["idx_sizes"] = idx_sizes;
+  fh5W["idx_types"] = idx_types;
+  fh5W["idx_levels"] = idx_levels;
+  for (size_t i = 0; i < rank; i++) {
+    std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
+    fh5W[idx_name_pref+std::to_string(i)] = vec;
+  }
+  std::string wfn = fn+"__T.bin";
+  perr<<"Saving "<<wfn<<endl;
+  std::vector<char> wfnC(wfn.begin(),wfn.end());
+  fh5W["T"] = wfnC;
+  __T.write_dense_to_file(wfn.c_str());
+}
+template void dtensor<double>::save(string fn);
+template void dtensor< std::complex<double> >::save(string fn);
+
+
+template <typename T>
+void dtensor<T>::save(ezh5::Node& fW, int64_t offset){
+  assert(_initted);
+  uint_vec idx_sizes;
+  str_vec idx_names;
+  uint_vec idx_types;
+  uint_vec idx_levels;
+  for (size_t i = 0; i < rank; i++) {
+    idx_sizes.push_back(idx_set[i].size());
+    idx_names.push_back(idx_set[i].name());
+    idx_types.push_back(idx_set[i].type());
+    idx_levels.push_back(idx_set[i].level());
+  }
+  std::string idx_name_pref = "idx_name_";
+  fW["rank"] = rank;
+  fW["size"] = size;
+  fW["idx_sizes"] = idx_sizes;
+  fW["idx_types"] = idx_types;
+  fW["idx_levels"] = idx_levels;
+  for (size_t i = 0; i < rank; i++) {
+    std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
+    fW[idx_name_pref+std::to_string(i)] = vec;
+  }
+  //need to save this at a higher level
+  /*std::vector<char> wfnC; 
+  fW["T"] >> wfnC; 
+  std::string wfn(wfnC.data(),wfnC.size());
+  perr<<"saving "<<wfn<<endl;
+  __T.write_dense_to_file(wfn.c_str(),offset);*/
+
+}
+template void dtensor<double>::save(ezh5::Node& fW, int64_t offset);
+template void dtensor< std::complex<double> >::save(ezh5::Node& fW, int64_t offset);
+
+
+template <typename T>
+void dtensor<T>::load(string fn){
+  std::vector<int> idx_sizes;
+  str_vec idx_names;
+  uint_vec idx_types_int;
+  typ_vec idx_types;
+  uint_vec idx_levels;
+  std::vector<int> idx_lens;
+  std::string idx_name_pref = "idx_name_";
+  ezh5::File fh5R (fn, H5F_ACC_RDONLY);
+  fh5R["rank"] >> rank;
+  fh5R["size"] >> size;
+  fh5R["idx_sizes"] >> idx_sizes;
+  fh5R["idx_types"] >> idx_types_int;
+  fh5R["idx_levels"] >> idx_levels;
+  for (size_t i = 0; i < rank; i++) {
+    std::vector<char> vec;
+    fh5R[idx_name_pref+std::to_string(i)] >> vec;
+    std::string s = std::string(vec.begin(),vec.end());
+    idx_names.push_back(s);
+  }
+  idx_set.clear();
+  for (size_t i = 0; i < rank; i++) {
+    idx_types.push_back(index_type(idx_types_int[i]));
+    idx_set.push_back(dtensor_index(idx_sizes[i],idx_names[i],idx_types[i],idx_levels[i]));
+  }
+  __T=CTF::Tensor<>(idx_set.size(),idx_sizes.data());
+  std::vector<char> wfnC; fh5R["T"] >> wfnC;
+  __T.read_dense_from_file(wfnC.data());
+  _initted = true;
+}
+template void dtensor<double>::load(string fn);
+template void dtensor< std::complex<double> >::load(string fn);
+
+
+template <typename T>
+void dtensor<T>::load(ezh5::Node& fR){
+  std::vector<int> idx_sizes;
+  str_vec idx_names;
+  uint_vec idx_types_int;
+  typ_vec idx_types;
+  uint_vec idx_levels;
+  std::vector<int> idx_lens;
+  std::string idx_name_pref = "idx_name_";
+  fR["rank"] >> rank;
+  fR["size"] >> size;
+  fR["idx_sizes"] >> idx_sizes;
+  fR["idx_types"] >> idx_types_int;
+  fR["idx_levels"] >> idx_levels;
+  for (size_t i = 0; i < rank; i++) {
+    std::vector<char> vec;
+    fR[idx_name_pref+std::to_string(i)] >> vec;
+    std::string s = std::string(vec.begin(),vec.end());
+    idx_names.push_back(s);
+  }
+  idx_set.clear();
+  for (size_t i = 0; i < rank; i++) {
+    idx_types.push_back(index_type(idx_types_int[i]));
+    idx_set.push_back(dtensor_index(idx_sizes[i],idx_names[i],idx_types[i],idx_levels[i]));
+  }
+  //needs to be done elsewhere
+  /*std::vector<char> wfnC; fR["T"] >> wfnC;
+
+  int64_t offset; fR["offset"] >> offset;
+  std::string wfn(wfnC.data(),wfnC.size());
+  //__T.read_dense_from_file(wfn.c_str(),offset);*/
+  __T=CTF::Tensor<>(idx_set.size(),idx_sizes.data());
+  _initted = true;
+}
+template void dtensor<double>::load(ezh5::Node& fR);
+template void dtensor< std::complex<double> >::load(ezh5::Node& fR);
+//-----------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
