@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
 
     auto J1 = 1.0;
-    auto J2 = -0.5;
+    auto J2 = 0.5;
 
     AutoMPO ampo(sites);
     for(auto bnd: lattice){
@@ -128,6 +128,7 @@ int main(int argc, char **argv)
     auto num   = psiHphi(psi,H,psi);
     auto denom = psiphi(psi,psi);
     perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
+    bool RUN = 1;
     int nsweeps = 2;
     /*int maxm = 60;
     double cutoff = 1e-8;
@@ -139,15 +140,20 @@ int main(int argc, char **argv)
     //    std::vector<double> cutoff = {0}; 
     std::vector<int> max_restart = {2};
     //TODO: noise
-    auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
-    if(world.rank==0) psi.print();
-    pout << "Final Energy = "<<finalEnergy << '\n';
-    psi.save("output");
-    pout <<"Saved!"<<endl;
-    MPS<double> psi2;
-    psi2.load("output.h5");
-    auto fe = psiHphi(psi2,H,psi2);
-    perr<<"Loaded E ="<<fe<<endl;
+    if(RUN){
+      auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
+      if(world.rank==0) psi.print();
+      pout << "Final Energy = "<<finalEnergy << '\n';
+      psi.save("output");
+      pout <<"Saved!"<<endl;
+    }
+    else{
+      MPS<double> psi2;
+      psi2.load("output.h5");
+      auto fe = psiHphi(psi2,H,psi2);
+      perr<<"Loaded E ="<<fe<<endl;
+      //do measurements
+    }
   }
   MPI_Finalize();
   return 0;

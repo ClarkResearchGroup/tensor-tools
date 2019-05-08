@@ -624,7 +624,7 @@ template void dtensor< std::complex<double> >::save(string fn);
 
 
 template <typename T>
-void dtensor<T>::save(ezh5::Node& fW, int64_t offset){
+void dtensor<T>::save(ezh5::Node& fW){
   assert(_initted);
   uint_vec idx_sizes;
   str_vec idx_names;
@@ -654,8 +654,8 @@ void dtensor<T>::save(ezh5::Node& fW, int64_t offset){
   __T.write_dense_to_file(wfn.c_str(),offset);*/
 
 }
-template void dtensor<double>::save(ezh5::Node& fW, int64_t offset);
-template void dtensor< std::complex<double> >::save(ezh5::Node& fW, int64_t offset);
+template void dtensor<double>::save(ezh5::Node& fW);
+template void dtensor< std::complex<double> >::save(ezh5::Node& fW);
 
 
 template <typename T>

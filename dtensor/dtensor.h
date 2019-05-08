@@ -145,9 +145,9 @@ public:
 
   //---------------------------------------------------------------------------
   // Save/Load
-  void save(string fn, int64_t offset=0);
+  void save(string fn);
   void load(string fn);
-  void save(ezh5::Node& fW, int64_t offset=0);
+  void save(ezh5::Node& fW);
   void load(ezh5::Node& fR);
 
   //---------------------------------------------------------------------------
