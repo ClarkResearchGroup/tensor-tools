@@ -71,7 +71,7 @@ template void buildEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<dou
 
 
 template <typename T>
-void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector< dtensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart){
+void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector< dtensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &davidsonTimer){
 	if(direction==MoveFromLeft){
 		// Set up big_dtensor for two site optimization
 		big_dtensor<T> A;
@@ -81,7 +81,9 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		A.setRight(&TR[site+1]);
 		// Davidson Eigen solver (two-site)
 		dtensor<T> x = std::move(psi.A[site]*psi.A[site+1]);
+		davidsonTimer.Start();
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+		davidsonTimer.Stop();
 		// SVD and move canonical center
 		//vector<double> S;
 		dtensor<T> S;
@@ -111,7 +113,9 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		A.setRight(&TR[site]);
 		// Davidson Eigen solver (two-site)
 		dtensor<T> x = std::move(psi.A[site-1]*psi.A[site]);
+		davidsonTimer.Start();
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+		davidsonTimer.Stop();
 		// SVD and move canonical center
 		//vector<double> S;
     dtensor<T> S;
@@ -134,12 +138,12 @@ void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vect
 		}
 	}
 }
-template void updateSite(MPS<double>& psi, MPO<double>& H, std::vector< dtensor<double> >& TR, std::vector< dtensor<double> >& TL, const unsigned& site, double& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
-template void updateSite(MPS< std::complex<double> >& psi, MPO< std::complex<double> >& H, std::vector< dtensor< std::complex<double> > >& TR, std::vector< dtensor< std::complex<double> > >& TL, const unsigned& site,  std::complex<double> & energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
+template void updateSite(MPS<double>& psi, MPO<double>& H, std::vector< dtensor<double> >& TR, std::vector< dtensor<double> >& TL, const unsigned& site, double& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,Timer &t);
+template void updateSite(MPS< std::complex<double> >& psi, MPO< std::complex<double> >& H, std::vector< dtensor< std::complex<double> > >& TR, std::vector< dtensor< std::complex<double> > >& TL, const unsigned& site,  std::complex<double> & energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &t);
 
 
 template <typename T>
-void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::vector< qtensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart){
+void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::vector< qtensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &diag){
 	if(direction==MoveFromLeft){
 		// Set up big_dtensor for two site optimization
 		big_qtensor<T> A;
@@ -149,7 +153,9 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		A.setRight(&TR[site+1]);
 		// Davidson Eigen solver (two-site)
 		qtensor<T> x = std::move(psi.A[site]*psi.A[site+1]);
+		diag.Start();
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+		diag.Stop();
 		// SVD and move canonical center
 		vector<double> S;
 		qtensor_index mid;
@@ -178,7 +184,9 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		A.setRight(&TR[site]);
 		// Davidson Eigen solver (two-site)
 		qtensor<T> x = std::move(psi.A[site-1]*psi.A[site]);
+		diag.Start();
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+		diag.Stop();
 		// SVD and move canonical center
 		vector<double> S;
 		qtensor_index mid;
@@ -200,8 +208,8 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		}
 	}
 }
-template void updateSite(qMPS<double>& psi, qMPO<double>& H, std::vector< qtensor<double> >& TR, std::vector< qtensor<double> >& TL, const unsigned& site, double& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
-template void updateSite(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, std::vector< qtensor< std::complex<double> > >& TR, std::vector< qtensor< std::complex<double> > >& TL, const unsigned& site,  std::complex<double> & energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
+template void updateSite(qMPS<double>& psi, qMPO<double>& H, std::vector< qtensor<double> >& TR, std::vector< qtensor<double> >& TL, const unsigned& site, double& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,Timer &t);
+template void updateSite(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, std::vector< qtensor< std::complex<double> > >& TR, std::vector< qtensor< std::complex<double> > >& TL, const unsigned& site,  std::complex<double> & energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,Timer &t);
 
 
 template <typename T>
@@ -254,6 +262,7 @@ template void updateEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<do
 
 template <typename T>
 T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep){
+  Timer davidsonTimer("Davidson");
 	int L = H.length;
 	int direction, site=0;
 	if(start_sweep%2==0) psi.position(0); else psi.position(L-1);
@@ -270,7 +279,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) #"<<std::endl;
+	if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
   Timer t("time");
 	for(int l = start_sweep; l < num_sweeps; l++) {
     t.Start();
@@ -280,12 +289,13 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
 		{
 			if(direction==MoveFromLeft)  site = i;
 			if(direction==MoveFromRight) site = L-1-i;
-			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart);
+			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart,davidsonTimer);
 			updateEnv(psi, H, TR, TL, site, direction);
 
 		}
     t.Stop();
-		perr<<Energy<<"\t"<<t.Time()<<std::endl;
+		perr<<Energy<<"\t"<<t.Time()<<"\t"<<davidsonTimer.Time()<<std::endl;
+		davidsonTimer.Clear();
     t.Clear();
 	}
 	//psi.position(0);
@@ -321,6 +331,8 @@ template std::complex<double> dmrg(MPS< std::complex<double> >& psi, MPO< std::c
 
 template <typename T>
 T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep){
+  Timer davidsonTimer("Davidon");
+
 	int L = H.length;
 	int direction, site=0;
 	psi.position(0);
@@ -342,11 +354,13 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 		{
 			if(direction==MoveFromLeft)  site = i;
 			if(direction==MoveFromRight) site = L-1-i;
-			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart);
+			updateSite(psi, H, TR, TL, site, Energy, direction, max_bd, cutoff, mode, search_space_size, max_restart,davidsonTimer);
 			updateEnv(psi, H, TR, TL, site, direction);
 
 		}
 		std::cout<<Energy<<std::endl;
+		perr<<"Davidson Time: "<<davidsonTimer.Time()<<endl;
+		davidsonTimer.Clear();
 	}
 	psi.position(0);
 	psi.normalize();

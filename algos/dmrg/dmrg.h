@@ -6,13 +6,13 @@
 #include "../../mps/observables.h"
 #include "../../linalg/tensor_davidson.h"
 
-
+#include "../../util/timer.h"
 //-------------------------------------------------------------------------------------------
 // MPS, MPO
 template <typename T>
 void buildEnv(MPS<T>& psi, MPO<T>& H, std::vector<dtensor<T>>& TR, std::vector<dtensor<T>>& TL);
 template <typename T>
-void updateSite(MPS<T>& psi, MPO<T>& H, std::vector<dtensor<T>>& TR, std::vector<dtensor<T>>& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
+void updateSite(MPS<T>& psi, MPO<T>& H, std::vector<dtensor<T>>& TR, std::vector<dtensor<T>>& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &davidson);
 template <typename T>
 void updateEnv(MPS<T>& psi, MPO<T>& H, std::vector<dtensor<T>>& TR, std::vector<dtensor<T>>& TL, const unsigned& site, int& direction);
 template <typename T>
