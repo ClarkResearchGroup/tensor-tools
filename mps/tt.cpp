@@ -36,6 +36,21 @@ template dTensorTrain<double, 2>::dTensorTrain(abstract_sites* s, unsigned bd);
 template dTensorTrain<std::complex<double>, 1>::dTensorTrain(abstract_sites* s, unsigned bd);
 template dTensorTrain<std::complex<double>, 2>::dTensorTrain(abstract_sites* s, unsigned bd);
 
+template <typename T, unsigned N>
+dTensorTrain<T, N>::dTensorTrain(abstract_sites* s, uint_vec& bd){
+  _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
+  tensors_allocated = false;
+  setLength((*s).N());
+  setPhysicalDim((*s).phy_dim());
+  setBondDims(bd);
+  allocateTensors();
+  setZero();
+  center  = -1;
+}
+template dTensorTrain<double, 1>::dTensorTrain(abstract_sites* s, uint_vec& bd);
+template dTensorTrain<double, 2>::dTensorTrain(abstract_sites* s, uint_vec& bd);
+template dTensorTrain<std::complex<double>, 1>::dTensorTrain(abstract_sites* s, uint_vec& bd);
+template dTensorTrain<std::complex<double>, 2>::dTensorTrain(abstract_sites* s, uint_vec& bd);
 
 template <typename T, unsigned N>
 dTensorTrain<T, N>::dTensorTrain(abstract_sites* s, str_vec product_string){

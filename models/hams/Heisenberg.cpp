@@ -128,7 +128,7 @@ template void Heisenberg< std::complex<double> >::buildHam(MPO< std::complex<dou
 template <typename T>
 void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   auto N = (*_s).N();
-  std::vector<unsigned> maxSite(N,1); //start with onsite terms
+  std::vector<unsigned> maxSite(N-1,1); //start with onsite terms
 
   //for each operator string, determine the row and column mapping 
   //this is done by having each operator string be related to a unique virtual bond 
@@ -164,12 +164,13 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
     }
     stringIdx++;
   }
+  std::for_each(maxSite.begin(), maxSite.end(), [](unsigned& d) { d+=1;});
+  unsigned maxbd = *std::max_element(maxSite.begin(),maxSite.end()); 
+  maxSite.insert(maxSite.begin(),1); maxSite.push_back(1); //edges for dangling Links
   //for (auto d : maxSite) perr<<d<<" ";
   //perr<<endl;
-  //TODO: pass maxSite direct so we don't have overcomplete tensors near the edge
-  unsigned bd = 1+ *std::max_element(maxSite.begin(),maxSite.end()); 
-  perr<<"Warning! MPO max bond dim is "<<bd<<endl;
-  MPO<T> A((*_s).N(), (*_s).phy_dim(), bd);
+  perr<<"Warning! MPO max bond dim is "<<maxbd<<endl;
+  MPO<T> A(_s, maxSite);
   A.setZero();
   H = A;
   //setup identities

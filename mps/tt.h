@@ -43,6 +43,7 @@ public:
   // Constructors
   dTensorTrain();
   dTensorTrain(abstract_sites* s, unsigned bd = 1);
+  dTensorTrain(abstract_sites* s, uint_vec& bd);
   dTensorTrain(abstract_sites* s, str_vec product_string);
   dTensorTrain(unsigned l, unsigned pd, unsigned bd = 1);
   dTensorTrain(const dTensorTrain<T, N>& other);
