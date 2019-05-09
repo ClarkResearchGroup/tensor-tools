@@ -603,20 +603,24 @@ void dtensor<T>::save(string fn){
     idx_levels.push_back(idx_set[i].level());
   }
   std::string idx_name_pref = "idx_name_";
-  ezh5::File fh5W (fn, H5F_ACC_TRUNC);
-  fh5W["rank"] = rank;
-  fh5W["size"] = size;
-  fh5W["idx_sizes"] = idx_sizes;
-  fh5W["idx_types"] = idx_types;
-  fh5W["idx_levels"] = idx_levels;
-  for (size_t i = 0; i < rank; i++) {
-    std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
-    fh5W[idx_name_pref+std::to_string(i)] = vec;
-  }
   std::string wfn = fn+"__T.bin";
-  perr<<"Saving "<<wfn<<endl;
-  std::vector<char> wfnC(wfn.begin(),wfn.end());
-  fh5W["T"] = wfnC;
+  //perr<<"Saving "<<wfn<<endl;
+  std::vector<char> wfnC(wfn.begin(),wfn.end()); wfnC.push_back(0);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank==0){
+    ezh5::File fh5W (fn, H5F_ACC_TRUNC);
+    fh5W["rank"] = rank;
+    fh5W["size"] = size;
+    fh5W["idx_sizes"] = idx_sizes;
+    fh5W["idx_types"] = idx_types;
+    fh5W["idx_levels"] = idx_levels;
+    for (size_t i = 0; i < rank; i++) {
+      std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
+      fh5W[idx_name_pref+std::to_string(i)] = vec;
+    }
+    fh5W["T"] = wfnC;
+  }
   __T.write_dense_to_file(wfn.c_str());
 }
 template void dtensor<double>::save(string fn);

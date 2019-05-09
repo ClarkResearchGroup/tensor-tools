@@ -16,7 +16,9 @@
 #include "../models/lattice/square.h"
 
 #include <ctf.hpp>
+#include <sys/stat.h>
 using namespace std;
+inline bool check_existence(const string& name);
 
 //#include "tblis.h"
 //typedef vector<tblis::len_type>    len_vec;
@@ -123,8 +125,12 @@ int main(int argc, char **argv)
     Heisenberg< double > HB(&sites);
     HB.buildHam(ampo,H);
     //HB.buildHam(H);
-    //H.print(2);
-    //Ha.print(2);
+    string postfix = to_string(Nx)+"x"+to_string(Ny)+"_"+to_string(J1)+"_"+to_string(J2);
+    auto sp = "psi_"+postfix;
+    if(check_existence(sp+".h5")){
+      psi.load(sp+".h5");
+      cout<<"Read psi"<<endl;
+    }
     auto num   = psiHphi(psi,H,psi);
     auto denom = psiphi(psi,psi);
     perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
@@ -144,12 +150,12 @@ int main(int argc, char **argv)
       auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
       if(world.rank==0) psi.print();
       pout << "Final Energy = "<<finalEnergy << '\n';
-      psi.save("output");
+      psi.save(sp);
       pout <<"Saved!"<<endl;
     }
     else{
       MPS<double> psi2;
-      psi2.load("output.h5");
+      psi2.load(sp+".h5");
       auto fe = psiHphi(psi2,H,psi2);
       perr<<"Loaded E ="<<fe<<endl;
       //do measurements
@@ -178,4 +184,9 @@ int main(int argc, char **argv)
   }*/
   //------------------------------------
   return 0;
+}
+
+inline bool check_existence(const std::string& name){
+  struct stat buffer;
+  return (stat (name.c_str(),&buffer) == 0);
 }
