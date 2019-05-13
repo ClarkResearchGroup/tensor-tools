@@ -60,15 +60,15 @@ private:
   string _tag; // to make it hashable
 };
 
-inline dtensor_index& prime(dtensor_index& index, int inc=1){
+inline dtensor_index prime(dtensor_index index, int inc=1){
   index.prime(inc);
   return index;
 }
-inline dtensor_index& primeLink(dtensor_index& index, int inc=1){
+inline dtensor_index primeLink(dtensor_index index, int inc=1){
   index.primeLink(inc);
   return index;
 }
-inline dtensor_index& primeSite(dtensor_index& index, int inc=1){
+inline dtensor_index primeSite(dtensor_index index, int inc=1){
   index.primeSite(inc);
   return index;
 }
