@@ -419,8 +419,10 @@ void dtensor<T>::permute(uint_vec& perm)
   }
   if (perm_needed){
     vector<dtensor_index> idx_set_p(idx_set);
+    len_vec idx_lens(rank);
     for (size_t i = 0; i < rank; i++) {
-      idx_set[i] = idx_set_p[perm[i]];
+      idx_set[i]  = idx_set_p[perm[i]];
+      idx_lens[i] = idx_set[i].size();
     }
     uint_vec stride1, stride2;
     int s1 = 1, s2 = 1;
@@ -434,6 +436,7 @@ void dtensor<T>::permute(uint_vec& perm)
     }
     T* A = new T [size]();
     std::copy(_T.data(), _T.data()+size, A);
+    _T.reset(idx_lens);
     ////////////////////////////////
     char* p = std::getenv("OMP_NUM_THREADS");
     int numThreads = 1;
@@ -472,17 +475,21 @@ void dtensor<T>::permute(uint_vec& perm){
     }
   }
   if (perm_needed){
+    //std::cerr<<"Need perm!"<<std::endl;
     vector<dtensor_index> idx_set_p(idx_set);
     T* A = new T [size];
     std::copy(_T.data(), _T.data()+size, A);
-    T* B = _T.data();
     T alpha = 1;
     T beta  = 0;
+    len_vec idx_lens(rank);
     int idx_sizes[rank];
     for (size_t i = 0; i < rank; i++) {
       idx_sizes[i] = idx_set[i].size();
-      idx_set[i] = idx_set_p[perm[i]];
+      idx_set[i]   = idx_set_p[perm[i]];
+      idx_lens[i]  = idx_set[i].size();
     }
+    _T.reset(idx_lens);
+    T* B = _T.data(); //ensure B points to new data
     char* p = std::getenv("OMP_NUM_THREADS");
     int numThreads = 1;
     if(p){

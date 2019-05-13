@@ -7,6 +7,7 @@
 extern "C" void dgeqrf_(int*, int*, double*, int*, double*, double*, int*, int*);
 extern "C" void dorgqr_(int*, int*, int*, double*, int*, double*, double*, int*, int*);
 extern "C" void dgesvd_(char*, char*, int*, int*, double*, int*, double*, double*, int*, double*, int*, double*, int*, int*);
+extern "C" void dgesdd_(char*, int*, int*, double*, int*, double*, double*, int*, double*, int*, double*, int*, int*, int*);
 extern "C" void dsytrs_(char*,int*,int*,double*,int*,int*,double*,int*,int*); // broken?
 extern "C" void dsysv_(char*,int*,int*,double*,int*,int*,double*,int*,double*,int*,int*); // the only safe one to use
 extern "C" void dposv_(char*,int*,int*,double*,int*,double*,int*,int*);
