@@ -150,7 +150,7 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
   }
   double* evals     = new double [matrixSize];
   double error; int newStart;
-  DIAG(matrixSize, rho._T.data(), evals);
+  DIAGD(matrixSize, rho._T.data(), evals);
   //for(int l=0;l<matrixSize;l++){ cerr<<evals[l]<<" ";} cerr<<endl;
   std::tie(error,newStart) = determineCutoff(evals,matrixSize,maxm,cutoff);
   //cerr<<"Err: "<<error<< " "<<newStart<<endl;
@@ -192,7 +192,7 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
       if(it->level()==0) matrixSize *= it->size();
     }
     evals     = new double [matrixSize];
-    DIAG(matrixSize, rho._T.data(), evals);
+    DIAGD(matrixSize, rho._T.data(), evals);
     std::tie(error,newStart) = determineCutoff(evals,matrixSize,maxm,cutoff);
     if(verbose) cerr<<j<<" Err: "<<error<< " "<<newStart<<endl;
     delete[] evals;
