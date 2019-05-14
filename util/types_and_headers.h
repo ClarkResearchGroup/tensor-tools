@@ -140,7 +140,7 @@ inline std::complex<double> cconj(std::complex<double> val) {return std::conj(va
 //------------------------------------------------------------------------------
 // Thread safe random numbers
 //------------------------------------------------------------------------------
-std::mt19937& _gen(){
+inline std::mt19937& _gen(){
   static thread_local std::mt19937 generator;
   return generator;
 }
