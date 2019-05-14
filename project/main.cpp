@@ -14,6 +14,7 @@
 #include "randomTools.h"
 
 //#include <ctf.hpp>
+#include <thread>
 
 using namespace std;
 
@@ -123,9 +124,9 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
         Kc.A[j].mapPrime(0,1717,Link);
       }
     }
-    E[0] = (psi.A[0]*K.A[0]*Kc.A[0]*psic.A[0]);
+    E[0] = std::move(psi.A[0]*K.A[0]*Kc.A[0]*psic.A[0]);
     for(int j=1;j<L-1;j++){
-      E[j] = (E[j-1]*psi.A[j]*K.A[j]*Kc.A[j]*psic.A[j]);
+      E[j] = std::move(E[j-1]*psi.A[j]*K.A[j]*Kc.A[j]*psic.A[j]);
     }
   }
   if(verbose) std::cerr<<"made Enviro"<<endl;
@@ -133,11 +134,13 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
   auto O = std::move(psi.A[L-1]*K.A[L-1]);
   O.noPrime(Site);
   
-  auto Otemp = O;
-  Otemp.prime(1717);
-  //auto rho = E[L-2]* O * Otemp;
+  //auto Otemp = O;
+  //Otemp.prime(1717);
+  //auto rho = std::move(E[L-2]* O * Otemp);
   auto rho = std::move(E[L-2]*O);
-       rho = std::move(rho*Otemp);
+       O.prime(1717);
+       rho = std::move(rho*O);
+       O.prime(-1717);
   //cerr<<rho.norm()<<" "<<rho.contract(rho)<<endl;
   //DIAG will destroy rho and replace with eigenvectors
   //but we need to init TBLIS so we keep rho around
@@ -167,17 +170,19 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
   res.A[L-1] = std::move(dtensor<double>(rho.idx_set,rho._T.data()+(matrixSize*newStart)));
   //res.A[L-1].print(1);
   assert(res.A[L-1].rank==2);
-  //O = O*res.A[L-1]*psi.A[L-2]*K.A[L-2];
-  O = std::move(O*res.A[L-1]);
+  O = std::move(O*res.A[L-1]*psi.A[L-2]*K.A[L-2]);
+  /*O = std::move(O*res.A[L-1]);
   O = std::move(O*psi.A[L-2]);
-  O = std::move(O*K.A[L-2]);
+  O = std::move(O*K.A[L-2]);*/
   O.noPrime(Site);
   
   for(int j = L-2; j > 0; --j){
-    Otemp = O; Otemp.prime(1717);
-    //rho = E[j-1]*O*Otemp;
+    //Otemp = O; Otemp.prime(1717);
+    //rho = std::move(E[j-1]*O*Otemp);
     rho = std::move(E[j-1]*O);
-    rho = std::move(rho*Otemp);
+    O.prime(1717);
+    rho = std::move(rho*O);
+    O.prime(-1717);
     //cerr<<j<< " "<<rho.norm()<<" "<<rho.contract(rho)<<endl;
     //cerr<<j<<endl;
     //if(j>L/2) rho.print(0);
@@ -189,7 +194,7 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
     evals     = new double [matrixSize];
     DIAG(matrixSize, rho._T.data(), evals);
     std::tie(error,newStart) = determineCutoff(evals,matrixSize,maxm,cutoff);
-    if(verbose) cerr<<"Err: "<<error<< " "<<newStart<<endl;
+    if(verbose) cerr<<j<<" Err: "<<error<< " "<<newStart<<endl;
     delete[] evals;
     //convert indices from primed to new link
     newm = 1;
@@ -210,16 +215,15 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
     //cerr<<j<< " "<<res.A[j].norm()<<" "<<res.A[j].contract(res.A[j])<<endl;
     //if(j>L/2) res.A[j].print();
 
-    //O = O*res.A[j]*psi.A[j-1]*K.A[j-1];
-    O = std::move(O*res.A[j]);
+    O = std::move(O*res.A[j]*psi.A[j-1]*K.A[j-1]);
+    /*O = std::move(O*res.A[j]);
     O = std::move(O*psi.A[j-1]);
-    O = std::move(O*K.A[j-1]);
+    O = std::move(O*K.A[j-1]);*/
     O.noPrime(Site);
   }
 
-  //O.print();
   //O /= O.norm();
-  res.A[0] = (O);
+  res.A[0] = std::move(O);
   res.center = 0;
   //rename things because this is annoying
   for(int j=0;j<L;j++){
@@ -279,18 +283,20 @@ int main(int argc, char *argv[]) {
     //MPI_Init(&argc, &argv);
     //CTF::World world(argc,argv);
 
-  int N=50;
+  int N=10;
   int bonddim=2;
   int localdim=2;
   int mps_maxm = 2200;
-  double r = 0.5; //chooses 1 vs d
+  double r = 0.1; //chooses 1 vs d
+  double mu = 0.5;
   int seed = 0;
   int seedr= 0;
-  int steps=300;
+  int steps=10;
+  int trial = 0;
   if(argc == 1){
     std::cerr<<"Using all defaults"<<std::endl;
   }
-  else if(argc >17 || (argc-1)%2){
+  else if(argc >19 || (argc-1)%2){
     std::cout<<"Wrong input format!"<<std::endl;
     std::cout<<"-N [sites] -BD [bond dimension of random MPO] -Neel [0/1]"<<endl;
     return 1;
@@ -301,9 +307,11 @@ int main(int argc, char *argv[]) {
       if(std::string(argv[i]) == "-BD")   bonddim = std::stoi(argv[i+1]);
       if(std::string(argv[i]) == "-LD")   localdim = std::stoi(argv[i+1]);
       if(std::string(argv[i]) == "-r") r = std::stof(argv[i+1]);
+      if(std::string(argv[i]) == "-mu") mu = std::stof(argv[i+1]);
       if(std::string(argv[i]) == "-S")       seed = std::stoi(argv[i+1]);
       if(std::string(argv[i]) == "-maxm") mps_maxm = std::stoi(argv[i+1]);
       if(std::string(argv[i]) == "-steps") steps = std::stoi(argv[i+1]);
+      if(std::string(argv[i]) == "-trial") trial = std::stoi(argv[i+1]);
     }
   }  
 
@@ -317,15 +325,19 @@ int main(int argc, char *argv[]) {
     //writeToFile("sites_"+to_string(N)+"_"+to_string(seed),sites);
     //writeToFile("sites_"+to_string(N)+"_"+to_string(seed)+"_"+to_string(seedr),sites);
   }
-	cerr<<"N="<<N<<" bond_dim="<<bonddim<<" r="<<r<<" maxm="<<mps_maxm<<endl;
-	cerr<<"Seed="<<seed<<" seedr="<<seedr<<endl;
+  cerr<<"N="<<N<<" bond_dim="<<bonddim<<" r="<<r<<" mu="<<mu<<" maxm="<<mps_maxm<<endl;
+  cerr<<"Seed="<<seed<<" seedr="<<seedr<<endl;
 	//std::default_random_engine generator(seed);
-	std::mt19937 generator(seed);
+	std::mt19937 generator(seed); _gen().seed(seed);
 	std::mt19937 generatorR(seedr);
+  //index IDs
+  std::hash<std::thread::id> hasher;
+  static thread_local std::mt19937 indexID(std::clock() + hasher(std::this_thread::get_id()));
 	//ITensor seed
 	//seedRNG(seed);
 	std::normal_distribution<double> distribution(0,1.0);
-	std::uniform_real_distribution<double> rdist(0.0, 1.); //for coin flips
+	//std::uniform_real_distribution<double> rdist(0.0, 1.); //for coin flips
+  std::lognormal_distribution<> rdist(mu,r); //hardcode lognormal
 	auto returnGauss = [&distribution,&generator]() { return distribution(generator); };
 
 
@@ -336,7 +348,7 @@ int main(int argc, char *argv[]) {
   std::cout.precision(8);
 
 	MPS< double > psi(&sites,1);
-  if(true){
+  if(false){
     vector<string> ps;
     for (size_t i = 0; i < sites.N(); i++) {
       if(i%2==0)
@@ -354,10 +366,10 @@ int main(int argc, char *argv[]) {
   cerr<<"norm:"<<overlap(psi,psi)<<endl;
 
 	string mpoBDName = "mpoSize_"+to_string(N)+"_"+to_string(seed)+"_"+to_string(seedr);
-	//ofstream fmpo(mpoBDName.c_str());
+	ofstream fmpo(mpoBDName.c_str());
 
 	string mpoLDName = "mpoLocalSize_"+to_string(N)+"_"+to_string(seed)+"_"+to_string(seedr);
-	//ofstream fmpoL(mpoLDName.c_str());
+	ofstream fmpoL(mpoLDName.c_str());
 	cout<<"Generating"<<endl;
 	auto currentState = psi;
 	int spot = N/2;
@@ -380,24 +392,20 @@ int main(int argc, char *argv[]) {
 
     for(int l=0;l<N;l++){
       int thisDim = std::round(rdist(generatorR)); 
-      thisDim = l==0 ? 1:2;//max(1,thisDim);
+      thisDim = l==0 ? 1:max(1,thisDim);
       links.at(l) = dtensor_index(thisDim,Link_name_pref+to_string(l),Link);
       O.bond_dims[l]=thisDim;
-      //if (l!=0) fmpo << thisDim<<" ";
+      if (l!=0) fmpo << thisDim<<" ";
 
       thisDim = std::round(rdist(generatorR)); 
-      thisDim = 2;//max(1,thisDim);
-      newSites.at(l) = dtensor_index(thisDim,"Site"+to_string(l),Site);
-      //fmpoL << thisDim<<" ";
+      thisDim = max(1,thisDim);
+      newSites.at(l) = dtensor_index(thisDim,to_string(indexID())+"_Site"+to_string(l),Site);
+      fmpoL << thisDim<<" ";
     }
     links.at(N) = dtensor_index(1,Link_name_pref+to_string(N),Link);
     O.bond_dims[N]=1;
-      //fmpo << thisDim<<" ";
-   //fmpo<<endl;
-   //fmpoL<<endl;
-    
-    //for testing
-    newSites=oldSites;
+    fmpo<<endl;
+    fmpoL<<endl;
 
     for(int l=0;l<N;l++){
       O.A[l]=std::move( dtensor<double>({links[l],oldSites[l],prime(newSites[l]),links[l+1]}) );
@@ -410,23 +418,48 @@ int main(int argc, char *argv[]) {
       //O.A[l].generate(testGauss);
       O.A[l].generate(returnGauss);
     }
-    Heisenberg< double > HB(&sites);
-    HB.buildHam(O);
-    std::cerr<<"1Svd="<<currentState.position(spot)<<std::endl;
+    //Heisenberg< double > HB(&sites);
+    //HB.buildHam(O);
+    //std::cerr<<"1Svd="<<currentState.position(spot)<<std::endl;
+    currentState.position(spot);
 
-    auto left = currentState.A[spot];
-    auto right = currentState.A[spot+1];
-    vector<dtensor_index> commonBonds;
-    index_sets_intersection(right.idx_set, left.idx_set, commonBonds);
-    assert(commonBonds.size()==1);
-    svd_bond(left,right,commonBonds[0],S,MoveFromLeft);
+    int maxm = *std::max_element(currentState.bond_dims.begin(),currentState.bond_dims.end());
+    auto& A_left = currentState.A[spot-1];
+    auto& A_right = currentState.A[spot];
+    vector<dtensor_index> commonbonds;
+    index_sets_intersection(A_right.idx_set, A_left.idx_set, commonbonds);
+    assert(commonbonds.size()==1);
+    //svd_bond(left,right,commonbonds[0],S,MoveFromRight);
+
+
+    dtensor<double> U,V;
+    dtensor<double> combined = std::move(A_left * A_right);
+    vector<dtensor_index> left;
+    vector<dtensor_index> right;
+    string tag = commonbonds[0].tag();
+    // Separate dtensor_index
+    for (size_t j = 0; j < A_right.rank; j++) {
+      string idx_tag = A_right.idx_set[j].tag();
+      if (idx_tag != tag) {
+        right.push_back(A_right.idx_set[j]);
+      }
+    }
+    for (size_t j = 0; j < A_left.rank; j++) {
+      string idx_tag = A_left.idx_set[j].tag();
+      if (idx_tag != tag) {
+        left.push_back(A_left.idx_set[j]);
+      }
+    }
+    // SVD
+    svd(combined,left,right,U,V,S,MoveFromRight);
     SvN = 0.0;
     for(auto sg:S){
       if(sg>1e-60) SvN -= sg*sg*std::log(sg*sg);
     }
-    cerr<<"1SvN="<<SvN<<endl;
+    cerr<<maxm<<" "<<SvN<<endl;
 
     MPS<double> newState = std::move(exactApplyMPO(O,currentState,1e-50,mps_maxm));
+    //cerr<<"made state"<<endl;
     for(int l=0;l<N;l++){
       assert(newState.A[l].rank == newState.A[l]._T.dimension());
       for(int k=0;k<newState.A[l].rank;k++)
@@ -436,7 +469,10 @@ int main(int argc, char *argv[]) {
     newState.normalize();
     currentState=newState;
     //cerr<<overlap(currentState,currentState)<< " "<<overlap(currentState,newState)<<endl;
+    oldSites.swap(newSites);
   } //end steps
+  fmpo.close();
+  fmpoL.close();
 
   //------------------------------------
   return 0;
