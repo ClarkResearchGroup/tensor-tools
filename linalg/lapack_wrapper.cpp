@@ -44,8 +44,8 @@ void DIAGD(int m, double* A, double* evals){
   int liwork = -1;//std::max(1,3+5*N);
   int* iwork = new int[1];
 	dsyevd_(&jobz,&uplo,&N,A,&N,evals,work,&lwork,iwork,&liwork,&info);
-  lwork = *work;
-  liwork = *iwork;
+  lwork = *work+2;
+  liwork = *iwork+2;
 	delete [] work;
   delete [] iwork;
   work = new double[lwork];

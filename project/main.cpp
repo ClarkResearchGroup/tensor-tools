@@ -83,7 +83,6 @@ void removeIndex(dtensor<T>& A, string name){
 template<typename T>
 MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, bool verbose=false){
   //TODO: allow const multiply
-  MPS<T> res=psi;
   assert(K.length==psi.length);
   //TODO: check that K and psi have the same sites
   int L = K.length;
@@ -92,6 +91,7 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
   removeIndex(psi.A[L-1],"ID"+to_string(psi._id)+"Link"+to_string(L));
   removeIndex(K.A[0],"ID"+to_string(K._id)+"Link0");
   removeIndex(K.A[L-1],"ID"+to_string(K._id)+"Link"+to_string(L));
+  MPS<T> res=psi;
   //build environment tensors
   auto E = std::vector<dtensor<T> >(L);
   {
@@ -165,10 +165,12 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
     else{ ++it; }
   }
   newm -= newStart;
-  rho.idx_set.push_back(dtensor_index(newm,"a"+to_string(L-1),Link));
+  rho.idx_set.emplace_back(dtensor_index(newm,"a"+to_string(L-1),Link));
   res.bond_dims[L-1] = newm;
-  res.A[L-1] = std::move(dtensor<double>(rho.idx_set,rho._T.data()+(matrixSize*newStart)));
-  //res.A[L-1].print(1);
+  //res.A[L-1] = std::move(dtensor<double>(rho.idx_set,rho._T.data()+(matrixSize*newStart)));
+  res.A[L-1].resize(rho.idx_set);
+  std::copy(rho._T.data()+(matrixSize*newStart),rho._T.data()+(matrixSize*matrixSize),res.A[L-1]._T.data());
+  //cerr<<L-1<< " "<<res.A[L-1].norm()<<" "<<res.A[L-1].contract(res.A[L-1])<<endl;
   assert(res.A[L-1].rank==2);
   O = std::move(O*res.A[L-1]*psi.A[L-2]*K.A[L-2]);
   /*O = std::move(O*res.A[L-1]);
@@ -210,8 +212,11 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
     rho.idx_set.emplace_back(newm,"a"+to_string(j),Link);
     rho.rank = rho.idx_set.size();
     res.bond_dims[j] = newm;
-    res.A[j] = std::move(dtensor<double>(rho.idx_set,
-                                         rho._T.data()+(matrixSize*newStart) ));
+    //res.A[j] = std::move(dtensor<double>(rho.idx_set,
+    //                                     rho._T.data()+(matrixSize*newStart) ));
+
+    res.A[j].resize(rho.idx_set); 
+    std::copy(rho._T.data()+(matrixSize*newStart),rho._T.data()+(matrixSize*matrixSize),res.A[j]._T.data());
     //cerr<<j<< " "<<res.A[j].norm()<<" "<<res.A[j].contract(res.A[j])<<endl;
     //if(j>L/2) res.A[j].print();
 
