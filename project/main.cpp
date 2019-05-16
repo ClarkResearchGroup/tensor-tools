@@ -165,7 +165,7 @@ MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff=1E-13,int maxm=-1, b
     else{ ++it; }
   }
   newm -= newStart;
-  rho.idx_set.emplace_back(dtensor_index(newm,"a"+to_string(L-1),Link));
+  rho.idx_set.emplace_back(newm,"a"+to_string(L-1),Link);
   res.bond_dims[L-1] = newm;
   //res.A[L-1] = std::move(dtensor<double>(rho.idx_set,rho._T.data()+(matrixSize*newStart)));
   res.A[L-1].resize(rho.idx_set);
