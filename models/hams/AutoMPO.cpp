@@ -86,7 +86,7 @@ isFermionic(SiteTerm const& st)
     for(char c : st.op)
     if(c == '*')
         {
-        Print(st.op);
+          std::cerr<<st.op<<std::endl;
         Error("SiteTerm contains a '*' but isFermionic does not handle this case");
         }
 #endif

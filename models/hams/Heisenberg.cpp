@@ -76,18 +76,32 @@ void Heisenberg<T>::addOperators(qMPO<T>& H, unsigned site, unsigned r, unsigned
       qn_str += (to_string(H.phy_qn[k])+" ");
       qn_str += (to_string(H.phy_qn[b])+" ");
       qn_str += (to_string(Qo)+" ");
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if(H.A[site].block_id_by_qn_str.count(qn_str) > 0){
         unsigned block_pos = H.A[site].block_id_by_qn_str[qn_str];
         unsigned s0 = 1;
         unsigned s1 = s0 * H.A[site].idx_set[0].qdim(H.A[site].block_index_qi[block_pos][0]);
         unsigned s2 = s1 * H.A[site].idx_set[1].qdim(H.A[site].block_index_qi[block_pos][1]);
         unsigned s3 = s2 * H.A[site].idx_set[2].qdim(H.A[site].block_index_qi[block_pos][2]);
+
+        const vector<T> myData = {val * (*_s).d_bra_op_ket(b, op, k)};
         if(site==0){
-          assert(s3*c < H.A[site].block[block_pos].size());
-          H.A[site].block[block_pos][s3*c] = val * (*_s).d_bra_op_ket(b, op, k);
+          assert(s3*c < H.A[site]._block[block_pos].get_tot_size(false));
+          vector<long int> inds = {static_cast<long int>(s3*c)};
+          //H.A[site].block[block_pos][s3*c] = val * (*_s).d_bra_op_ket(b, op, k);
+          if(rank==0)
+            H.A[site]._block[block_pos].write(1, inds.data(), myData.data());
+          else
+            H.A[site]._block[block_pos].write(0, inds.data(), myData.data());
         }else{
-          assert(s0*r + s3*c < H.A[site].block[block_pos].size());
-          H.A[site].block[block_pos][s0*r + s3*c] = val * (*_s).d_bra_op_ket(b, op, k);
+          assert(s0*r + s3*c < H.A[site]._block[block_pos].get_tot_size(false));
+          //H.A[site].block[block_pos][s0*r + s3*c] = val * (*_s).d_bra_op_ket(b, op, k);
+          vector<long int> inds = {static_cast<long int>(s0*r+s3*c)};
+          if(rank==0)
+            H.A[site]._block[block_pos].write(1, inds.data(), myData.data());
+          else
+            H.A[site]._block[block_pos].write(0, inds.data(), myData.data());
         }
       }
     }

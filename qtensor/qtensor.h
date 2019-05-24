@@ -6,6 +6,7 @@
 #include "../linalg/lapack_wrapper.h"
 #include "qtensor_index.h"
 #include "qtensor_index_op.h"
+#include <ctf.hpp>
 
 /*
 Design of the templated qtensor class:
@@ -20,6 +21,9 @@ Design of the templated qtensor class:
     Repeated indices will be summed over.
 */
 
+
+string indToStr(vector<qtensor_index> &indices,unordered_map<string,char> &charMap);
+string indicesToChar(vector<qtensor_index> &indices, unordered_map<string,char> &charMap);
 
 template <typename T>
 class qtensor{
@@ -60,12 +64,18 @@ public:
   // Storage
   unsigned rank;
   vector<qtensor_index> idx_set;
-  vector< vector<T> > block;
+  vector<vector<T>> block; //TODO: remove!
+  vector<CTF::Tensor<T> > _block;
   vector< int_vec >  block_index_qn;
-  vector< uint_vec > block_index_qd;
+  vector< int_vec > block_index_qd;
   vector< uint_vec > block_index_qi;
   unordered_map< string, unsigned > block_id_by_qn_str;
   bool _initted;
+  //---------------------------------------------------------------------------
+  // Index help
+  string _indices;
+  string getIndices();
+  string getIndices(unordered_map<string,char> &charMap);
   //---------------------------------------------------------------------------
   // Initializer
   void setRandom();
@@ -134,5 +144,13 @@ public:
 
 };
 
+template<typename T>
+double calcEntropy(qtensor<T>& S, double cutoff=1e-24){
+  assert(S.rank==1); assert(S._initted==true);
+  CTF::Scalar<double> vNEE = 0.0;
+  for(auto block : S._block)
+    vNEE[""] += CTF::Function<T,double>([cutoff](T sg){ if(real(sg)>cutoff) return -norm(sg)*std::log(norm(sg)); else return 0.0; })(block["i"]);
+  return vNEE;
+}
 
 #endif

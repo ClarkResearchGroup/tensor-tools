@@ -47,6 +47,7 @@ public:
   inline string name()       {return _name;}
   inline index_type type()   {return _type;}
   inline string tag()        {return _arrow+" "+to_string(_level)+" "+_tag;}
+  inline string tagNoArrow() {return to_string(_level)+" "+_tag;}
   inline int qn(unsigned i) {return _qn.at(i).first;}
   inline unsigned qdim(unsigned i) {return _qn.at(i).second;}
 
@@ -84,6 +85,7 @@ public:
   inline void primeSite(int inc=1) {if(_type==Site) _level+=inc;}
   inline void mapPrime(unsigned from, unsigned to) {if(_level==from) _level=to;}
   inline void mapPrime(unsigned from, unsigned to, index_type type) {if(_level==from&&_type==type) _level=to;}
+  inline void noPrime(index_type type=All){if(type==All || _type==type) _level=0;}
 
 private:
   bool _sorted;
@@ -95,4 +97,5 @@ private:
   string _tag; // make it hashable
 };
 
+qtensor_index noPrime(qtensor_index& index);
 #endif

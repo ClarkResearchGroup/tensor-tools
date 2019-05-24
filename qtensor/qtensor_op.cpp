@@ -9,8 +9,9 @@ void qr(qtensor<T>& A,
         vector<qtensor_index>& right,
         qtensor<T>& Q, qtensor<T>& R)
 {
+  assert(1==2);
   // Permute qtensor, group left indices, and right indices
-  vector<qtensor_index> new_idx_set;
+  /*vector<qtensor_index> new_idx_set;
   for(auto v : left){
     new_idx_set.push_back(v);
   }
@@ -215,19 +216,20 @@ void qr(qtensor<T>& A,
       }
       c_col += r_qn_sizes_map[q][i];
     }
-  }
+  }*/
 }
 template void qr(qtensor<double>& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor<double>& Q, qtensor<double>& R);
 template void qr(qtensor< std::complex<double> >& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& Q, qtensor< std::complex<double> >& R);
 
 
-template <typename T>
+/*template <typename T>
 void svd(qtensor<T>& A,
          vector<qtensor_index>& left,
          vector<qtensor_index>& right,
          qtensor<T>& U, qtensor<T>& V, vector<double>& S,
          int direction)
 {
+  assert(1==2);
   S.clear();
   // Permute qtensor, group left indices, and right indices
   vector<qtensor_index> new_idx_set;
@@ -469,6 +471,7 @@ void svd(qtensor<T>& A,
         qtensor<T>& U, qtensor<T>& V, vector<double>& S,
         int direction, double cutoff)
 {
+  assert(1==2);
   S.clear();
   // Permute qtensor, group left indices, and right indices
   vector<qtensor_index> new_idx_set;
@@ -739,10 +742,10 @@ void svd(qtensor<T>& A,
   }
 }
 template void svd(qtensor<double>& A, vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor<double>& U, qtensor<double>& V, vector<double>& S, int direction, double cutoff);
-template void svd(qtensor< std::complex<double> >& A, vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, vector<double>& S, int direction, double cutoff);
+template void svd(qtensor< std::complex<double> >& A, vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, vector<double>& S, int direction, double cutoff);*/
 
 
-template <typename T>
+/*template <typename T>
 void svd(qtensor<T>& A,
         vector<qtensor_index>& left,
         vector<qtensor_index>& right,
@@ -1033,14 +1036,15 @@ void svd(qtensor<T>& A,
   }
 }
 template void svd(qtensor<double>& A, vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor<double>& U, qtensor<double>& V, vector<double>& S, int direction, double cutoff, long unsigned K);
-template void svd(qtensor< std::complex<double> >& A, vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, vector<double>& S, int direction, double cutoff, long unsigned K);
+template void svd(qtensor< std::complex<double> >& A, vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, vector<double>& S, int direction, double cutoff, long unsigned K);*/
 
 
-template <typename T>
+/*template <typename T>
 void svd_bond(qtensor<T>& A_left, qtensor<T>& A_right,
         qtensor_index& mid, vector<double>& S,
         int direction)
 {
+  assert(1==2);
   qtensor<T> U,V;
   qtensor<T> combined = std::move(A_left * A_right);
   vector<qtensor_index> left;
@@ -1071,12 +1075,270 @@ void svd_bond(qtensor<T>& A_left, qtensor<T>& A_right,
   A_left = U;
 }
 template void svd_bond(qtensor<double>& A_left, qtensor<double>& A_right, qtensor_index& mid, vector<double>& S, int direction);
-template void svd_bond(qtensor< std::complex<double> >& A_left, qtensor< std::complex<double> >& A_right, qtensor_index& mid, vector<double>& S, int direction);
+template void svd_bond(qtensor< std::complex<double> >& A_left, qtensor< std::complex<double> >& A_right, qtensor_index& mid, vector<double>& S, int direction);*/
 
+template <typename T>
+void svd(qtensor<T>& A,
+         vector<qtensor_index>& left,
+         vector<qtensor_index>& right,
+         qtensor<T>& U, qtensor<T>& V, qtensor<T>& S,
+         int direction,double cutoff, unsigned K)
+{
+  S.clearBlock();
+  // Permute qtensor, group left indices, and right indices
+  vector<qtensor_index> new_idx_set;
+  for(auto v : left){
+    new_idx_set.push_back(v);
+  }
+  for(auto v : right){
+    new_idx_set.push_back(v);
+  }
+  uint_vec perm;
+  find_index_permutation(A.idx_set, new_idx_set, perm);
+  A.permute(perm);
+  // Accumulate legal quantum numbers for the mid bond
+  set<int> mid_Q_set;
+  unordered_map<int, set<uint_vec> > l_index_qi;
+  unordered_map<int, set<uint_vec> > r_index_qi;
+  for (size_t i = 0; i < A._block.size(); i++) {
+    int mid_QN = 0;
+    uint_vec l_qi, r_qi;
+    for (size_t j = 0; j < left.size(); j++) {
+      if(left[j].arrow()==Inward){
+        mid_QN += A.block_index_qn[i][j];
+      }else{
+        mid_QN -= A.block_index_qn[i][j];
+      }
+      l_qi.push_back(A.block_index_qi[i][j]);
+    }
+    for (size_t j = 0; j < right.size(); j++) {
+      r_qi.push_back(A.block_index_qi[i][j+left.size()]);
+    }
+    mid_Q_set.insert(mid_QN);
+    l_index_qi[mid_QN].insert(l_qi);
+    r_index_qi[mid_QN].insert(r_qi);
+  }
+  // Set up the initial mid bond
+  unordered_map<int, str_vec>  l_qn_str_map;
+  unordered_map<int, str_vec>  r_qn_str_map;
+  unordered_map<int, int_vec> l_qn_sizes_map;
+  unordered_map<int, int_vec> r_qn_sizes_map;
+  vector<int> mid_Q(mid_Q_set.begin(), mid_Q_set.end());
+  uint_vec mid_QDim(mid_Q.size());
+  for (size_t i = 0; i < mid_Q.size(); i++) {
+    int q = mid_Q[i];
+    const set<uint_vec>& l_qi_set = l_index_qi[q];
+    const set<uint_vec>& r_qi_set = r_index_qi[q];
+    unsigned row = 0;
+    unsigned col = 0;
+    for (auto i1 = l_qi_set.begin(); i1 != l_qi_set.end(); ++i1){
+      const uint_vec& l_qi = *i1;
+      unsigned s1 = 1;
+      string l_qn_str;
+      for (size_t j = 0; j < l_qi.size(); j++) {
+        s1 *= left[j].qdim(l_qi[j]);
+        l_qn_str += (to_string(left[j].qn(l_qi[j]))+" ");
+      }
+      l_qn_str_map[q].push_back(l_qn_str);
+      l_qn_sizes_map[q].push_back(s1);
+      row += s1;
+    }
+    for (auto i1 = r_qi_set.begin(); i1 != r_qi_set.end(); ++i1){
+      const uint_vec& r_qi = *i1;
+      unsigned s1 = 1;
+      string r_qn_str;
+      for (size_t j = 0; j < r_qi.size(); j++) {
+        s1 *= right[j].qdim(r_qi[j]);
+        r_qn_str += (to_string(right[j].qn(r_qi[j]))+" ");
+      }
+      r_qn_str_map[q].push_back(r_qn_str);
+      r_qn_sizes_map[q].push_back(s1);
+      col += s1;
+    }
+    mid_QDim[i] = std::min(row,col);
+  }
+  qtensor_index mid(Outward);
+  mid.addQN(mid_Q, mid_QDim);
+  // Set up U and V index
+  vector<qtensor_index> U_idx_set(left);
+  U_idx_set.push_back(mid);
+  vector<qtensor_index> V_idx_set;
+  mid.dag();
+  V_idx_set.push_back(mid);
+  mid.dag();
+  for(auto v : right){
+    V_idx_set.push_back(v);
+  }
+  U.reset(U_idx_set);
+  U._initted = true;
+  V.reset(V_idx_set);
+  V._initted = true;
+  vector<qtensor_index> S_idx_set = {mid};
+  S.reset(S_idx_set);
+  S._block.resize(mid_Q.size());
+  S._initted = true;
+  for (size_t ii = 0; ii < mid_Q.size(); ii++) {
+    int q = mid_Q[ii];
+    unsigned dim = mid_QDim[ii];
+    const set<uint_vec>& l_qi_set = l_index_qi[q];
+    for (auto i1 = l_qi_set.begin(); i1 != l_qi_set.end(); ++i1){
+      const uint_vec& l_qi = *i1;
+      uint_vec U_block_index_qi;
+      int_vec U_block_index_qd;
+      int_vec  U_block_index_qn;
+      int_vec  U_idx_sizes;
+      unsigned U_block_size = 1;
+      string   U_qn_str;
+      for (size_t j = 0; j < l_qi.size(); j++) {
+        U_block_index_qi.push_back(l_qi[j]);
+        U_block_index_qd.push_back(left[j].qdim(l_qi[j]));
+        U_block_index_qn.push_back(left[j].qn(l_qi[j]));
+        U_qn_str += (to_string(left[j].qn(l_qi[j]))+" ");
+        U_block_size *= U_block_index_qd.back();
+      }
+      // last bond
+      U_block_index_qi.push_back(ii);
+      U_block_index_qd.push_back(dim);
+      U_block_index_qn.push_back(q);
+      U_qn_str += (to_string(q)+" ");
+      U_block_size *= U_block_index_qd.back();
+      // build U
+      U._block.emplace_back(U_idx_set.size(),U_block_index_qd.data());
+      U.block_index_qn.push_back(U_block_index_qn);
+      U.block_index_qd.push_back(U_block_index_qd);
+      U.block_index_qi.push_back(U_block_index_qi);
+      U.block_id_by_qn_str[U_qn_str] = U._block.size()-1;
+    }
+    const set<uint_vec>& r_qi_set = r_index_qi[q];
+    for (auto i1 = r_qi_set.begin(); i1 != r_qi_set.end(); ++i1){
+      const uint_vec& r_qi = *i1;
+      uint_vec V_block_index_qi;
+      int_vec V_block_index_qd;
+      int_vec  V_block_index_qn;
+      unsigned V_block_size = 1;
+      string   V_qn_str;
+      // first bond
+      V_block_index_qi.push_back(ii);
+      V_block_index_qd.push_back(dim);
+      V_block_index_qn.push_back(q);
+      V_qn_str += (to_string(q)+" ");
+      V_block_size *= V_block_index_qd.back();
+      for (size_t j = 0; j < r_qi.size(); j++) {
+        V_block_index_qi.push_back(r_qi[j]);
+        V_block_index_qd.push_back(right[j].qdim(r_qi[j]));
+        V_block_index_qn.push_back(right[j].qn(r_qi[j]));
+        V_qn_str += (to_string(right[j].qn(r_qi[j]))+" ");
+        V_block_size *= V_block_index_qd.back();
+      }
+      // build Q
+      V._block.emplace_back(V_idx_set.size(),V_block_index_qd.data());
+      V.block_index_qn.push_back(V_block_index_qn);
+      V.block_index_qd.push_back(V_block_index_qd);
+      V.block_index_qi.push_back(V_block_index_qi);
+      V.block_id_by_qn_str[V_qn_str] = V._block.size()-1;
+    }
+  }
+  assert(S._block.size() >= mid_Q.size());
+
+  unordered_map<string,char> charMap;
+  auto indA = A.getIndices(charMap);
+  auto indU = indicesToChar(U_idx_set,charMap);
+  auto indV = indicesToChar(V_idx_set,charMap);
+  
+  auto indS = string(1,charMap[mid.tagNoArrow()]);
+  
+  // SVD block by block
+  for (size_t ii = 0; ii < mid_Q.size(); ii++) {
+    int q = mid_Q[ii];
+    unsigned dim = mid_QDim[ii];
+    unsigned row = 0;
+    unsigned col = 0;
+    for (auto sz : l_qn_sizes_map[q]){
+      row += sz;
+    }
+    for (auto sz : r_qn_sizes_map[q]){
+      col += sz;
+    }
+    CTF::Matrix<T> mA(row,col);
+
+    std::vector<int64_t> offsetA(A.rank,0);
+    int c_row = 0; int c_col = 0; 
+    for (size_t i = 0; i < l_qn_str_map[q].size(); i++) {
+      c_col = 0;
+      for (size_t j = 0; j < r_qn_str_map[q].size(); j++) {
+        string qn_str = l_qn_str_map[q][i] + r_qn_str_map[q][j];
+        unsigned A_block = A.block_id_by_qn_str[qn_str];
+
+        std::vector<int64_t> offsetmA = {c_row,c_col};
+        std::vector<int64_t> endsmA   = {c_row+l_qn_sizes_map[q][i],c_col+r_qn_sizes_map[q][j]};
+        
+        mA.slice(offsetmA.data(),endsmA.data(),0.,A._block[A_block],offsetA.data(),A._block[A_block].lens,1.);
+        c_col += r_qn_sizes_map[q][j];
+      }
+      c_row += l_qn_sizes_map[q][i];
+    }
+    assert(mA.get_tot_size(false)==row*col);
+    CTF::Matrix<T> _U,_V; CTF::Vector<T> _S;
+    mA.svd(_U,_S,_V,K,cutoff);
+    if(cutoff==0 and K==0) assert(_S.get_tot_size(false)==dim);
+
+    if(direction==MoveFromLeft){
+      _V["ba"] = _S["b"]*_V["ba"];
+    } else if(direction==MoveFromRight){
+      _U["ab"] = _S["b"]*_U["ab"];
+    }
+    S._block[ii] = (_S);
+    //_S.print();
+
+    c_row = 0;
+    c_col = 0;
+    //perr<<"U slice"<<endl;
+    for (size_t i = 0; i < l_qn_str_map[q].size(); i++) {
+      string U_qn_str = l_qn_str_map[q][i] + to_string(q) + " ";
+      unsigned U_block = U.block_id_by_qn_str[U_qn_str];
+      auto    tot_size = U._block[U_block].get_tot_size(false);
+      vector<int64_t> start = {c_row,c_col};
+      vector<int64_t> end   = {c_row+(tot_size-1)%l_qn_sizes_map[q][i]+1, c_col+tot_size/l_qn_sizes_map[q][i]};
+      //perr<< "  $"<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
+      U._block[U_block] = (_U.slice(start.data(),end.data()));
+      U._block[U_block] = (U._block[U_block].reshape(U.rank,U.block_index_qd[U_block].data()));
+      c_row += l_qn_sizes_map[q][i];
+    }
+    //perr<<"V slice"<<endl;
+    // copy data from mU to atensor V
+    c_col=0;
+    c_row=0;
+    for (size_t i = 0; i < r_qn_str_map[q].size(); i++) {
+      string V_qn_str = to_string(q) + " " + r_qn_str_map[q][i];
+      unsigned V_block = V.block_id_by_qn_str[V_qn_str];
+      auto    tot_size = V._block[V_block].get_tot_size(false);
+      vector<int64_t> start = {c_row,c_col};
+      vector<int64_t> end   = {c_row+(tot_size-1)%dim+1, c_col+(tot_size)/dim};
+      //perr<< "  %"<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<endl;
+      V._block[V_block] = (_V.slice(start.data(),end.data()));
+      V._block[V_block] = (V._block[V_block].reshape(V.rank,V.block_index_qd[V_block].data()));
+      c_col += r_qn_sizes_map[q][i];
+    }
+
+  }//end midQ loop
+
+  for(int ii=0;ii<mid_Q.size();ii++){
+    assert(U.rank==U._block[ii].order);
+    for(int l=0;l<U.rank;l++){
+      assert(U._block[ii].lens[l]==U.block_index_qd[ii][l]);
+    }
+    assert(V.rank==V._block[ii].order);
+    for(int l=0;l<V.rank;l++){
+      assert(V._block[ii].lens[l]==V.block_index_qd[ii][l]);
+    }
+  }
+}
+template void svd(qtensor<double>& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor<double>& U, qtensor<double>& V, qtensor<double>& S, int direction,double cutoff, unsigned K);
+template void svd(qtensor< std::complex<double> >& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, qtensor<std::complex<double> >& S, int direction,double cutoff,unsigned K);
 
 template <typename T>
 void svd_bond(qtensor<T>& A_left, qtensor<T>& A_right,
-        qtensor_index& mid, vector<double>& S,
+        qtensor_index& mid, qtensor<T>& S,
         int direction, double cutoff, long unsigned K)
 {
   qtensor<T> U,V;
@@ -1116,13 +1378,13 @@ void svd_bond(qtensor<T>& A_left, qtensor<T>& A_right,
   A_right = V;
   A_left = U;
 }
-template void svd_bond(qtensor<double>& A_left, qtensor<double>& A_right, qtensor_index& mid, vector<double>& S, int direction, double cutoff, long unsigned K);
-template void svd_bond(qtensor< std::complex<double> >& A_left, qtensor< std::complex<double> >& A_right, qtensor_index& mid, vector<double>& S, int direction, double cutoff, long unsigned K);
+template void svd_bond(qtensor<double>& A_left, qtensor<double>& A_right, qtensor_index& mid, qtensor<double>& S, int direction, double cutoff, long unsigned K);
+template void svd_bond(qtensor< std::complex<double> >& A_left, qtensor< std::complex<double> >& A_right, qtensor_index& mid, qtensor<std::complex<double> >& S, int direction, double cutoff, long unsigned K);
 
 
 template <typename T>
 void svd_bond(qtensor<T>& combined, qtensor<T>& A_left, qtensor<T>& A_right,
-        qtensor_index& mid, vector<double>& S,
+        qtensor_index& mid, qtensor<T>& S,
         int direction, double cutoff, long unsigned K)
 {
   qtensor<T> U,V;
@@ -1159,7 +1421,7 @@ void svd_bond(qtensor<T>& combined, qtensor<T>& A_left, qtensor<T>& A_right,
   A_right = V;
   A_left = U;
 }
-template void svd_bond(qtensor<double>& combined, qtensor<double>& A_left, qtensor<double>& A_right, qtensor_index& mid, vector<double>& S, int direction, double cutoff, long unsigned K);
-template void svd_bond(qtensor< std::complex<double> >& combined, qtensor< std::complex<double> >& A_left, qtensor< std::complex<double> >& A_right, qtensor_index& mid, vector<double>& S, int direction, double cutoff, long unsigned K);
+template void svd_bond(qtensor<double>& combined, qtensor<double>& A_left, qtensor<double>& A_right, qtensor_index& mid, qtensor<double>& S, int direction, double cutoff, long unsigned K);
+template void svd_bond(qtensor< std::complex<double> >& combined, qtensor< std::complex<double> >& A_left, qtensor< std::complex<double> >& A_right, qtensor_index& mid, qtensor<std::complex<double> >& S, int direction, double cutoff, long unsigned K);
 
 #endif

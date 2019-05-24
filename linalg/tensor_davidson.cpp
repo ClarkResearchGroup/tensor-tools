@@ -24,16 +24,16 @@ template <typename T>
 void elemWiseDivide(qtensor<T>& A, double theta, qtensor<T>& B){
   assert(A._initted && B._initted);
   assert(A.rank == B.rank);
+  unordered_map<string,char> charMap;
+  auto indA = indicesToChar(A.idx_set,charMap);
+  auto indB = indicesToChar(B.idx_set,charMap);
   for (auto i = A.block_id_by_qn_str.begin(); i != A.block_id_by_qn_str.end(); ++i){
     string qn_str = i->first;
     unsigned A_id = i->second;
     if(B.block_id_by_qn_str.find(qn_str)!=B.block_id_by_qn_str.end()){
       unsigned B_id = B.block_id_by_qn_str.at(qn_str);
-      assert(A.block[A_id].size() == B.block[B_id].size());
-      for (size_t j = 0; j < A.block[A_id].size(); j++) {
-        if( B.block[B_id][j]!=T(theta) )
-          A.block[A_id][j] /= (B.block[B_id].data()[j]-theta);
-      }
+      assert(A._block[A_id].get_tot_size(false) == B._block[B_id].get_tot_size(false));
+      CTF::Transform<T,T>([theta](T b, T& a){ if(b!=T(theta)) a/=(b-theta); })(B._block[B_id][indB.c_str()],A._block[A_id][indA.c_str()]);
     }
   }
 }

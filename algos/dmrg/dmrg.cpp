@@ -157,7 +157,7 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
 		diag.Stop();
 		// SVD and move canonical center
-		vector<double> S;
+		qtensor<T> S;
 		qtensor_index mid;
 		string LinkName = "ID"+to_string(psi._id)+"Link"+to_string(site+1);
 		for (size_t i = 0; i < psi.A[site].rank; i++) {
@@ -168,12 +168,14 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 			}
 		}
 		svd_bond(x,psi.A[site],psi.A[site+1],mid,S,MoveFromLeft,cutoff,max_bd);
-		psi.bond_dims[site+1] = S.size();
+ 		unsigned S_size = 0;
+		for(auto block: S._block) S_size+= block.get_tot_size(false);
+		psi.bond_dims[site+1] = S_size;
 		psi.center = site+1;
 		// EE
 		if(site==psi.length/2 - 1){
-			double vNEE = 0.0;
-			std::cout << vNEE << " ";
+			double vNEE = calcEntropy(S);
+			perr << vNEE << " ";
 		}
 	}else{
 		// Set up big_dtensor for two site optimization
@@ -188,7 +190,7 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 		energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
 		diag.Stop();
 		// SVD and move canonical center
-		vector<double> S;
+		qtensor<T> S;
 		qtensor_index mid;
 		string LinkName = "ID"+to_string(psi._id)+"Link"+to_string(site);
 		for (size_t i = 0; i < psi.A[site-1].rank; i++) {
@@ -199,12 +201,14 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
 			}
 		}
 		svd_bond(x,psi.A[site-1],psi.A[site],mid,S,MoveFromRight,cutoff,max_bd);
-		psi.bond_dims[site] = S.size();
+		unsigned S_size = 0;
+		for(auto block: S._block) S_size+= block.get_tot_size(false);
+		psi.bond_dims[site] = S_size;
 		psi.center = site - 1;
 		// EE
 		if(site==psi.length/2){
-			double vNEE = 0.0;
-			std::cout << vNEE << " ";
+			double vNEE = calcEntropy(S);
+			perr << vNEE << " ";
 		}
 	}
 }
@@ -335,7 +339,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 
 	int L = H.length;
 	int direction, site=0;
-	psi.position(0);
+  if(start_sweep%2==0) psi.position(0); else psi.position(L-1);
 	psi.normalize();
 	T Energy = psiHphi(psi, H, psi);
 	/*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
@@ -346,9 +350,11 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	if (start_sweep==0) std::cout<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	if (start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+  Timer t("time");
 	for(int l = start_sweep; l < num_sweeps; l++) {
-		std::cout<<l<<"\t ";
+    t.Start();
+    perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
 		direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
 		for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
 		{
@@ -358,11 +364,12 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 			updateEnv(psi, H, TR, TL, site, direction);
 
 		}
-		std::cout<<Energy<<std::endl;
-		perr<<"Davidson Time: "<<davidsonTimer.Time()<<endl;
+    t.Stop();
+		perr<<Energy<<"\t"<<t.Time()<<"\t"<<davidsonTimer.Time()<<std::endl;
 		davidsonTimer.Clear();
+    t.Clear();
 	}
-	psi.position(0);
+	//psi.position(0);
 	psi.normalize();
 	return Energy;
 }

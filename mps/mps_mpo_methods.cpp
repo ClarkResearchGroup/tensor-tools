@@ -5,7 +5,8 @@
 
 template <typename T, unsigned N>
 void sum(vector< dTensorTrain<T, N> >& x, dTensorTrain<T, N>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose){
-  assert(x.size()>=1);
+  assert(1==2);
+  /*assert(x.size()>=1);
   assert(max_iter>0);
   assert(max_bd>0);
   assert(cutoff>0 && tol>0);
@@ -175,7 +176,7 @@ void sum(vector< dTensorTrain<T, N> >& x, dTensorTrain<T, N>& res, int max_iter,
     }
     if(delta<tol) break;
     ++step;
-  }
+  }*/
 }
 template void sum(vector< dTensorTrain<double, 1> >& x, dTensorTrain<double, 1>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void sum(vector< dTensorTrain<double, 2> >& x, dTensorTrain<double, 2>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
@@ -185,7 +186,8 @@ template void sum(vector< dTensorTrain<std::complex<double>, 2> >& x, dTensorTra
 
 template <typename T, unsigned N>
 void sum(vector< qTensorTrain<T, N> >& x, qTensorTrain<T, N>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose){
-  assert(x.size()>=1);
+  assert(1==2);
+  /*assert(x.size()>=1);
   assert(max_iter>0);
   assert(max_bd>0);
   assert(cutoff>0 && tol>0);
@@ -369,7 +371,7 @@ void sum(vector< qTensorTrain<T, N> >& x, qTensorTrain<T, N>& res, int max_iter,
     }
     if(delta<tol) break;
     ++step;
-  }
+  }*/
 }
 template void sum(vector< qTensorTrain<double, 1> >& x, qTensorTrain<double, 1>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void sum(vector< qTensorTrain<double, 2> >& x, qTensorTrain<double, 2>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
@@ -379,7 +381,8 @@ template void sum(vector< qTensorTrain<std::complex<double>, 2> >& x, qTensorTra
 
 template <typename T>
 void mult(MPO<T>& A, MPO<T>& B, MPO<T>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose){
-  assert(A.tensors_allocated && B.tensors_allocated);
+  assert(1==2);
+  /*assert(A.tensors_allocated && B.tensors_allocated);
   assert(A.length == B.length);
   assert(A.phy_dim == B.phy_dim);
   assert(max_iter>0);
@@ -550,7 +553,7 @@ void mult(MPO<T>& A, MPO<T>& B, MPO<T>& res, int max_iter, double cutoff, int ma
     }
     if(delta<tol) break;
     ++step;
-  }
+  }*/
 }
 template void mult(MPO<double>& A, MPO<double>& B, MPO<double>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void mult(MPO< std::complex<double> >& A, MPO< std::complex<double> >& B, MPO< std::complex<double> >& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
@@ -559,7 +562,8 @@ template void mult(MPO< std::complex<double> >& A, MPO< std::complex<double> >& 
 
 template <typename T>
 void mult(qMPO<T>& A, qMPO<T>& B, qMPO<T>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose){
-  assert(A.tensors_allocated && B.tensors_allocated);
+  assert(1==2);
+  /*assert(A.tensors_allocated && B.tensors_allocated);
   assert(A.length == B.length);
   assert(A.phy_dim == B.phy_dim);
   assert(max_iter>0);
@@ -734,7 +738,7 @@ void mult(qMPO<T>& A, qMPO<T>& B, qMPO<T>& res, int max_iter, double cutoff, int
     }
     if(delta<tol) break;
     ++step;
-  }
+  }*/
 }
 template void mult(qMPO<double>& A, qMPO<double>& B, qMPO<double>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void mult(qMPO< std::complex<double> >& A, qMPO< std::complex<double> >& B, qMPO< std::complex<double> >& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
@@ -742,7 +746,8 @@ template void mult(qMPO< std::complex<double> >& A, qMPO< std::complex<double> >
 
 template <typename T>
 void mult(MPO<T>& A, MPS<T>& B, MPS<T>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose){
-  assert(A.tensors_allocated && B.tensors_allocated);
+  assert(1==2);
+  /*assert(A.tensors_allocated && B.tensors_allocated);
   assert(A.length == B.length);
   assert(A.phy_dim == B.phy_dim);
   assert(max_iter>0);
@@ -911,7 +916,7 @@ void mult(MPO<T>& A, MPS<T>& B, MPS<T>& res, int max_iter, double cutoff, int ma
     }
     if(delta<tol) break;
     ++step;
-  }
+  }*/
 }
 template void mult(MPO<double>& A, MPS<double>& B, MPS<double>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void mult(MPO< std::complex<double> >& A, MPS< std::complex<double> >& B, MPS< std::complex<double> >& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
@@ -919,7 +924,8 @@ template void mult(MPO< std::complex<double> >& A, MPS< std::complex<double> >& 
 
 template <typename T>
 void mult(qMPO<T>& A, qMPS<T>& B, qMPS<T>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose){
-  assert(A.tensors_allocated && B.tensors_allocated);
+  assert(1==2);
+  /*assert(A.tensors_allocated && B.tensors_allocated);
   assert(A.length == B.length);
   assert(A.phy_dim == B.phy_dim);
   assert(max_iter>0);
@@ -1092,7 +1098,7 @@ void mult(qMPO<T>& A, qMPS<T>& B, qMPS<T>& res, int max_iter, double cutoff, int
     }
     if(delta<tol) break;
     ++step;
-  }
+  }*/
 }
 template void mult(qMPO<double>& A, qMPS<double>& B, qMPS<double>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void mult(qMPO< std::complex<double> >& A, qMPS< std::complex<double> >& B, qMPS< std::complex<double> >& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);

@@ -20,9 +20,10 @@ string indicesToChar(vector<dtensor_index> &indices, unordered_map<string,char> 
       ch=i.second;
   if(ch!='a') ++ch; //increment from latest
   for (auto i : indices){
-    auto it= charMap.find(i.tag());
+    auto thisTag = i.tag();
+    auto it= charMap.find(thisTag);
     if (it==charMap.end()){ //new tag, add it to map
-      charMap[i.tag()]=ch;
+      charMap[thisTag]=ch;
       ++ch;
     }
   }

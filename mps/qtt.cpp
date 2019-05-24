@@ -256,15 +256,12 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
       // Set product state
       if(product_state!=nullptr){
         for (size_t i = 0; i < length; i++) {
-          for (size_t j = 0; j < A[i].block.size(); j++) {
+          string ind = A[i].getIndices();
+          for (size_t j = 0; j < A[i]._block.size(); j++) {
             if(A[i].block_index_qi[j][1] == product_state[i]){
-              for (size_t k = 0; k < A[i].block[j].size(); k++) {
-                A[i].block[j][k] = 1.0;
-              }
+              A[i]._block[j][ind.c_str()] = 1.;
             }else{
-              for (size_t k = 0; k < A[i].block[j].size(); k++) {
-                A[i].block[j][k] = std::numeric_limits<T>::epsilon();
-              }
+              A[i]._block[j][ind.c_str()] = std::numeric_limits<double>::epsilon(); //TODO: check for complex
             }
           }
         }
@@ -300,13 +297,14 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
         A[i].addQNtoIndex(3, std::make_pair(0, 1));
         // Set up blocks
         A[i].initBlock();
-        A[i].setZero();
+        //A[i].setZero();
         // make all diagonal blocks equal
-        for (size_t j = 0; j < A[i].block.size(); j++) {
+        /*for (size_t j = 0; j < A[i].block.size(); j++) {
           for (size_t k = 0; k < A[i].block[j].size(); k++) {
             A[i].block[j][k] = 1.0;
           }
-        }
+        }*/
+        A[i].setOne();
       }
     }
     tensors_allocated = true;
@@ -725,8 +723,7 @@ template void qTensorTrain<std::complex<double>, 2>::load(ezh5::Node& fh5);
 template <typename T, unsigned N>
 void qTensorTrain<T, N>::rc(){
   assert(tensors_allocated);
-  qtensor<T> U,V;
-  vector<double> S;
+  qtensor<T> U,V,S;
   for (size_t i = length-1; i > 0; i--) {
     vector<qtensor_index> left;
     vector<qtensor_index> right;
@@ -744,7 +741,9 @@ void qTensorTrain<T, N>::rc(){
     }
     // SVD
     svd(A[i],left,right,U,V,S,MoveFromRight);
-    bond_dims[i] = S.size();
+    unsigned S_size = 0;
+    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    bond_dims[i] = S_size;
     A[i] = V;
     A[i].idx_set[0].rename(mid.name());
     A[i].idx_set[0].prime(mid.level()-A[i].idx_set[0].level());
@@ -763,8 +762,7 @@ template void qTensorTrain<std::complex<double>, 2>::rc();
 template <typename T, unsigned N>
 void qTensorTrain<T, N>::lc(){
   assert(tensors_allocated);
-  qtensor<T> U,V;
-  vector<double> S;
+  qtensor<T> U,V,S;
   for (size_t i = 0; i < length-1; i++) {
     vector<qtensor_index> left;
     vector<qtensor_index> right;
@@ -782,7 +780,9 @@ void qTensorTrain<T, N>::lc(){
     }
     // SVD
     svd(A[i],left,right,U,V,S,MoveFromLeft);
-    bond_dims[i+1] = S.size();
+    unsigned S_size = 0;
+    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    bond_dims[i+1] = S_size;
     A[i] = U;
     A[i].idx_set.back().rename(mid.name());
     A[i].idx_set.back().prime(mid.level()-A[i].idx_set.back().level());
@@ -801,11 +801,13 @@ template void qTensorTrain<std::complex<double>, 2>::lc();
 template <typename T, unsigned N>
 void qTensorTrain<T, N>::normalize(){
   assert(tensors_allocated);
-  double nm = norm();
-  if(center == -1)
+  if(center == -1){
+    double nm = norm();
     A[0] /= nm;
-  else
+  } else{
+    double nm = A[center].norm();
     A[center] /= nm;
+  }
 }
 template void qTensorTrain<double, 1>::normalize();
 template void qTensorTrain<double, 2>::normalize();
@@ -835,8 +837,7 @@ double qTensorTrain<T, N>::position(int site){
   assert(site>=0 && site<int(length));
   // Initialize center position if not in canonical form
   if(center == -1) rc();
-  qtensor<T> U,V;
-  vector<double> S;
+  qtensor<T> U,V,S;
   while( center!=site ){
     vector<qtensor_index> left;
     vector<qtensor_index> right;
@@ -854,7 +855,9 @@ double qTensorTrain<T, N>::position(int site){
         }
       }
       svd(A[center],left,right,U,V,S,MoveFromRight);
-      bond_dims[center] = S.size();
+      unsigned S_size = 0;
+      for(auto block: S._block) S_size+= block.get_tot_size(false);
+      bond_dims[center] = S_size;
       A[center] = V;
       A[center].idx_set[0].rename(mid.name());
       A[center].idx_set[0].prime(mid.level()-A[center].idx_set[0].level());
@@ -875,7 +878,9 @@ double qTensorTrain<T, N>::position(int site){
         }
       }
       svd(A[center],left,right,U,V,S,MoveFromLeft);
-      bond_dims[center+1] = S.size();
+      unsigned S_size = 0;
+      for(auto block: S._block) S_size+= block.get_tot_size(false);
+      bond_dims[center+1] = S_size;
       A[center] = U;
       A[center].idx_set.back().rename(mid.name());
       A[center].idx_set.back().prime(mid.level()-A[center].idx_set.back().level());
@@ -885,10 +890,8 @@ double qTensorTrain<T, N>::position(int site){
       ++center;
     }
   }
-  double vNEE = 0.0;
-  for(auto sg:S){
-    if(sg>1e-20) vNEE -= sg*sg*std::log(sg*sg);
-  }
+  if(S._initted == false) return 0.; //didn't actually move
+  double vNEE = calcEntropy(S);
   return vNEE;
 }
 template double qTensorTrain<double, 1>::position(int site);
