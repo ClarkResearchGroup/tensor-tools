@@ -1260,6 +1260,22 @@ void svd(qtensor<T>& A,
       col += sz;
     }
     CTF::Matrix<T> mA(row,col);
+    if(mA.get_tot_size(false)==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
+      assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
+      unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
+      unsigned U_block = U.block_id_by_qn_str[l_qn_str_map[q][0]+to_string(q)+" "];
+      unsigned V_block = V.block_id_by_qn_str[to_string(q)+" "+r_qn_str_map[q][0]];
+      if(direction==MoveFromLeft){
+          U._block[U_block][indU.c_str()] = 1.;
+          V._block[V_block][indV.c_str()] = A._block[A_block][indA.c_str()];
+      } else if(direction==MoveFromRight){
+          U._block[U_block][indU.c_str()] = A._block[A_block][indA.c_str()];
+          V._block[V_block][indV.c_str()] = 1.;
+      }
+      vector<int64_t> lens = {1}; 
+      S._block[ii] = A._block[A_block].reshape(1,lens.data());
+      continue;
+    }
 
     std::vector<int64_t> offsetA(A.rank,0);
     int c_row = 0; int c_col = 0; 
@@ -1279,7 +1295,32 @@ void svd(qtensor<T>& A,
     }
     assert(mA.get_tot_size(false)==row*col);
     CTF::Matrix<T> _U,_V; CTF::Vector<T> _S;
-    mA.svd(_U,_S,_V,K,cutoff);
+    if(row==1 && col==2){ //brute force workaround for scalapack bug
+      _U = CTF::Matrix<T>(1,1);
+      _U["ij"] = 1.;
+      _V = CTF::Matrix<T>(1,2);
+      _S = CTF::Vector<T>(1);
+      T d = mA.norm2();
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      vector<int64_t> indsS = {0};
+      vector<T>       dataS = {d};
+      if(rank==0) _S.write(1,indsS.data(),dataS.data()); 
+      else        _S.write(0,indsS.data(),dataS.data());
+      int64_t n;
+      T* data;
+      mA.read_all(&n,&data,true);
+      T dd = sqrt(data[0]*data[0]+data[1]*data[1]);
+      assert(abs(d-dd)<1e-10);
+      vector<int64_t> indsV = {0,1};
+      vector<T>       dataV = {data[0]/d,data[1]/d};//,-data[1]/d,data[0]/d};
+      if(rank==0) _V.write(4,indsV.data(),dataV.data()); 
+      else        _V.write(0,indsV.data(),dataV.data());
+      delete[] data;
+
+    } else{
+        mA.svd(_U,_S,_V,K,cutoff);
+    }
     if(cutoff==0 and K==0) assert(_S.get_tot_size(false)==dim);
 
     if(direction==MoveFromLeft){
@@ -1288,8 +1329,7 @@ void svd(qtensor<T>& A,
       _U["ab"] = _S["b"]*_U["ab"];
     }
     S._block[ii] = (_S);
-    //_S.print();
-
+    
     c_row = 0;
     c_col = 0;
     //perr<<"U slice"<<endl;
@@ -1322,6 +1362,7 @@ void svd(qtensor<T>& A,
 
   }//end midQ loop
 
+#ifndef NDEBUG
   for(int ii=0;ii<mid_Q.size();ii++){
     assert(U.rank==U._block[ii].order);
     for(int l=0;l<U.rank;l++){
@@ -1332,6 +1373,9 @@ void svd(qtensor<T>& A,
       assert(V._block[ii].lens[l]==V.block_index_qd[ii][l]);
     }
   }
+  //perr<<"Passed SVD"<<endl;
+#endif
+
 }
 template void svd(qtensor<double>& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor<double>& U, qtensor<double>& V, qtensor<double>& S, int direction,double cutoff, unsigned K);
 template void svd(qtensor< std::complex<double> >& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, qtensor<std::complex<double> >& S, int direction,double cutoff,unsigned K);

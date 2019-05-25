@@ -509,20 +509,20 @@ template void qTensorTrain<std::complex<double>, 2>::setRandom();
 // Print qTensorTrain information
 template <typename T, unsigned N>
 void qTensorTrain<T, N>::print(int level){
-  std::cout<<"---------------------------------------------------"<<'\n';
-  std::cout << "length = " << length << ",  phy_dim = " << phy_dim << ", totalQ = " << totalQ << ", center = " << center << ", id = " << _id << '\n';
-  std::cout << "bond_dims vector = " << " ";
-  for(auto v : bond_dims) std::cout << v << " ";
-  std::cout<<std::endl;
+  pout<<"---------------------------------------------------"<<'\n';
+  pout << "length = " << length << ",  phy_dim = " << phy_dim << ", totalQ = " << totalQ << ", center = " << center << ", id = " << _id << '\n';
+  pout << "bond_dims vector = " << " ";
+  for(auto v : bond_dims) pout << v << " ";
+  pout<<std::endl;
   if(level>=1){
-    std::cout << "Information of individual tensors:" << '\n';
+    pout << "Information of individual tensors:" << '\n';
     if(tensors_allocated){
       for (size_t i = 0; i < length; i++) {
         A[i].print(std::max(level-1,0));
       }
     }
   }
-  std::cout<<"---------------------------------------------------"<<'\n';
+  pout<<"---------------------------------------------------"<<'\n';
 }
 template void qTensorTrain<double, 1>::print(int level);
 template void qTensorTrain<double, 2>::print(int level);
@@ -742,7 +742,7 @@ void qTensorTrain<T, N>::rc(){
     // SVD
     svd(A[i],left,right,U,V,S,MoveFromRight);
     unsigned S_size = 0;
-    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    for(auto & block: S._block) S_size+= block.get_tot_size(false);
     bond_dims[i] = S_size;
     A[i] = V;
     A[i].idx_set[0].rename(mid.name());
@@ -781,7 +781,7 @@ void qTensorTrain<T, N>::lc(){
     // SVD
     svd(A[i],left,right,U,V,S,MoveFromLeft);
     unsigned S_size = 0;
-    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    for(auto & block: S._block) S_size+= block.get_tot_size(false);
     bond_dims[i+1] = S_size;
     A[i] = U;
     A[i].idx_set.back().rename(mid.name());
@@ -856,7 +856,7 @@ double qTensorTrain<T, N>::position(int site){
       }
       svd(A[center],left,right,U,V,S,MoveFromRight);
       unsigned S_size = 0;
-      for(auto block: S._block) S_size+= block.get_tot_size(false);
+      for(auto & block: S._block) S_size+= block.get_tot_size(false);
       bond_dims[center] = S_size;
       A[center] = V;
       A[center].idx_set[0].rename(mid.name());
@@ -879,7 +879,7 @@ double qTensorTrain<T, N>::position(int site){
       }
       svd(A[center],left,right,U,V,S,MoveFromLeft);
       unsigned S_size = 0;
-      for(auto block: S._block) S_size+= block.get_tot_size(false);
+      for(auto & block: S._block) S_size+= block.get_tot_size(false);
       bond_dims[center+1] = S_size;
       A[center] = U;
       A[center].idx_set.back().rename(mid.name());

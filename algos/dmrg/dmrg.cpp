@@ -378,16 +378,17 @@ template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std:
 
 template <typename T>
 T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
-  assert(max_bd.size() == cutoff.size());
-  assert(max_restart.size() == max_bd.size());
-
   T Energy;
   for(int sweep =0;sweep<num_sweeps;sweep++){
     //allow sweeps to loop through
-    int l = sweep%(max_bd.size());
+    int lbd = sweep%(max_bd.size());
+    int lc  = sweep%(cutoff.size());
+    int lmr = sweep%(max_restart.size());
     //always do two sweeps so that we go left to right
-    Energy = dmrg(psi,H,2*(sweep+1),max_bd[l],cutoff[l],'S',3,max_restart[l],2*sweep);
+    Energy = dmrg(psi,H,2*(sweep+1),
+                  max_bd[lbd],cutoff[lc],'S',3,max_restart[lmr],2*sweep);
   }
+  if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
  return Energy; 
 }
 template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);

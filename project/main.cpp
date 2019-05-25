@@ -38,7 +38,7 @@ typedef pair<int, unsigned> quantum_number;
 int main(int argc, char **argv)
 {
   MPI_Init(&argc, &argv);
-  auto Nx=6;
+  auto Nx=4;
   auto Ny=4;
   auto N =Nx*Ny;
   spinhalf sites(N);
@@ -50,11 +50,6 @@ int main(int argc, char **argv)
       ps.push_back("Up");
   }
 
-  //std::cout.precision(8);
-  //std::cerr.precision(8);
-
-  {
-
     CTF::World world(argc,argv);
     if (world.rank == 0){
       perr.rdbuf(cerr.rdbuf());
@@ -62,6 +57,38 @@ int main(int argc, char **argv)
       perr.precision(8);
       pout.precision(8);
     }
+  {
+    pout << "\n" << "Test qMPS DMRG." << '\n';
+    qMPS< double > psiq(&sites,ps);
+    //psiq.setRandom();
+    psiq.rc();
+    //psiq.position(0);
+    //psiq.normalize();
+
+    qMPO< double > Hq;
+    {
+      Heisenberg< double > HB(&sites);
+      HB.buildHam(Hq);
+    }
+    //Hq.lc();
+    //Hq.print(2);
+    //Hq.A[1].print(2);
+    auto numq   = psiHphi(psiq,Hq,psiq);
+    auto denomq = psiphi(psiq,psiq);
+    perr<<"Initial overlap "<<numq/denomq<<" "<<numq<<" "<<denomq <<endl;
+
+    int nsweeps_q = 4;
+    int maxm_q = 0;;
+    double cutoff_q = 0;//1e-8;
+    dmrg(psiq, Hq, nsweeps_q, maxm_q, cutoff_q);
+
+    psiq.print();
+  }
+    //MPI_Finalize();
+    return 0;
+
+    //-------------------------
+  {
     perr << "\n" << "Test MPS DMRG." << '\n';
     MPS< double > psi(&sites,2);
     psi.setRandom();
@@ -98,7 +125,6 @@ int main(int argc, char **argv)
       ampo+= -0.1,"Sz",i;
     ampo+=0.2,"Sz",1;*/
 
-    //perr<<ampo<<endl;
     bool yperiodic=true;
     //auto lattice = squareLattice(Nx,Ny,yperiodic);
     auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
@@ -160,28 +186,21 @@ int main(int argc, char **argv)
       perr<<"Loaded E ="<<fe<<endl;
       //do measurements
     }
+    //-------------------------
+
+    /*auto prenorm = psi.A[2].norm();
+    pout << " A[2] norm = "<<prenorm<<endl;
+    psi.A[2].save("test.h5");
+
+
+    dtensor<double> newA2;
+    newA2.load("test.h5");
+    auto postnorm = newA2.norm();
+    pout << "post A[2] norm ="<<postnorm<<endl;*/
   }
   MPI_Finalize();
   return 0;
   exit(1);
-  /*{
-    std::cout << "\n" << "Test qMPS DMRG." << '\n';
-    qMPS< double > psi(&sites,ps);
-    psi.normalize();
-
-    qMPO< double > H;
-    Heisenberg< double > HB(&sites);
-    HB.buildHam(H);
-
-    int nsweeps = 20;
-    int maxm = 60;
-    double cutoff = 1e-8;
-    dmrg(psi, H, nsweeps, maxm, cutoff);
-
-    psi.print();
-
-    std::cout << psiHphi(psi,H,psi) << '\n';
-  }*/
   //------------------------------------
   return 0;
 }
