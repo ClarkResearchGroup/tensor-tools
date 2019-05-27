@@ -1169,84 +1169,19 @@ void svd(qtensor<T>& A,
   for(auto v : right){
     V_idx_set.push_back(v);
   }
-  U.reset(U_idx_set);
-  U._initted = true;
-  V.reset(V_idx_set);
-  V._initted = true;
   vector<qtensor_index> S_idx_set = {mid};
-  S.reset(S_idx_set);
-  S._block.resize(mid_Q.size());
-  S._initted = true;
-  for (size_t ii = 0; ii < mid_Q.size(); ii++) {
-    int q = mid_Q[ii];
-    unsigned dim = mid_QDim[ii];
-    const set<uint_vec>& l_qi_set = l_index_qi[q];
-    for (auto i1 = l_qi_set.begin(); i1 != l_qi_set.end(); ++i1){
-      const uint_vec& l_qi = *i1;
-      uint_vec U_block_index_qi;
-      int_vec U_block_index_qd;
-      int_vec  U_block_index_qn;
-      int_vec  U_idx_sizes;
-      unsigned U_block_size = 1;
-      string   U_qn_str;
-      for (size_t j = 0; j < l_qi.size(); j++) {
-        U_block_index_qi.push_back(l_qi[j]);
-        U_block_index_qd.push_back(left[j].qdim(l_qi[j]));
-        U_block_index_qn.push_back(left[j].qn(l_qi[j]));
-        U_qn_str += (to_string(left[j].qn(l_qi[j]))+" ");
-        U_block_size *= U_block_index_qd.back();
-      }
-      // last bond
-      U_block_index_qi.push_back(ii);
-      U_block_index_qd.push_back(dim);
-      U_block_index_qn.push_back(q);
-      U_qn_str += (to_string(q)+" ");
-      U_block_size *= U_block_index_qd.back();
-      // build U
-      U._block.emplace_back(U_idx_set.size(),U_block_index_qd.data());
-      U.block_index_qn.push_back(U_block_index_qn);
-      U.block_index_qd.push_back(U_block_index_qd);
-      U.block_index_qi.push_back(U_block_index_qi);
-      U.block_id_by_qn_str[U_qn_str] = U._block.size()-1;
-    }
-    const set<uint_vec>& r_qi_set = r_index_qi[q];
-    for (auto i1 = r_qi_set.begin(); i1 != r_qi_set.end(); ++i1){
-      const uint_vec& r_qi = *i1;
-      uint_vec V_block_index_qi;
-      int_vec V_block_index_qd;
-      int_vec  V_block_index_qn;
-      unsigned V_block_size = 1;
-      string   V_qn_str;
-      // first bond
-      V_block_index_qi.push_back(ii);
-      V_block_index_qd.push_back(dim);
-      V_block_index_qn.push_back(q);
-      V_qn_str += (to_string(q)+" ");
-      V_block_size *= V_block_index_qd.back();
-      for (size_t j = 0; j < r_qi.size(); j++) {
-        V_block_index_qi.push_back(r_qi[j]);
-        V_block_index_qd.push_back(right[j].qdim(r_qi[j]));
-        V_block_index_qn.push_back(right[j].qn(r_qi[j]));
-        V_qn_str += (to_string(right[j].qn(r_qi[j]))+" ");
-        V_block_size *= V_block_index_qd.back();
-      }
-      // build Q
-      V._block.emplace_back(V_idx_set.size(),V_block_index_qd.data());
-      V.block_index_qn.push_back(V_block_index_qn);
-      V.block_index_qd.push_back(V_block_index_qd);
-      V.block_index_qi.push_back(V_block_index_qi);
-      V.block_id_by_qn_str[V_qn_str] = V._block.size()-1;
-    }
-  }
-  assert(S._block.size() >= mid_Q.size());
 
   unordered_map<string,char> charMap;
   auto indA = A.getIndices(charMap);
   auto indU = indicesToChar(U_idx_set,charMap);
   auto indV = indicesToChar(V_idx_set,charMap);
-  
   auto indS = string(1,charMap[mid.tagNoArrow()]);
-  
+
+  uint_vec new_QDim(mid_QDim.size());
+  vector<CTF::Matrix<T>> mU(mid_Q.size());
+  vector<CTF::Matrix<T>> mV(mid_Q.size());
+  vector<CTF::Vector<T>> mS(mid_Q.size());
+
   // SVD block by block
   for (size_t ii = 0; ii < mid_Q.size(); ii++) {
     int q = mid_Q[ii];
@@ -1260,20 +1195,15 @@ void svd(qtensor<T>& A,
       col += sz;
     }
     CTF::Matrix<T> mA(row,col);
+    CTF::Matrix<T>& _U = mU[ii];
+    CTF::Matrix<T>& _V = mV[ii];
+    CTF::Vector<T>& _S = mS[ii];
     if(mA.get_tot_size(false)==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
       unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
-      unsigned U_block = U.block_id_by_qn_str[l_qn_str_map[q][0]+to_string(q)+" "];
-      unsigned V_block = V.block_id_by_qn_str[to_string(q)+" "+r_qn_str_map[q][0]];
-      if(direction==MoveFromLeft){
-          U._block[U_block][indU.c_str()] = 1.;
-          V._block[V_block][indV.c_str()] = A._block[A_block][indA.c_str()];
-      } else if(direction==MoveFromRight){
-          U._block[U_block][indU.c_str()] = A._block[A_block][indA.c_str()];
-          V._block[V_block][indV.c_str()] = 1.;
-      }
       vector<int64_t> lens = {1}; 
-      S._block[ii] = A._block[A_block].reshape(1,lens.data());
+      _S = A._block[A_block].reshape(1,lens.data());
+      new_QDim[ii] = _S.len;
       continue;
     }
 
@@ -1294,33 +1224,34 @@ void svd(qtensor<T>& A,
       c_row += l_qn_sizes_map[q][i];
     }
     assert(mA.get_tot_size(false)==row*col);
-    CTF::Matrix<T> _U,_V; CTF::Vector<T> _S;
     if(row==1 && col==2){ //brute force workaround for scalapack bug
       _U = CTF::Matrix<T>(1,1);
       _U["ij"] = 1.;
-      _V = CTF::Matrix<T>(1,2);
+      //_V = CTF::Matrix<T>(1,2);
       _S = CTF::Vector<T>(1);
-      T d = mA.norm2();
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      vector<int64_t> indsS = {0};
-      vector<T>       dataS = {d};
-      if(rank==0) _S.write(1,indsS.data(),dataS.data()); 
-      else        _S.write(0,indsS.data(),dataS.data());
-      int64_t n;
-      T* data;
-      mA.read_all(&n,&data,true);
-      T dd = sqrt(data[0]*data[0]+data[1]*data[1]);
-      assert(abs(d-dd)<1e-10);
-      vector<int64_t> indsV = {0,1};
-      vector<T>       dataV = {data[0]/d,data[1]/d};//,-data[1]/d,data[0]/d};
-      if(rank==0) _V.write(4,indsV.data(),dataV.data()); 
-      else        _V.write(0,indsV.data(),dataV.data());
-      delete[] data;
+      _V = mA;
+      double d=0.;
+      CTF::Scalar<double> tot;
+      using cmplx = std::complex<double>;
+      if(std::is_same<T,cmplx>::value){
+        tot[""] += CTF::Function<double,cmplx>([](cmplx r){ return std::real(cconj(r)*r);})(mA["ij"]);
+        d=tot;
+        d=sqrt(d);
+      } else{
+        tot[""]=std::real(mA.norm2());
+        d=tot;
+      }
+      _S["i"] = d;
+      _V["ij"] *= 1./d;
 
     } else{
         mA.svd(_U,_S,_V,K,cutoff);
     }
+    new_QDim[ii] = _S.len;
+    /*if(_S.len==1){ //CTF won't cutoff the very last element, so test if its 0
+      T s = _S.norm_infty();
+      if(real(s)<cutoff && cutoff!=0) new_QDim[ii]=0;
+    }*/
     if(cutoff==0 and K==0) assert(_S.get_tot_size(false)==dim);
 
     if(direction==MoveFromLeft){
@@ -1328,20 +1259,129 @@ void svd(qtensor<T>& A,
     } else if(direction==MoveFromRight){
       _U["ab"] = _S["b"]*_U["ab"];
     }
-    S._block[ii] = (_S);
-    
-    c_row = 0;
-    c_col = 0;
+  }
+  //new_QDim = mid_QDim;
+  qtensor_index midCut(Outward);
+  for(size_t ii=0;ii<mid_Q.size();ii++){
+    if(new_QDim[ii]>0) midCut.addQN(std::make_pair(mid_Q[ii], new_QDim[ii]));
+  }
+  // Set up U and V index
+  U_idx_set = vector<qtensor_index>(left);
+  U_idx_set.push_back(midCut);
+  V_idx_set.clear();
+  midCut.dag();
+  V_idx_set.push_back(midCut);
+  midCut.dag();
+  for(auto v : right){
+    V_idx_set.push_back(v);
+  }
+  U.reset(U_idx_set);
+  U._initted = true;
+  V.reset(V_idx_set);
+  V._initted = true;
+  S_idx_set[0] = midCut;
+  S.reset(S_idx_set);
+  S._block.reserve(new_QDim.size());
+  S._initted = true;
+  unsigned mid_num = 0;
+  //for slicing
+  vector<int> offU(U.rank,0);
+  vector<int> offV(V.rank,0);
+  for (size_t ii = 0; ii < mid_Q.size(); ii++) {
+    int q = mid_Q[ii];
+    unsigned dim  = mid_QDim[ii];
+    int ndim      = new_QDim[ii]; //cast to int to get rid of warnings
+    if(ndim==0) continue;
+    const set<uint_vec>& l_qi_set = l_index_qi[q];
+    for (auto i1 = l_qi_set.begin(); i1 != l_qi_set.end(); ++i1){
+      const uint_vec& l_qi = *i1;
+      uint_vec U_block_index_qi;
+      int_vec U_block_index_qd;
+      int_vec  U_block_index_qn;
+      int_vec  U_idx_sizes;
+      unsigned U_block_size = 1;
+      string   U_qn_str;
+      for (size_t j = 0; j < l_qi.size(); j++) {
+        U_block_index_qi.push_back(l_qi[j]);
+        U_block_index_qd.push_back(left[j].qdim(l_qi[j]));
+        U_block_index_qn.push_back(left[j].qn(l_qi[j]));
+        U_qn_str += (to_string(left[j].qn(l_qi[j]))+" ");
+        U_block_size *= U_block_index_qd.back();
+      }
+      // last bond
+      U_block_index_qi.push_back(mid_num);
+      U_block_index_qd.push_back(ndim);
+      U_block_index_qn.push_back(q);
+      U_qn_str += (to_string(q)+" ");
+      U_block_size *= U_block_index_qd.back();
+      // build U
+      U._block.emplace_back(U_idx_set.size(),U_block_index_qd.data());
+      U.block_index_qn.push_back(U_block_index_qn);
+      U.block_index_qd.push_back(U_block_index_qd);
+      U.block_index_qi.push_back(U_block_index_qi);
+      U.block_id_by_qn_str[U_qn_str] = U._block.size()-1;
+    }
+    const set<uint_vec>& r_qi_set = r_index_qi[q];
+    for (auto i1 = r_qi_set.begin(); i1 != r_qi_set.end(); ++i1){
+      const uint_vec& r_qi = *i1;
+      uint_vec V_block_index_qi;
+      int_vec V_block_index_qd;
+      int_vec  V_block_index_qn;
+      unsigned V_block_size = 1;
+      string   V_qn_str;
+      // first bond
+      V_block_index_qi.push_back(mid_num);
+      V_block_index_qd.push_back(ndim);
+      V_block_index_qn.push_back(q);
+      V_qn_str += (to_string(q)+" ");
+      V_block_size *= V_block_index_qd.back();
+      for (size_t j = 0; j < r_qi.size(); j++) {
+        V_block_index_qi.push_back(r_qi[j]);
+        V_block_index_qd.push_back(right[j].qdim(r_qi[j]));
+        V_block_index_qn.push_back(right[j].qn(r_qi[j]));
+        V_qn_str += (to_string(right[j].qn(r_qi[j]))+" ");
+        V_block_size *= V_block_index_qd.back();
+      }
+      // build Q
+      V._block.emplace_back(V_idx_set.size(),V_block_index_qd.data());
+      V.block_index_qn.push_back(V_block_index_qn);
+      V.block_index_qd.push_back(V_block_index_qd);
+      V.block_index_qi.push_back(V_block_index_qi);
+      V.block_id_by_qn_str[V_qn_str] = V._block.size()-1;
+    }
+    mid_num++;
+
+    CTF::Matrix<T>& _U = mU[ii];
+    CTF::Matrix<T>& _V = mV[ii];
+    CTF::Vector<T>& _S = mS[ii];
+    S._block.emplace_back(_S);
+    if(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
+      assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
+      unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
+      unsigned U_block = U.block_id_by_qn_str[l_qn_str_map[q][0]+to_string(q)+" "];
+      unsigned V_block = V.block_id_by_qn_str[to_string(q)+" "+r_qn_str_map[q][0]];
+      if(direction==MoveFromLeft){
+          U._block[U_block][indU.c_str()] = 1.;
+          V._block[V_block][indV.c_str()] = A._block[A_block][indA.c_str()];
+      } else if(direction==MoveFromRight){
+          U._block[U_block][indU.c_str()] = A._block[A_block][indA.c_str()];
+          V._block[V_block][indV.c_str()] = 1.;
+      }
+      continue;
+    }
+    int c_row = 0;
+    int c_col = 0;
     //perr<<"U slice"<<endl;
     for (size_t i = 0; i < l_qn_str_map[q].size(); i++) {
       string U_qn_str = l_qn_str_map[q][i] + to_string(q) + " ";
       unsigned U_block = U.block_id_by_qn_str[U_qn_str];
-      auto    tot_size = U._block[U_block].get_tot_size(false);
-      vector<int64_t> start = {c_row,c_col};
-      vector<int64_t> end   = {c_row+(tot_size-1)%l_qn_sizes_map[q][i]+1, c_col+tot_size/l_qn_sizes_map[q][i]};
+      int    tot_size = U._block[U_block].get_tot_size(false);
+      vector<int> start = {c_row,c_col};
+      vector<int> end   = {c_row+(tot_size-1)%l_qn_sizes_map[q][i]+1, c_col+tot_size/l_qn_sizes_map[q][i]};
       //perr<< "  $"<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
-      U._block[U_block] = (_U.slice(start.data(),end.data()));
-      U._block[U_block] = (U._block[U_block].reshape(U.rank,U.block_index_qd[U_block].data()));
+      //U._block[U_block] = (_U.slice(start.data(),end.data()));
+      //U._block[U_block] = (U._block[U_block].reshape(U.rank,U.block_index_qd[U_block].data()));
+      U._block[U_block].slice(offU.data(),U.block_index_qd[U_block].data(),0.,_U,start.data(),end.data(),1.);
       c_row += l_qn_sizes_map[q][i];
     }
     //perr<<"V slice"<<endl;
@@ -1351,16 +1391,17 @@ void svd(qtensor<T>& A,
     for (size_t i = 0; i < r_qn_str_map[q].size(); i++) {
       string V_qn_str = to_string(q) + " " + r_qn_str_map[q][i];
       unsigned V_block = V.block_id_by_qn_str[V_qn_str];
-      auto    tot_size = V._block[V_block].get_tot_size(false);
-      vector<int64_t> start = {c_row,c_col};
-      vector<int64_t> end   = {c_row+(tot_size-1)%dim+1, c_col+(tot_size)/dim};
+      int    tot_size = V._block[V_block].get_tot_size(false);
+      vector<int> start = {c_row,c_col};
+      vector<int> end   = {c_row+(tot_size-1)%ndim+1, c_col+(tot_size)/ndim};
       //perr<< "  %"<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<endl;
-      V._block[V_block] = (_V.slice(start.data(),end.data()));
-      V._block[V_block] = (V._block[V_block].reshape(V.rank,V.block_index_qd[V_block].data()));
+      //V._block[V_block] = (_V.slice(start.data(),end.data()));
+      //V._block[V_block] = (V._block[V_block].reshape(V.rank,V.block_index_qd[V_block].data()));
+      V._block[V_block].slice(offV.data(),V.block_index_qd[V_block].data(),0.,_V,start.data(),end.data(),1.);
       c_col += r_qn_sizes_map[q][i];
     }
 
-  }//end midQ loop
+  }//end midQ loop*/
 
 #ifndef NDEBUG
   for(int ii=0;ii<mid_Q.size();ii++){
@@ -1378,7 +1419,10 @@ void svd(qtensor<T>& A,
 
 }
 template void svd(qtensor<double>& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor<double>& U, qtensor<double>& V, qtensor<double>& S, int direction,double cutoff, unsigned K);
-template void svd(qtensor< std::complex<double> >& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, qtensor<std::complex<double> >& S, int direction,double cutoff,unsigned K);
+
+template<> void svd(qtensor< std::complex<double> >& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qtensor< std::complex<double> >& U, qtensor< std::complex<double> >& V, qtensor<std::complex<double> >& S, int direction,double cutoff,unsigned K) { 
+  assert(1==2); //CTF has broken things for complex<double> so for the meantime get it working for double
+};
 
 template <typename T>
 void svd_bond(qtensor<T>& A_left, qtensor<T>& A_right,

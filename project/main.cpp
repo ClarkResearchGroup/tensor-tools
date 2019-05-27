@@ -78,8 +78,8 @@ int main(int argc, char **argv)
     perr<<"Initial overlap "<<numq/denomq<<" "<<numq<<" "<<denomq <<endl;
 
     int nsweeps_q = 4;
-    int maxm_q = 0;;
-    double cutoff_q = 0;//1e-8;
+    int maxm_q = 500;
+    double cutoff_q = 1e-6;//1e-8;
     dmrg(psiq, Hq, nsweeps_q, maxm_q, cutoff_q);
 
     psiq.print();
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
     auto sp = "psi_"+postfix;
     if(check_existence(sp+".h5")){
       psi.load(sp+".h5");
-      cout<<"Read psi"<<endl;
+      pout<<"Read psi"<<endl;
     }
     auto num   = psiHphi(psi,H,psi);
     auto denom = psiphi(psi,psi);
