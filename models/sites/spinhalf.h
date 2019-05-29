@@ -16,6 +16,7 @@ public:
   double d_bra_op_ket(unsigned bra, string op, unsigned ket);
   std::complex<double> c_bra_op_ket(unsigned bra, string op, unsigned ket);
   uint_vec product_state(str_vec& st);
+  int div(string op);
 
   const unsigned Dn;
   const unsigned Up;

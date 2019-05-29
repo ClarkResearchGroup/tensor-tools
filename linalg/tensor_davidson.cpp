@@ -70,9 +70,10 @@ double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_res
       }
       v[j].normalize();
       // (3) Get va = (A*v)^{\dage}
-      for (int k = 0; k < j+1; k++) {
+      /*for (int k = 0; k < j+1; k++) {
         va[k] = std::move(A.product(v[k]));
-      }
+      }*/
+      va[j] = std::move(A.product(v[j]));
       // (4) Update Hamiltonian projected to subspace
       for (int k = 0; k < j+1; k++) {
         for (int l = 0; l <= k; l++) {

@@ -3,8 +3,56 @@
 
 #include "Heisenberg.h"
 
+struct SiteQN{
+    SiteTerm st;
+    int q;
+
+    SiteQN() {}
+    SiteQN(SiteTerm const& st_, int const& q_): st(st_),q(q_){}
+};
+
+string
+startTerm(const string& op)
+    {
+    static array<pair<string,string>,6>
+           rewrites =
+           {{
+           make_pair("Cdagup","Adagup*F"),
+           make_pair("Cup","Aup*F"),
+           make_pair("Cdagdn","Adagdn"),
+           make_pair("Cdn","Adn"),
+           make_pair("C","A*F"), //A*F is -A, so essentially a trick for putting in a -1
+           make_pair("Cdag","Adag")
+           }};
+    for(auto& p : rewrites)
+        {
+        if(p.first == op) return p.second;
+        }
+    return op;
+    }
+
+string
+endTerm(const string& op)
+    {
+    static array<pair<string,string>,6>
+           rewrites =
+           {{
+           make_pair("Cup","Aup"),
+           make_pair("Cdagup","Adagup"),
+           make_pair("Cdn","F*Adn"),
+           make_pair("Cdagdn","F*Adagdn"),
+           make_pair("C","A"),
+           make_pair("Cdag","Adag")
+           }};
+    for(auto& p : rewrites)
+        {
+        if(p.first == op) return p.second;
+        }
+    return op;
+    }
 template <typename T>
 void Heisenberg<T>::addOperators(MPO<T>& H, unsigned site, unsigned r, unsigned c, string op, double val){
+  //perr<<"Adding @"<<site<<" r="<<r<<" c="<<c<<" op="<<op<<" val="<<val<<endl;
   // if(site==0 && r==1){
   //   for (size_t k = 0; k < 2; k++) {
   //     for (size_t b = 0; b < 2; b++) {
@@ -142,68 +190,116 @@ template void Heisenberg< std::complex<double> >::buildHam(MPO< std::complex<dou
 template <typename T>
 void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   auto N = (*_s).N();
-  std::vector<unsigned> maxSite(N-1,1); //start with onsite terms
+  //partially taken from ITensor(v2) AutoMPO.cc
+  auto IL = SiteTerm("IL",0);
+  auto HL = SiteTerm("HL",0);
+  vector<vector<SiteQN>> basis(N+1);
 
-  //for each operator string, determine the row and column mapping 
-  //this is done by having each operator string be related to a unique virtual bond 
-  //which in turn helps us form the "W" representaiton to build the MPO
-  //TODO: that this could be done far more effeciently, by eliminating redudent operators
-  std::vector<std::vector<std::pair<unsigned,unsigned>>> rcVals(ampo.terms().size());
-  int stringIdx = 0;
-  unsigned r,c;
+  for(int n=0;n<N;++n){
+    basis.at(n).emplace_back(IL,0);
+  }
+  for(int n=1;n<=N;++n){
+    basis.at(n).emplace_back(HL,0);
+  }
+  const auto Zero = 0; //QN type
+  
+  //Fill up the basis array at each site with the unique operator types occuring on the site
+  //unique including their coefficient
+  //and starting a string of operators (i.e. first op of an HTerm)
   for(auto& ht : ampo.terms()){
-    //onsite terms
-    if(ht.Nops()==1){
-      rcVals[stringIdx].emplace_back(1,0);
-    }
-    else{
-      int site = ht.first().i;
-      //we need to get the next availible virtual bonds for each site in our string
-      //note only when we add a new row do we need to increment, hence the last one is isn't incremented 
-      //this is very inefficient but I guess it works..
-      std::vector<unsigned> cList(ht.Nops()-1);
-      for(int l=site;l<=ht.last().i-1;l++) cList[l-site] = ++maxSite[l];
-      //first operator goes into row 1, so that site==0 is a row and site==N-1 is a col
-      r = 1;
-      c = cList[0];
-      rcVals[stringIdx].emplace_back(r,c);
-
-      for(int l=1;l<ht.Nops();l++){//determine r,c mapping 
-        site = ht.ops[l].i;
-        c    = cList[l-1];
-        //if(maxSite[site]>c) perr<<"!! bad "<<maxSite[site]<< " "<<c<<endl;
-        if(l==ht.Nops()-1) rcVals[stringIdx].emplace_back(c,0);        //this is always based on the last site
-        else               rcVals[stringIdx].emplace_back(c,cList[l]); //move to potentially new row/col
+    for(auto n=ht.first().i+1; n<= ht.last().i+1;++n){
+      auto& bn = basis.at(n);
+      auto test_has_first = [&ht](SiteQN const& sq){return sq.st == ht.first();};
+      bool has_first = (std::find_if(bn.begin(),bn.end(),test_has_first)!=bn.end() );
+      if(!has_first){
+        if(true){
+          bn.emplace_back(ht.first(),- _s->div(ht.first().op));
+        }else { bn.emplace_back(ht.first(),Zero); }
       }
     }
-    stringIdx++;
   }
-  std::for_each(maxSite.begin(), maxSite.end(), [](unsigned& d) { d+=1;});
-  unsigned maxbd = *std::max_element(maxSite.begin(),maxSite.end()); 
-  maxSite.insert(maxSite.begin(),1); maxSite.push_back(1); //edges for dangling Links
-  //for (auto d : maxSite) perr<<d<<" ";
-  //perr<<endl;
+  if(true){
+    auto qn_comp = [&Zero](const SiteQN& sq1,const SiteQN& sq2){
+                    //first two if statements are to artificially make
+                    //Zero QN come first in the sort
+                    if(sq1.q==Zero && sq2.q != Zero) return true;
+                    else if(sq2.q==Zero && sq1.q !=Zero) return false;
+                    return sq1.q < sq2.q;
+                  };
+    for(auto& bn : basis) std::sort(bn.begin(),bn.end(),qn_comp);
+  }
+
+  auto links = vector<vector<quantum_number>>(N+1);
+  // first: qn;    second: dimension
+  auto inqn = vector<quantum_number>{}; //IndexQN
+  for(int n=0;n<=N;++n){
+    auto& bn = basis.at(n);
+    inqn.clear();
+    int currq = bn.front().q;
+    int currm = 0;
+    int count = 0;
+    for(auto& sq : bn){
+      if(sq.q == currq){ ++currm; }
+      else{
+        inqn.emplace_back(currq,currm);
+        currq = sq.q;
+        currm = 1;
+      }
+    }
+    //TODO: make more effecient
+    inqn.emplace_back(currq,currm);
+    links.at(n) = std::move(inqn);
+  }
+  //create arrays indexed by lattice sites
+  //for lattice sites "j", ht_by_n[j] contains all HTerms, operator strings
+  //which begin on, end on, or cross site "j"
+  auto ht_by_n = vector<vector<HTerm>>(N+1);
+  for(auto& ht : ampo.terms()){
+    for(auto& st: ht.ops)
+      ht_by_n.at(st.i+1).push_back(ht);
+  }
+  vector<unsigned> bdList(N+1);
+  for(int i=0;i<N+1;i++) bdList[i] = basis.at(i).size();
+  bdList[0] = 1; bdList.back()=1;
+  unsigned maxbd = *std::max_element(bdList.begin(),bdList.end());
   perr<<"Warning! MPO max bond dim is "<<maxbd<<endl;
-  MPO<T> A(_s, maxSite);
+  MPO<T> A(_s, bdList);
   A.setZero();
   H = A;
-  //setup identities
-  //TODO: they might not be needed always... but for reasonable Hams they are
-  for (size_t site = 0; site < H.length; site++) {
-    // Identity block
-    if(site>0)          addOperators(H, site, 0, 0, "Id", 1.0);
-    if(site<H.length-1) addOperators(H, site, 1, 1, "Id", 1.0);
-  }
-  stringIdx=0;
-  for(auto& ht : ampo.terms()){
-    //perr<<real(ht.coef)<<" ";
-    for(int l=0;l<ht.Nops();l++){
-      std::tie(r,c) = rcVals[stringIdx][l];
-      //perr<<ht.ops[l]<<" "<<r<<" "<<c<<" ";
-      addOperators(H,ht.ops[l].i,r,c,ht.ops[l].op, (l==0)? real(ht.coef) : 1.0);
-    }
-    //perr<<endl;
-    stringIdx++;
+  assert(ht_by_n[0].size()==0);
+  for (size_t i = 0; i < H.length; i++) {
+    auto& bn1 = basis.at(i);
+    auto& bn = basis.at(i+1);
+    unsigned c_max = (i==N-1)?1:bn.size(); //stupid itensor bug where the last tensor isn't a vector
+    for(unsigned r_=0;r_<bn1.size();r_++){
+      for(unsigned c_=0;c_<c_max;c_++){
+        auto& rst = bn1.at(r_).st;
+        auto& cst = bn.at(c_).st;
+        unsigned r = (i==0)? 1 : r_; //technically row zero but we define it as 1
+        unsigned c = c_;//(i==N-1)? c_: c_;
+        //start a new operator string
+        if(cst.i==(i) && rst == IL){
+          auto op = startTerm(cst.op);
+          if(op!="HL" && op!="IL"){ addOperators(H, i, r, c, op, 1.0); }
+        }
+        if(cst == rst){ addOperators(H, i, r, c, "Id", 1.0); }
+        if(cst==HL){
+          for(const auto& ht:  ht_by_n.at(i+1)){
+            if(rst==ht.first() && ht.last().i==(i)){
+              auto op = endTerm(ht.last().op);
+              addOperators(H,i,r,c,op,ht.coef.real());
+            }
+          }
+        }
+        if(rst ==IL && cst ==HL){
+          for(const auto& ht : ht_by_n.at(i+1)){
+            if(ht.first().i==ht.last().i){
+              addOperators(H,i,r,c,ht.first().op,ht.coef.real());
+            }
+          }
+        }
+      }
+    }//end rc loop
   }
 }
 template void Heisenberg<double>::buildHam(AutoMPO& ampo,MPO<double>&  H);

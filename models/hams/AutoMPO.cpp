@@ -359,7 +359,7 @@ add(HTerm & t)
 
     //go through and add identities
     int l = t.ops.front().i;
-    for(int idx=0;idx<t.ops.size();idx++){
+    /*for(int idx=0;idx<t.ops.size();idx++){
       auto currSpot = t.ops[idx].i;
       if(l<currSpot){
         while(l!=currSpot)
@@ -367,7 +367,7 @@ add(HTerm & t)
       }
       else
       l++;
-    }
+    }*/
     auto it = terms_.find(t);
     if(it == terms_.end())
         {
@@ -474,46 +474,6 @@ plusAppend(string & s, string const& a)
 
 //#define SHOW_AUTOMPO
 
-
-string
-startTerm(const string& op)
-    {
-    static array<pair<string,string>,6>
-           rewrites =
-           {{
-           make_pair("Cdagup","Adagup*F"),
-           make_pair("Cup","Aup*F"),
-           make_pair("Cdagdn","Adagdn"),
-           make_pair("Cdn","Adn"),
-           make_pair("C","A*F"), //A*F is -A, so essentially a trick for putting in a -1
-           make_pair("Cdag","Adag")
-           }};
-    for(auto& p : rewrites)
-        {
-        if(p.first == op) return p.second;
-        }
-    return op;
-    }
-
-string
-endTerm(const string& op)
-    {
-    static array<pair<string,string>,6>
-           rewrites =
-           {{
-           make_pair("Cup","Aup"),
-           make_pair("Cdagup","Adagup"),
-           make_pair("Cdn","F*Adn"),
-           make_pair("Cdagdn","F*Adagdn"),
-           make_pair("C","A"),
-           make_pair("Cdag","Adag")
-           }};
-    for(auto& p : rewrites)
-        {
-        if(p.first == op) return p.second;
-        }
-    return op;
-    }
 
 
 //

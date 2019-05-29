@@ -12,6 +12,7 @@ public:
   virtual double d_bra_op_ket(unsigned bra, string op, unsigned ket) = 0;
   virtual std::complex<double> c_bra_op_ket(unsigned bra, string op, unsigned ket) = 0;
   virtual uint_vec product_state(str_vec& st) = 0;
+  virtual int div(string op)=0;
 
   unsigned N() {return _N;}
   unsigned phy_dim() {return _phyDim;}

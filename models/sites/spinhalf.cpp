@@ -75,4 +75,17 @@ uint_vec spinhalf::product_state(str_vec& st){
   return ps;
 }
 
+int spinhalf::div(string op){
+  if(op=="Sz")
+    return 0;
+  if(op=="S+")
+    return 2;
+  if(op=="S-")
+    return -2;
+  if(op=="Id")
+    return 0;
+  assert(1==2); //Not found op string!
+  return 0;
+}
+
 #endif

@@ -350,7 +350,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
 	buildEnv(psi, H, TR, TL);
 	////////////////////////////////////////////////
 	// Repeat Nsweep
-	if (start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy #"<<std::endl;
+	if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
   Timer t("time");
 	for(int l = start_sweep; l < num_sweeps; l++) {
     t.Start();
