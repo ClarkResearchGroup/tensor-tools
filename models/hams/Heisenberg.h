@@ -187,6 +187,7 @@ public:
   void buildHam(MPO<T>&  H);
   void buildHam(AutoMPO& ampo, MPO<T>&  H);
   void buildHam(qMPO<T>& H);
+  void buildHam(AutoMPO& ampo, qMPO<T>& H);
 
 private:
   double _tE;

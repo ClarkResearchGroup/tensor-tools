@@ -397,69 +397,6 @@ template void qtensor< std::complex<double> >::setOne();
 
 //-----------------------------------------------------------------------------
 // Permute
-#if !defined(USE_HPTT)
-template <typename T>
-void qtensor<T>::permute(uint_vec& perm)
-{
-  assert(_initted);
-  bool perm_needed = false;
-  for (size_t i = 0; i < perm.size(); i++) {
-    if(i!=perm[i]){
-      perm_needed = true;
-      break;
-    }
-  }
-  if (perm_needed){
-    assert(1==2);
-    qtensor<T> A(*this);
-    for (size_t i = 0; i < rank; i++) {
-      A.idx_set[i] = idx_set[perm[i]];
-    }
-    A.block_id_by_qn_str.clear();
-    char* p = std::getenv("OMP_NUM_THREADS");
-    int numThreads = 1;
-    if(p){
-      numThreads = atoi(p);
-    }
-    omp_set_num_threads(numThreads);
-    #pragma omp parallel for default(shared)
-    for (size_t i = 0; i < block.size(); i++) {
-      string A_qn_str;
-      for (size_t j = 0; j < rank; j++) {
-        A.block_index_qn[i][j] = block_index_qn[i][perm[j]];
-        A.block_index_qd[i][j] = block_index_qd[i][perm[j]];
-        A.block_index_qi[i][j] = block_index_qi[i][perm[j]];
-        A_qn_str += (to_string(A.block_index_qn[i][j])+" ");
-      }
-      A.block_id_by_qn_str[A_qn_str] = i;
-      // iterate over all elements
-      uint_vec stride1, stride2;
-      stride1.push_back(1);
-      stride2.push_back(1);
-      for (size_t j = 0; j < rank; j++) {
-        stride1.push_back(block_index_qd[i][j] * stride1[j]);
-        stride2.push_back(A.block_index_qd[i][j] * stride2[j]);
-      }
-      for (size_t k = 0; k < block[i].size(); k++) {
-        int old_idx[rank];
-        int new_idx[rank];
-        for (size_t j = 0; j < rank; j++) {
-          old_idx[j] = unsigned(k/stride1[j])%block_index_qd[i][j];
-        }
-        for (size_t j = 0; j < rank; j++) {
-          new_idx[j] = old_idx[perm[j]];
-        }
-        int idx = 0;
-        for (size_t j = 0; j < rank; j++) {
-          idx += new_idx[j] * stride2[j];
-        }
-        A.block[i][idx] = block[i][k];
-      }
-    }
-    *this = A;
-  }
-}
-#else
 template <typename T>
 void qtensor<T>::permute(uint_vec& perm){
   assert(_initted);
@@ -501,21 +438,12 @@ void qtensor<T>::permute(uint_vec& perm){
       //permute by "hand"
       CTF::Tensor<> B(A.rank,idx_sizes.data());
       B[indNew.c_str()] = _block[i][indOld.c_str()];
-      //_block[i].print();
-      A._block[i] = (B);
-      //A._block[i].print();
-      /*auto plan = hptt::create_plan(
-        (int *)perm.data(),rank,
-        alpha,block[i].data(),idx_sizes.data(),NULL,
-        beta,A.block[i].data(),NULL,
-        hptt::ESTIMATE,numThreads);
-      plan->execute();*/
+      A._block[i] = std::move(B);
     }
     
     *this = A;
   }
 }
-#endif
 template void qtensor<double>::permute(uint_vec& perm);
 template void qtensor< std::complex<double> >::permute(uint_vec& perm);
 

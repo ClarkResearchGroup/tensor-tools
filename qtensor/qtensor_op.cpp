@@ -1202,7 +1202,7 @@ void svd(qtensor<T>& A,
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
       unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
       vector<int64_t> lens = {1}; 
-      _S = A._block[A_block].reshape(1,lens.data());
+      _S = std::move(A._block[A_block].reshape(1,lens.data()));
       new_QDim[ii] = _S.len;
       continue;
     }

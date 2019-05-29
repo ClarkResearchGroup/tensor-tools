@@ -20,14 +20,8 @@
 using namespace std;
 inline bool check_existence(const string& name);
 
-//#include "tblis.h"
-//typedef vector<tblis::len_type>    len_vec;
-//typedef vector<tblis::label_type>  lab_vec;
 #include <Eigen/Dense>
 #include "hdf5.h"
-#ifdef USE_HPTT
-#include <hptt.h>
-#endif
 
 filebuf fbuf;
 ostream perr(&fbuf);
@@ -38,17 +32,18 @@ typedef pair<int, unsigned> quantum_number;
 int main(int argc, char **argv)
 {
   MPI_Init(&argc, &argv);
-  auto Nx=4;
-  auto Ny=4;
-  auto N =Nx*Ny;
-  spinhalf sites(N);
-  str_vec ps;
-  for (size_t i = 0; i < sites.N(); i++) {
-    if(i%2==0)
-      ps.push_back("Dn");
-    else
-      ps.push_back("Up");
-  }
+  {
+    auto Nx=4;
+    auto Ny=4;
+    auto N =Nx*Ny;
+    spinhalf sites(N);
+    str_vec ps;
+    for (size_t i = 0; i < sites.N(); i++) {
+      if(i%2==0)
+        ps.push_back("Dn");
+      else
+        ps.push_back("Up");
+    }
 
     CTF::World world(argc,argv);
     if (world.rank == 0){
@@ -57,146 +52,161 @@ int main(int argc, char **argv)
       perr.precision(8);
       pout.precision(8);
     }
-  {
-    pout << "\n" << "Test qMPS DMRG." << '\n';
-    qMPS< double > psiq(&sites,ps);
-    //psiq.setRandom();
-    psiq.rc();
-    //psiq.position(0);
-    //psiq.normalize();
+    for(int r=0;r==0;r++){
+      pout << "\n" << "Test qMPS DMRG." << '\n';
+      qMPS< double > psiq(&sites,ps);
+      //psiq.setRandom();
+      psiq.rc();
 
-    qMPO< double > Hq;
-    {
+      /*AutoMPO ampo(sites);
+      for(int i=0;i<(int)N-1;i++){
+        ampo+=0.5,"S+",i,"S-",i+1;
+        ampo+=0.5,"S-",i,"S+",i+1;
+        ampo+=    "Sz",i,"Sz",i+1;
+      }
+      for(int i=0;i<(int)N-3;i++){
+        ampo+=0.5,"S+",i,"S-",i+3;
+        ampo+=0.5,"S-",i,"S+",i+3;
+        ampo+=    "Sz",i,"Sz",i+3;
+        }
+        for(int i=0;i<(int)N-2;i++){
+        ampo+=-0.5,"S+",i,"S-",i+2;
+        ampo+=-0.5,"S-",i,"S+",i+2;
+        ampo+=-1.0,"Sz",i,"Sz",i+2;
+        }
+        for(int i=0;i<(int)N;i++)
+        ampo+= -0.1,"Sz",i;
+        ampo+=0.2,"Sz",1;*/
+      
+      bool yperiodic=true;
+      //auto lattice = squareLattice(Nx,Ny,yperiodic);
+      auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
+
+      auto J1 = 1.0;
+      auto J2 = 0.5;
+
+      AutoMPO ampo(sites);
+      for(auto bnd: lattice){
+        if(bnd.type=="1"){
+          ampo+=J1/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
+          ampo+=J1/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
+          ampo+=J1  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
+        }
+        if(bnd.type=="2"){
+          ampo+=J2/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
+          ampo+=J2/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
+          ampo+=J2  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
+        }
+      }
+
+      qMPO< double > Hq;
       Heisenberg< double > HB(&sites);
-      HB.buildHam(Hq);
+      HB.buildHam(ampo,Hq);
+      auto numq   = psiHphi(psiq,Hq,psiq);
+      auto denomq = psiphi(psiq,psiq);
+      perr<<"Initial overlap "<<numq/denomq<<" "<<numq<<" "<<denomq <<endl;
+
+      int nsweeps_q = 4;
+      std::vector<int> maxm_q = {50,80,100,150,150,200,200,200};
+      std::vector<double> cutoff_q = {1E-6,1E-8,1E-10,1E-12,1E-12,1E-12,1E-12,1E-12};
+      std::vector<int> max_restart_q = {2};
+      dmrg(psiq, Hq, nsweeps_q, maxm_q, cutoff_q,max_restart_q);
+
+      psiq.print();
     }
-    //Hq.lc();
-    //Hq.print(2);
-    //Hq.A[1].print(2);
-    auto numq   = psiHphi(psiq,Hq,psiq);
-    auto denomq = psiphi(psiq,psiq);
-    perr<<"Initial overlap "<<numq/denomq<<" "<<numq<<" "<<denomq <<endl;
-
-    int nsweeps_q = 4;
-    int maxm_q = 500;
-    double cutoff_q = 1e-6;//1e-8;
-    dmrg(psiq, Hq, nsweeps_q, maxm_q, cutoff_q);
-
-    psiq.print();
-  }
-    //MPI_Finalize();
-    return 0;
 
     //-------------------------
-  {
-    perr << "\n" << "Test MPS DMRG." << '\n';
-    MPS< double > psi(&sites,2);
-    psi.setRandom();
-    psi.normalize();
-    perr<<"norm"<<endl;
-    //    for (int i=0;i<psi.length;i++){
-    //      psi.A[i].setOne();
-    //    }
-    /*auto psi2 = psi;
-    cerr<<"NORM:"<<psiphi(psi,psi)<<endl;
-    psi.normalize();
-    cerr<<"NORM:"<<psiphi(psi,psi)<<endl;
-    cerr<<"NORM:"<<psiphi(psi,psi2)<<endl;*/
-
-    //exit(1);
-
-    /*AutoMPO ampo(sites);
-    for(int i=0;i<(int)N-1;i++){
-      ampo+=0.5,"S+",i,"S-",i+1;
-      ampo+=0.5,"S-",i,"S+",i+1;
-      ampo+=    "Sz",i,"Sz",i+1;
-    }
-    for(int i=0;i<(int)N-3;i++){
+    {
+      perr << "\n" << "Test MPS DMRG." << '\n';
+      MPS< double > psi(&sites,2);
+      psi.setRandom();
+      psi.normalize();
+      /*AutoMPO ampo(sites);
+        for(int i=0;i<(int)N-1;i++){
+        ampo+=0.5,"S+",i,"S-",i+1;
+        ampo+=0.5,"S-",i,"S+",i+1;
+        ampo+=    "Sz",i,"Sz",i+1;
+        }
+      for(int i=0;i<(int)N-3;i++){
       ampo+=0.5,"S+",i,"S-",i+3;
       ampo+=0.5,"S-",i,"S+",i+3;
       ampo+=    "Sz",i,"Sz",i+3;
-    }
-    for(int i=0;i<(int)N-2;i++){
+      }
+      for(int i=0;i<(int)N-2;i++){
       ampo+=-0.5,"S+",i,"S-",i+2;
       ampo+=-0.5,"S-",i,"S+",i+2;
       ampo+=-1.0,"Sz",i,"Sz",i+2;
-    }
-    for(int i=0;i<(int)N;i++)
+      }
+      for(int i=0;i<(int)N;i++)
       ampo+= -0.1,"Sz",i;
-    ampo+=0.2,"Sz",1;*/
+      ampo+=0.2,"Sz",1;*/
 
-    bool yperiodic=true;
-    //auto lattice = squareLattice(Nx,Ny,yperiodic);
-    auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
+      bool yperiodic=true;
+      //auto lattice = squareLattice(Nx,Ny,yperiodic);
+      auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
 
-    auto J1 = 1.0;
-    auto J2 = 0.5;
+      auto J1 = 1.0;
+      auto J2 = 0.5;
 
-    AutoMPO ampo(sites);
-    for(auto bnd: lattice){
-      if(bnd.type=="1"){
-        ampo+=J1/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
-        ampo+=J1/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
-        ampo+=J1  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
+      AutoMPO ampo(sites);
+      for(auto bnd: lattice){
+        if(bnd.type=="1"){
+          ampo+=J1/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
+          ampo+=J1/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
+          ampo+=J1  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
+        }
+        if(bnd.type=="2"){
+          ampo+=J2/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
+          ampo+=J2/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
+          ampo+=J2  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
+        }
       }
-      if(bnd.type=="2"){
-        ampo+=J2/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
-        ampo+=J2/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
-        ampo+=J2  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
+
+      MPO< double > H;
+      Heisenberg< double > HB(&sites);
+      HB.buildHam(ampo,H);
+      //HB.buildHam(H);
+      string postfix = to_string(Nx)+"x"+to_string(Ny)+"_"+to_string(J1)+"_"+to_string(J2);
+      auto sp = "psi_"+postfix;
+      if(check_existence(sp+".h5")){
+        psi.load(sp+".h5");
+        pout<<"Read psi"<<endl;
       }
-    }
-    
-    MPO< double > H;
-    //vector<double> h = {0,0.5,0,0.5,0,0.7,0.1,0.5,0.2,0.6,0.2,0.1,0.6,0.8,0.9,0.1};
-    Heisenberg< double > HB(&sites);
-    HB.buildHam(ampo,H);
-    //HB.buildHam(H);
-    string postfix = to_string(Nx)+"x"+to_string(Ny)+"_"+to_string(J1)+"_"+to_string(J2);
-    auto sp = "psi_"+postfix;
-    if(check_existence(sp+".h5")){
-      psi.load(sp+".h5");
-      pout<<"Read psi"<<endl;
-    }
-    auto num   = psiHphi(psi,H,psi);
-    auto denom = psiphi(psi,psi);
-    perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
-    bool RUN = 1;
-    int nsweeps = 2;
-    /*int maxm = 60;
-    double cutoff = 1e-8;
-    int nsweeps = 5;*/
-        std::vector<int> maxm = {50,80,100,150,150,200,200,200};
-    //std::vector<int> maxm = {1000,1000,1000,1000,1000,1000,1000,1000};
-    //    std::vector<int> maxm = {20000};
-    std::vector<double> cutoff = {1E-6,1E-8,1E-10,1E-12,1E-12,1E-12,1E-12,1E-12};
-    //    std::vector<double> cutoff = {0}; 
-    std::vector<int> max_restart = {2};
-    //TODO: noise
-    if(RUN){
-      auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
-      if(world.rank==0) psi.print();
-      pout << "Final Energy = "<<finalEnergy << '\n';
-      psi.save(sp);
-      pout <<"Saved!"<<endl;
-    }
-    else{
-      MPS<double> psi2;
-      psi2.load(sp+".h5");
-      auto fe = psiHphi(psi2,H,psi2);
-      perr<<"Loaded E ="<<fe<<endl;
-      //do measurements
-    }
-    //-------------------------
+      auto num   = psiHphi(psi,H,psi);
+      auto denom = psiphi(psi,psi);
+      perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
+      bool RUN = 1;
+      int nsweeps = 4;
+      std::vector<int> maxm = {50,80,100,150,150,200,200,200};
+      std::vector<double> cutoff = {1E-6,1E-8,1E-10,1E-12,1E-12,1E-12,1E-12,1E-12};
+      std::vector<int> max_restart = {2};
+      //TODO: noise
+      if(RUN){
+        auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
+        if(world.rank==0) psi.print();
+        pout << "Final Energy = "<<finalEnergy << '\n';
+        psi.save(sp);
+        pout <<"Saved!"<<endl;
+      }
+      else{
+        MPS<double> psi2;
+        psi2.load(sp+".h5");
+        auto fe = psiHphi(psi2,H,psi2);
+        perr<<"Loaded E ="<<fe<<endl;
+        //do measurements
+      }
+      //-------------------------
 
-    /*auto prenorm = psi.A[2].norm();
-    pout << " A[2] norm = "<<prenorm<<endl;
-    psi.A[2].save("test.h5");
+      /*auto prenorm = psi.A[2].norm();
+        pout << " A[2] norm = "<<prenorm<<endl;
+        psi.A[2].save("test.h5");
 
 
-    dtensor<double> newA2;
-    newA2.load("test.h5");
-    auto postnorm = newA2.norm();
-    pout << "post A[2] norm ="<<postnorm<<endl;*/
+        dtensor<double> newA2;
+        newA2.load("test.h5");
+        auto postnorm = newA2.norm();
+        pout << "post A[2] norm ="<<postnorm<<endl;*/
+    }
   }
   MPI_Finalize();
   return 0;
