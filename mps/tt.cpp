@@ -671,8 +671,6 @@ template void dTensorTrain<std::complex<double>, 2>::lc();
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::normalize(){
   assert(tensors_allocated);
-  //cerr<<"pre norm"<<endl;
-
   if(center == -1){
     double nm = norm();
     A[0] /= nm;
@@ -681,8 +679,6 @@ void dTensorTrain<T, N>::normalize(){
     double nm = A[center].norm();
     A[center] /= nm;
   }
-  //cerr<<"post norm"<<endl;
-  //exit(1);
 }
 template void dTensorTrain<double, 1>::normalize();
 template void dTensorTrain<double, 2>::normalize();
