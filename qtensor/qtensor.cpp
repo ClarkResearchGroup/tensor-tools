@@ -1615,6 +1615,9 @@ string qtensor<T>::getIndices(){
   for (unsigned i=0;i<rank;i++){ _indices[i]=ch++; }
   return _indices;
 }
+template string qtensor<double>::getIndices();
+template string qtensor<std::complex<double> >::getIndices();
+
 template <typename T>
 string qtensor<T>::getIndices(unordered_map<string,char> &charMap){
   _indices = indicesToChar(idx_set,charMap);

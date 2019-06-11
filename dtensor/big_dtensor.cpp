@@ -96,12 +96,16 @@ dtensor<T> big_dtensor<T>::diagonal(){
   // if(L!=nullptr) (*L).print();
   if(L!=nullptr) res = std::move((*L).diagonal(Link));
   for(auto m : mid){
-    res = std::move(res*(*m));
+    dtensor<T> dm = m->diagonal(Site);
+    res = std::move(res*dm);
   }
-  res = std::move(res.diagonal(Site));
+  //res = std::move(res.diagonal(Site));
   // if(R!=nullptr) (*R).print();
-  if(R!=nullptr) res = std::move(res*(*R));
-  res = std::move(res.diagonal(Link));
+  if(R!=nullptr){
+    dtensor<T> dR = R->diagonal(Link);
+    res = std::move(res*dR);
+  }
+  //res = std::move(res.diagonal(Link));
 
   return res;
 }
