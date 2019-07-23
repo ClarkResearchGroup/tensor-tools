@@ -41,15 +41,15 @@ public:
   bool operator != (const qtensor_index& A) const;
   bool operator <  (const qtensor_index& A) const;
 
-  inline arrow_type arrow()  {return _arrow;}
-  inline unsigned size()     {return _qn.size();}
-  inline unsigned level()    {return _level;}
-  inline string name()       {return _name;}
-  inline index_type type()   {return _type;}
-  inline string tag()        {return _arrow+" "+to_string(_level)+" "+_tag;}
-  inline string tagNoArrow() {return to_string(_level)+" "+_tag;}
-  inline int qn(unsigned i) {return _qn.at(i).first;}
-  inline unsigned qdim(unsigned i) {return _qn.at(i).second;}
+  inline arrow_type arrow()  const {return _arrow;}
+  inline unsigned size()     const {return _qn.size();}
+  inline unsigned level()    const {return _level;}
+  inline string name()       const {return _name;}
+  inline index_type type()   const {return _type;}
+  inline string tag()        const {return _arrow+" "+to_string(_level)+" "+_tag;}
+  inline string tagNoArrow() const {return to_string(_level)+" "+_tag;}
+  inline int qn(unsigned i)  const {return _qn.at(i).first;}
+  inline unsigned qdim(unsigned i) const {return _qn.at(i).second;}
 
   inline void dag() {
     if(_arrow==Inward)

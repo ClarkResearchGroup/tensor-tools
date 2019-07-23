@@ -3,6 +3,7 @@
 
 #include "tt.h"
 #include "qtt.h"
+#include "qstt.h"
 #include "observables.h"
 #include "mps_mpo_methods.h"
 

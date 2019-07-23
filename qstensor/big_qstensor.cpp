@@ -1,13 +1,13 @@
-#ifndef BIG_QUANTUM_NUMBERED_TENSOR_CLASS
-#define BIG_QUANTUM_NUMBERED_TENSOR_CLASS
+#ifndef BIG_QUANTUM_NUMBERED_SPARSE_TENSOR_CLASS
+#define BIG_QUANTUM_NUMBERED_SPARSE_TENSOR_CLASS
 
-#include "big_qtensor.h"
+#include "big_qstensor.h"
 
 template <typename T>
-qtensor<T> big_qtensor<T>::product(qtensor<T>& v){
+qstensor<T> big_qstensor<T>::product(qstensor<T>& v){
   // contract pattern:
   // L-v-mid-R
-  // qtensor<T> res;
+  // qstensor<T> res;
   // if(L!=nullptr) res = std::move((*L)*v);
   // for(auto m : mid){
   //   if(res.rank>0)
@@ -17,21 +17,21 @@ qtensor<T> big_qtensor<T>::product(qtensor<T>& v){
   // }
   // if(R!=nullptr) res = std::move(res*(*R));
 
-  qtensor<T> res = std::move(A*v);
+  qstensor<T> res = std::move(A*v);
   if(R!=nullptr) res = std::move(res*(*R));
 
   res.prime(-1);
   return res;
 }
-template qtensor<double> big_qtensor<double>::product(qtensor<double>& v);
-template qtensor< std::complex<double> > big_qtensor< std::complex<double> >::product(qtensor< std::complex<double> >& v);
+template qstensor<double> big_qstensor<double>::product(qstensor<double>& v);
+template qstensor< std::complex<double> > big_qstensor< std::complex<double> >::product(qstensor< std::complex<double> >& v);
 
 
 template <typename T>
-T big_qtensor<T>::expec(qtensor<T>& v){
+T big_qstensor<T>::expec(qstensor<T>& v){
   // contract pattern:
   // L-v-mid-R
-  // qtensor<T> res;
+  // qstensor<T> res;
   // if(L!=nullptr) res = std::move((*L)*v);
   // for(auto m : mid){
   //   if(res.rank>0)
@@ -41,19 +41,19 @@ T big_qtensor<T>::expec(qtensor<T>& v){
   // }
   // if(R!=nullptr) res = std::move(res*(*R));
 
-  qtensor<T> res = std::move(A*v);
+  qstensor<T> res = std::move(A*v);
   if(R!=nullptr) res = std::move(res*(*R));
 
   res.prime(-1);
   return res.contract(v);
 }
-template double big_qtensor<double>::expec(qtensor<double>& v);
-template std::complex<double> big_qtensor< std::complex<double> >::expec(qtensor< std::complex<double> >& v);
+template double big_qstensor<double>::expec(qstensor<double>& v);
+template std::complex<double> big_qstensor< std::complex<double> >::expec(qstensor< std::complex<double> >& v);
 
 
 template <typename T>
-qtensor<T> big_qtensor<T>::diagonal(){
-  // qtensor<T> res;
+qstensor<T> big_qstensor<T>::diagonal(){
+  // qstensor<T> res;
   // if(L!=nullptr) res = (*L);
   // for(auto m : mid){
   //   res = std::move(res*(*m));
@@ -61,22 +61,22 @@ qtensor<T> big_qtensor<T>::diagonal(){
   // if(R!=nullptr) res = std::move(res*(*R));
   // res = std::move(res.diagonal());
 
-  qtensor<T> res;
+  qstensor<T> res;
   if(R==nullptr){
     res = std::move(A.diagonal());
   }else{
     res = std::move(A*(*R));
     res = std::move(res.diagonal());
-    //qtensor<T> Rd = R->diagonal();
+    //qstensor<T> Rd = R->diagonal();
     //res = std::move(A.diagonal());
     //res = std::move(res*Rd);
   }
 
-  // qtensor<T> res = std::move(A.diagonal());
+  // qstensor<T> res = std::move(A.diagonal());
 
   return res;
 }
-template qtensor<double> big_qtensor<double>::diagonal();
-template qtensor< std::complex<double> > big_qtensor< std::complex<double> >::diagonal();
+template qstensor<double> big_qstensor<double>::diagonal();
+template qstensor< std::complex<double> > big_qstensor< std::complex<double> >::diagonal();
 
 #endif

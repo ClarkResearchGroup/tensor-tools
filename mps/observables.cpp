@@ -86,6 +86,47 @@ T psiHphi (qMPS<T>& psi, qMPO<T>& H, qMPS<T>& phi) {
 template double psiHphi (qMPS<double>& psi, qMPO<double>& H, qMPS<double>& phi);
 template std::complex<double> psiHphi (qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, qMPS< std::complex<double> >& phi);
 
+template <typename T>
+T psiHphi (qsMPS<T>& psi, qsMPO<T>& H, qsMPS<T>& phi) {
+	assert(psi.tensors_allocated);
+	assert(H.tensors_allocated);
+	assert(phi.tensors_allocated);
+	assert(psi.phy_dim==phi.phy_dim);
+	assert(psi.length==phi.length);
+	assert(psi.length==H.length);
+	T res = T(0);
+	qstensor<T> acc, t1, t2, t3, t4, t5;
+	for (size_t i = 0; i < psi.length; i++) {
+		t1 = psi.A[i]; t1.dag(); t1.conj(); t1.prime();
+		t2 = H.A[i];
+		t3 = phi.A[i];
+		if(i==0){
+			qstensor<T> left_ends({t1.idx_set[0], t2.idx_set[0], t3.idx_set[0]});
+			left_ends.initBlock();
+			left_ends.setOne();
+			left_ends.dag();
+			t4 = std::move(left_ends*t1);
+			t5 = std::move(t4*t2);
+			acc= std::move(t5*t3);
+		}else if(i==psi.length-1){
+			qstensor<T> right_ends({t1.idx_set.back(), t2.idx_set.back(), t3.idx_set.back()});
+			right_ends.initBlock();
+			right_ends.setOne();
+			right_ends.dag();
+			t4 = std::move(acc*t1);
+			t5 = std::move(t4*t2);
+			acc= std::move(t5*t3);
+			res= acc.contract(right_ends);
+		}else{
+			t4 = std::move(acc*t1);
+			t5 = std::move(t4*t2);
+			acc= std::move(t5*t3);
+		}
+	}
+	return res;
+}
+template double psiHphi (qsMPS<double>& psi, qsMPO<double>& H, qsMPS<double>& phi);
+template std::complex<double> psiHphi (qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, qsMPS< std::complex<double> >& phi);
 
 template <typename T>
 T psiHKphi(MPS<T>& psi, MPO<T>& H, MPO<T>& K, MPS<T>& phi){
@@ -245,4 +286,39 @@ T psiphi (qMPS<T>& psi, qMPS<T>& phi) {
 template double psiphi (qMPS<double>& psi, qMPS<double>& phi);
 template std::complex<double> psiphi (qMPS< std::complex<double> >& psi, qMPS< std::complex<double> >& phi);
 
+template <typename T>
+T psiphi (qsMPS<T>& psi, qsMPS<T>& phi) {
+	assert(psi.tensors_allocated);
+	assert(phi.tensors_allocated);
+	assert(psi.phy_dim==phi.phy_dim);
+	assert(psi.length==phi.length);
+	T res = T(0);
+	qstensor<T> acc, t1, t2, t3;
+	for (size_t i = 0; i < psi.length; i++) {
+		t1 = psi.A[i]; t1.dag(); t1.conj(); t1.primeLink();
+		t2 = phi.A[i];
+		if(i==0){
+			qstensor<T> left_ends({t1.idx_set[0], t2.idx_set[0]});
+			left_ends.initBlock();
+			left_ends.setOne();
+			left_ends.dag();
+			t3 = std::move(left_ends*t1);
+			acc=std::move(t3*t2);
+		}else if(i==psi.length-1){
+			qstensor<T> right_ends({t1.idx_set.back(), t2.idx_set.back()});
+			right_ends.initBlock();
+			right_ends.setOne();
+			right_ends.dag();
+			t3 = std::move(t1*acc);
+			acc= std::move(t3*t2);
+			res= acc.contract(right_ends);
+		}else{
+			t3 = std::move(t1*acc);
+			acc = std::move(t3*t2);
+		}
+	}
+	return res;
+}
+template double psiphi (qsMPS<double>& psi, qsMPS<double>& phi);
+template std::complex<double> psiphi (qsMPS< std::complex<double> >& psi, qsMPS< std::complex<double> >& phi);
 #endif

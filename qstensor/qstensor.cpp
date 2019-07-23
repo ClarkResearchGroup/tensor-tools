@@ -1,86 +1,62 @@
-#ifndef QUANTUM_NUMBERED_TENSOR_CLASS
-#define QUANTUM_NUMBERED_TENSOR_CLASS
-#include "qtensor.h"
+#ifndef QUANTUM_NUMBERED_SPARSE_TENSOR_CLASS
+#define QUANTUM_NUMBERED_SPARSE_TENSOR_CLASS
+#include "qstensor.h"
 
-string indToStr(vector<qtensor_index> &indices,unordered_map<string,char> &charMap)
-{
-  assert(charMap.size() >= indices.size());
-  string myString="";
-  for (auto i: indices){
-    const string thisTag = i.tagNoArrow();
-    myString+=charMap[thisTag];
+template<typename T>
+void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M){
+ vector<int64_t> idx_sizes(idx_set.size(),0);//dense storage index sizes
+ for(int i=0;i<idx_set.size();i++){
+   for(int j=0;j<idx_set[i].size();j++){
+     idx_sizes[i]+=idx_set[i].qdim(j);
+   }
   }
-  return myString;
+ M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
+ M.sparsify();
 }
-string indicesToChar(vector<qtensor_index> &indices,unordered_map<string,char> &charMap)
-{
-  char ch='a';
-  for (auto i : charMap) //find highest char
-    if (i.second > ch)
-      ch=i.second;
-  if(ch!='a') ++ch; //increment from latest
-  for (auto i: indices){
-    auto thisTag = i.tagNoArrow();
-    auto it= charMap.find(thisTag);
-    if (it==charMap.end()){ //new tag, add it to map
-      charMap[thisTag]=ch;
-      ++ch;
-    }
+template<typename T>
+void blockToSparse(const qtensor<T> &A, CTF::Tensor<T> &M){
+ vector<int64_t> idx_sizes(A.rank,0);//dense storage index sizes
+ vector<unordered_map<int,int64_t> > offsets(A.rank); //find corner of block in dense
+
+ for(int i=0;i<A.idx_set.size();i++){
+   int64_t offset =0;
+   for(int j=0;j<A.idx_set[i].size();j++){
+     idx_sizes[i]+=A.idx_set[i].qdim(j);
+     offsets[i][A.idx_set[i].qn(j)] = offset;
+     offset+= A.idx_set[i].qdim(j);
+   }
   }
-  return indToStr(indices,charMap);
-}
-string indToStrNP(vector<qtensor_index> &indices,unordered_map<string,char> &charMap)
-{
-  string myString="";
-  for (auto i: indices){
-    const string thisTag = noPrime(i).tagNoArrow();
-    myString+=charMap[thisTag];
-  }
-  return myString;
-}
-string indicesToCharNP(vector<qtensor_index> &indices, unordered_map<string,char> &charMap)
-{
-  char ch='a';
-  for (auto i : charMap) //find highest char
-    if (i.second > ch)
-      ch=i.second;
-  if(ch!='a') ++ch; //increment from latest
-  for (auto i : indices){
-    auto thisTag = noPrime(i).tagNoArrow();
-    auto it= charMap.find(thisTag);
-    if (it==charMap.end()){ //new tag, add it to map
-      charMap[thisTag]=ch;
-      ++ch;
-    }
-  }
-  return indToStrNP(indices,charMap);
+ M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
+ //place data into M
+ //TODO: ask edgar about making this better
+ vector<int64_t> zeros(A.rank,0);
+ for(int i=0;i<A._block.size();i++){
+   vector<int64_t> starts(A.rank);
+   vector<int64_t> ends(A.rank);
+   for(int j=0;j<A.rank;j++){
+    starts[j] = offsets[j][A.block_index_qn[i][j]];
+    ends[j] = starts[j]+A.block_index_qd[i][j];
+   }
+
+   M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
+ }
+M.sparsify();
+
+  
 }
 //-----------------------------------------------------------------------------
 // Constructors
 template <typename T>
-qtensor<T>::qtensor(){
+qstensor<T>::qstensor(){
   rank = 0;
   _initted = false;
 }
-template qtensor<double>::qtensor();
-template qtensor< std::complex<double> >::qtensor();
+template qstensor<double>::qstensor();
+template qstensor< std::complex<double> >::qstensor();
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_list arrows){
-  rank = 0;
-  for(auto a :arrows){
-    idx_set.emplace_back(a);
-    ++rank;
-  }
-  _initted = false;
-}
-template qtensor<double>::qtensor(arr_list arrows);
-template qtensor< std::complex<double> >::qtensor(arr_list arrows);
-
-
-template <typename T>
-qtensor<T>::qtensor(arr_vec& arrows){
+qstensor<T>::qstensor(arr_list arrows){
   rank = 0;
   for(auto a :arrows){
     idx_set.emplace_back(a);
@@ -88,12 +64,25 @@ qtensor<T>::qtensor(arr_vec& arrows){
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_vec& arrows);
-template qtensor< std::complex<double> >::qtensor(arr_vec& arrows);
+template qstensor<double>::qstensor(arr_list arrows);
+template qstensor< std::complex<double> >::qstensor(arr_list arrows);
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_list arrows, str_list names){
+qstensor<T>::qstensor(arr_vec& arrows){
+  rank = 0;
+  for(auto a :arrows){
+    idx_set.emplace_back(a);
+    ++rank;
+  }
+  _initted = false;
+}
+template qstensor<double>::qstensor(arr_vec& arrows);
+template qstensor< std::complex<double> >::qstensor(arr_vec& arrows);
+
+
+template <typename T>
+qstensor<T>::qstensor(arr_list arrows, str_list names){
   rank = 0;
   arr_vec arrows_vec;
   str_vec names_vec;
@@ -109,24 +98,24 @@ qtensor<T>::qtensor(arr_list arrows, str_list names){
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_list arrows, str_list names);
-template qtensor< std::complex<double> >::qtensor(arr_list arrows, str_list names);
+template qstensor<double>::qstensor(arr_list arrows, str_list names);
+template qstensor< std::complex<double> >::qstensor(arr_list arrows, str_list names);
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_vec& arrows, str_vec& names){
+qstensor<T>::qstensor(arr_vec& arrows, str_vec& names){
   rank = arrows.size();
   for (size_t i = 0; i < arrows.size(); i++) {
     idx_set.emplace_back(arrows[i], names[i]);
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_vec& arrows, str_vec& names);
-template qtensor< std::complex<double> >::qtensor(arr_vec& arrows, str_vec& names);
+template qstensor<double>::qstensor(arr_vec& arrows, str_vec& names);
+template qstensor< std::complex<double> >::qstensor(arr_vec& arrows, str_vec& names);
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_list arrows, str_list names, typ_list types){
+qstensor<T>::qstensor(arr_list arrows, str_list names, typ_list types){
   rank = 0;
   arr_vec arrows_vec;
   str_vec names_vec;
@@ -146,24 +135,24 @@ qtensor<T>::qtensor(arr_list arrows, str_list names, typ_list types){
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_list arrows, str_list names, typ_list types);
-template qtensor< std::complex<double> >::qtensor(arr_list arrows, str_list names, typ_list types);
+template qstensor<double>::qstensor(arr_list arrows, str_list names, typ_list types);
+template qstensor< std::complex<double> >::qstensor(arr_list arrows, str_list names, typ_list types);
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_vec& arrows, str_vec& names, typ_vec& types){
+qstensor<T>::qstensor(arr_vec& arrows, str_vec& names, typ_vec& types){
   rank = arrows.size();
   for (size_t i = 0; i < arrows.size(); i++) {
     idx_set.emplace_back(arrows[i], names[i], types[i]);
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_vec& arrows, str_vec& names, typ_vec& types);
-template qtensor< std::complex<double> >::qtensor(arr_vec& arrows, str_vec& names, typ_vec& types);
+template qstensor<double>::qstensor(arr_vec& arrows, str_vec& names, typ_vec& types);
+template qstensor< std::complex<double> >::qstensor(arr_vec& arrows, str_vec& names, typ_vec& types);
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_list arrows, str_list names, typ_list types, uint_list levels){
+qstensor<T>::qstensor(arr_list arrows, str_list names, typ_list types, uint_list levels){
   rank = 0;
   arr_vec arrows_vec;
   str_vec names_vec;
@@ -187,44 +176,44 @@ qtensor<T>::qtensor(arr_list arrows, str_list names, typ_list types, uint_list l
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_list arrows, str_list names, typ_list types, uint_list levels);
-template qtensor< std::complex<double> >::qtensor(arr_list arrows, str_list names, typ_list types, uint_list levels);
+template qstensor<double>::qstensor(arr_list arrows, str_list names, typ_list types, uint_list levels);
+template qstensor< std::complex<double> >::qstensor(arr_list arrows, str_list names, typ_list types, uint_list levels);
 
 
 template <typename T>
-qtensor<T>::qtensor(arr_vec& arrows, str_vec& names, typ_vec& types, uint_vec& levels){
+qstensor<T>::qstensor(arr_vec& arrows, str_vec& names, typ_vec& types, uint_vec& levels){
   rank = arrows.size();
   for (size_t i = 0; i < arrows.size(); i++) {
     idx_set.emplace_back(arrows[i], names[i], types[i], levels[i]);
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(arr_vec& arrows, str_vec& names, typ_vec& types, uint_vec& levels);
-template qtensor< std::complex<double> >::qtensor(arr_vec& arrows, str_vec& names, typ_vec& types, uint_vec& levels);
+template qstensor<double>::qstensor(arr_vec& arrows, str_vec& names, typ_vec& types, uint_vec& levels);
+template qstensor< std::complex<double> >::qstensor(arr_vec& arrows, str_vec& names, typ_vec& types, uint_vec& levels);
 
 
 template <typename T>
-qtensor<T>::qtensor(vector<qtensor_index>& qidx_vec){
+qstensor<T>::qstensor(vector<qtensor_index>& qidx_vec){
   rank = qidx_vec.size();
   idx_set = qidx_vec;
   _initted = false;
 }
-template qtensor<double>::qtensor(vector<qtensor_index>& idx_vec);
-template qtensor< std::complex<double> >::qtensor(vector<qtensor_index>& idx_vec);
+template qstensor<double>::qstensor(vector<qtensor_index>& idx_vec);
+template qstensor< std::complex<double> >::qstensor(vector<qtensor_index>& idx_vec);
 
 
 template <typename T>
-qtensor<T>::qtensor(vector<qtensor_index>&& qidx_vec){
+qstensor<T>::qstensor(vector<qtensor_index>&& qidx_vec){
   idx_set = std::move(qidx_vec);
   rank = idx_set.size();
   _initted = false;
 }
-template qtensor<double>::qtensor(vector<qtensor_index>&& idx_vec);
-template qtensor< std::complex<double> >::qtensor(vector<qtensor_index>&& idx_vec);
+template qstensor<double>::qstensor(vector<qtensor_index>&& idx_vec);
+template qstensor< std::complex<double> >::qstensor(vector<qtensor_index>&& idx_vec);
 
 
 template <typename T>
-qtensor<T>::qtensor(initializer_list<qtensor_index> qidx_list){
+qstensor<T>::qstensor(initializer_list<qtensor_index> qidx_list){
   rank = 0;
   for(auto i : qidx_list){
     idx_set.push_back(i);
@@ -232,57 +221,92 @@ qtensor<T>::qtensor(initializer_list<qtensor_index> qidx_list){
   }
   _initted = false;
 }
-template qtensor<double>::qtensor(initializer_list<qtensor_index> qidx_list);
-template qtensor< std::complex<double> >::qtensor(initializer_list<qtensor_index> qidx_list);
+template qstensor<double>::qstensor(initializer_list<qtensor_index> qidx_list);
+template qstensor< std::complex<double> >::qstensor(initializer_list<qtensor_index> qidx_list);
 
 
 template <typename T>
-qtensor<T>::qtensor(const qtensor<T>& other){
+qstensor<T>::qstensor(const qstensor<T>& other){
   rank               = other.rank;
   idx_set            = other.idx_set;
-  _block              = other._block;
+  _block             = other._block;
+  _T                 = other._T;
   block_index_qn     = other.block_index_qn;
   block_index_qd     = other.block_index_qd;
   block_index_qi     = other.block_index_qi;
   block_id_by_qn_str = other.block_id_by_qn_str;
   _initted           = other._initted;
 }
-template qtensor<double>::qtensor(const qtensor<double>& other);
-template qtensor< std::complex<double> >::qtensor(const qtensor< std::complex<double> >& other);
+template qstensor<double>::qstensor(const qstensor<double>& other);
+template qstensor< std::complex<double> >::qstensor(const qstensor< std::complex<double> >& other);
 
 
 template <typename T>
-qtensor<T>::qtensor(qtensor<T>&& other){
+qstensor<T>::qstensor(qstensor<T>&& other){
   rank               = other.rank;
   idx_set            = std::move(other.idx_set);
-  _block              = std::move(other._block);
+  _block             = std::move(other._block);
+  _T                 = std::move(other._T);
   block_index_qn     = std::move(other.block_index_qn);
   block_index_qd     = std::move(other.block_index_qd);
   block_index_qi     = std::move(other.block_index_qi);
   block_id_by_qn_str = std::move(other.block_id_by_qn_str);
   _initted           = other._initted;
 }
-template qtensor<double>::qtensor(qtensor<double>&& other);
-template qtensor< std::complex<double> >::qtensor(qtensor< std::complex<double> >&& other);
+template qstensor<double>::qstensor(qstensor<double>&& other);
+template qstensor< std::complex<double> >::qstensor(qstensor< std::complex<double> >&& other);
+
+template <typename T>
+qstensor<T>::qstensor(const qtensor<T>& other){
+  rank               = other.rank;
+  idx_set            = other.idx_set;
+  //_block             = other._block;
+  block_index_qn     = other.block_index_qn;
+  block_index_qd     = other.block_index_qd;
+  block_index_qi     = other.block_index_qi;
+  block_id_by_qn_str = other.block_id_by_qn_str;
+  _initted           = other._initted;
+  //make _T
+  blockToSparse(other,_T);
+}
+template qstensor<double>::qstensor(const qtensor<double>& other);
+template qstensor< std::complex<double> >::qstensor(const qtensor< std::complex<double> >& other);
+
+
+template <typename T>
+qstensor<T>::qstensor(qtensor<T>&& other){
+  rank               = other.rank;
+  idx_set            = std::move(other.idx_set);
+  //_block             = std::move(other._block);
+  block_index_qn     = std::move(other.block_index_qn);
+  block_index_qd     = std::move(other.block_index_qd);
+  block_index_qi     = std::move(other.block_index_qi);
+  block_id_by_qn_str = std::move(other.block_id_by_qn_str);
+  _initted           = other._initted;
+  //make _T
+  blockToSparse(other,_T);
+}
+template qstensor<double>::qstensor(qtensor<double>&& other);
+template qstensor< std::complex<double> >::qstensor(qtensor< std::complex<double> >&& other);
 //-----------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
 // set up quantum number information (qn, qdim) for selected qtensor_index
 template <typename T>
-void qtensor<T>::addQNtoIndex(unsigned idx, quantum_number qn){
+void qstensor<T>::addQNtoIndex(unsigned idx, quantum_number qn){
   assert(idx<rank);
   idx_set[idx].addQN(qn);
 }
-template void qtensor<double>::addQNtoIndex(unsigned idx, quantum_number qn);
-template void qtensor< std::complex<double> >::addQNtoIndex(unsigned idx, quantum_number qn);
+template void qstensor<double>::addQNtoIndex(unsigned idx, quantum_number qn);
+template void qstensor< std::complex<double> >::addQNtoIndex(unsigned idx, quantum_number qn);
 //-----------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Initialize legal block
 template <typename T>
-void qtensor<T>::initBlock(){
+void qstensor<T>::initBlock(){
   if(rank>0 && !_initted){
     // get strides
     uint_vec stride;
@@ -315,7 +339,7 @@ void qtensor<T>::initBlock(){
         for (size_t j = 0; j < rank; j++) {
           qn_str += (to_string(qns[j])+" ");
         }
-        _block.emplace_back(rank,qds.data());
+        //_block.emplace_back(rank,qds.data());
         //block.emplace_back(size);
         block_index_qn.push_back(std::move(qns));
         block_index_qd.push_back(std::move(qds));
@@ -324,81 +348,87 @@ void qtensor<T>::initBlock(){
       }
     }
   }
+  idxToSparse(idx_set,_T);
   _initted = true;
 }
-template void qtensor<double>::initBlock();
-template void qtensor< std::complex<double> >::initBlock();
+template void qstensor<double>::initBlock();
+template void qstensor< std::complex<double> >::initBlock();
 
 
 template <typename T>
-void qtensor<T>::clearBlock(){
+void qstensor<T>::clearBlock(){
   rank = idx_set.size();
   //block.clear();
   _block.clear();
+  if(_initted) _T.set_zero();
   block_index_qn.clear();
   block_index_qd.clear();
   block_index_qi.clear();
   block_id_by_qn_str.clear();
   _initted = false;
 }
-template void qtensor<double>::clearBlock();
-template void qtensor< std::complex<double> >::clearBlock();
+template void qstensor<double>::clearBlock();
+template void qstensor< std::complex<double> >::clearBlock();
 //---------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
 // Reset
 template <typename T>
-void qtensor<T>::reset(vector<qtensor_index>& idx_vec){
+void qstensor<T>::reset(vector<qtensor_index>& idx_vec){
   clearBlock();
   idx_set = idx_vec;
   rank = idx_set.size();
 }
-template void qtensor<double>::reset(vector<qtensor_index>& idx_vec);
-template void qtensor< std::complex<double> >::reset(vector<qtensor_index>& idx_vec);
+template void qstensor<double>::reset(vector<qtensor_index>& idx_vec);
+template void qstensor< std::complex<double> >::reset(vector<qtensor_index>& idx_vec);
 //-----------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Set values
 template <typename T>
-void qtensor<T>::setRandom(){
+void qstensor<T>::setRandom(){
+  assert(1==2);
   assert(_initted);
-  for (size_t i = 0; i < _block.size(); i++) {
+  /*for (size_t i = 0; i < _block.size(); i++) {
     //random_array(block[i].data(), block[i].size());
     _block[i].fill_random(0,1);
-  }
+  }*/
+  _T.fill_random(0,1); //TODO: fix for sparse
 }
-template void qtensor<double>::setRandom();
-template void qtensor< std::complex<double> >::setRandom();
+template void qstensor<double>::setRandom();
+template void qstensor< std::complex<double> >::setRandom();
 
 template <typename T>
-void qtensor<T>::setZero(){
+void qstensor<T>::setZero(){
   assert(_initted);
-  for (size_t i = 0; i < _block.size(); i++) {
+  /*for (size_t i = 0; i < _block.size(); i++) {
     _block[i].set_zero();
-  }
+  }*/
+  _T.set_zero();
 }
-template void qtensor<double>::setZero();
-template void qtensor< std::complex<double> >::setZero();
+template void qstensor<double>::setZero();
+template void qstensor< std::complex<double> >::setZero();
 
 template <typename T>
-void qtensor<T>::setOne(){
+void qstensor<T>::setOne(){
   assert(_initted);
   string ind = getIndices();
-  for (size_t i = 0; i < _block.size(); i++) {
+  /*for (size_t i = 0; i < _block.size(); i++) {
     _block[i][ind.c_str()] = 1.;
-  }
+  }*/
+  _T[ind.c_str()] = 1.;
 }
-template void qtensor<double>::setOne();
-template void qtensor< std::complex<double> >::setOne();
+template void qstensor<double>::setOne();
+template void qstensor< std::complex<double> >::setOne();
 //-----------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Permute
 template <typename T>
-void qtensor<T>::permute(uint_vec& perm){
+void qstensor<T>::permute(uint_vec& perm){
   assert(_initted);
   bool perm_needed = false;
   for (size_t i = 0; i < perm.size(); i++) {
@@ -408,67 +438,61 @@ void qtensor<T>::permute(uint_vec& perm){
     }
   }
   if (perm_needed){
-    qtensor<T> A(*this);
+    qstensor<T> A(*this);
+    vector<int64_t> idx_sizes(rank);
     for (size_t i = 0; i < rank; i++) {
       A.idx_set[i] = idx_set[perm[i]];
+      idx_sizes[i] = _T.lens[perm[i]];
     }
     A.block_id_by_qn_str.clear();
     T alpha = 1;
     T beta  = 0;
-    char* p = std::getenv("OMP_NUM_THREADS");
-    int numThreads = 1;
-    if(p){
-      numThreads = atoi(p);
-    }
     unordered_map<string,char> charMap;
     string indOld = getIndices(charMap);
     string indNew = A.getIndices(charMap);
-    omp_set_num_threads(numThreads);
-    for (size_t i = 0; i < _block.size(); i++) {
+    for (size_t i = 0; i < block_index_qn.size(); i++) {
       string A_qn_str;
-      int_vec idx_sizes(rank);
       for (size_t j = 0; j < rank; j++) {
         A.block_index_qn[i][j] = block_index_qn[i][perm[j]];
         A.block_index_qd[i][j] = block_index_qd[i][perm[j]];
         A.block_index_qi[i][j] = block_index_qi[i][perm[j]];
         A_qn_str += (to_string(A.block_index_qn[i][j])+" ");
-        idx_sizes[j] =A.block_index_qd[i][j];
       }
       A.block_id_by_qn_str[A_qn_str] = i;
-      //permute by "hand"
-      CTF::Tensor<> B(A.rank,idx_sizes.data());
-      B[indNew.c_str()] = _block[i][indOld.c_str()];
-      A._block[i] = std::move(B);
     }
-    
+    //permute by "hand"
+    CTF::Tensor<> B(A.rank,idx_sizes.data());
+    B[indNew.c_str()] = A._T[indOld.c_str()];
+    A._T = std::move(B);
     *this = A;
   }
 }
-template void qtensor<double>::permute(uint_vec& perm);
-template void qtensor< std::complex<double> >::permute(uint_vec& perm);
+template void qstensor<double>::permute(uint_vec& perm);
+template void qstensor< std::complex<double> >::permute(uint_vec& perm);
 
 template <typename T>
-void qtensor<T>::permute(uint_list perm){
+void qstensor<T>::permute(uint_list perm){
   uint_vec perm_vec;
   for(auto s : perm){
     perm_vec.push_back(s);
   }
   permute(perm_vec);
 }
-template void qtensor<double>::permute(uint_list perm);
-template void qtensor< std::complex<double> >::permute(uint_list perm);
+template void qstensor<double>::permute(uint_list perm);
+template void qstensor< std::complex<double> >::permute(uint_list perm);
 //-----------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Operator overloading
 template <typename T>
-qtensor<T>& qtensor<T>::operator=(const qtensor<T>& other){
+qstensor<T>& qstensor<T>::operator=(const qstensor<T>& other){
   if(this!=&other){
     clearBlock();
     rank               = other.rank;
     idx_set            = other.idx_set;
     _block              = other._block;
+    _T                 = other._T;
     block_index_qn     = other.block_index_qn;
     block_index_qd     = other.block_index_qd;
     block_index_qi     = other.block_index_qi;
@@ -477,17 +501,18 @@ qtensor<T>& qtensor<T>::operator=(const qtensor<T>& other){
   }
   return *this;
 }
-template qtensor<double>& qtensor<double>::operator=(const qtensor<double> &other);
-template qtensor< std::complex<double> >& qtensor< std::complex<double> >::operator=(const qtensor< std::complex<double> > &other);
+template qstensor<double>& qstensor<double>::operator=(const qstensor<double> &other);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator=(const qstensor< std::complex<double> > &other);
 
 
 template <typename T>
-qtensor<T>& qtensor<T>::operator=(qtensor<T>&& other){
+qstensor<T>& qstensor<T>::operator=(qstensor<T>&& other){
   if(this!=&other){
     clearBlock();
     rank               = other.rank;
     idx_set            = std::move(other.idx_set);
     _block              = std::move(other._block);
+    _T                 = std::move(other._T);
     block_index_qn     = std::move(other.block_index_qn);
     block_index_qd     = std::move(other.block_index_qd);
     block_index_qi     = std::move(other.block_index_qi);
@@ -496,24 +521,64 @@ qtensor<T>& qtensor<T>::operator=(qtensor<T>&& other){
   }
   return *this;
 }
-template qtensor<double>& qtensor<double>::operator=(qtensor<double>&& other);
-template qtensor< std::complex<double> >& qtensor< std::complex<double> >::operator=(qtensor< std::complex<double> >&& other);
+template qstensor<double>& qstensor<double>::operator=(qstensor<double>&& other);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator=(qstensor< std::complex<double> >&& other);
+
+template <typename T>
+qstensor<T>& qstensor<T>::operator=(const qtensor<T>& other){//convert
+  if(true){
+    clearBlock();
+    rank               = other.rank;
+    idx_set            = other.idx_set;
+    _block              = other._block;
+    //_T                 = other._T;
+    blockToSparse(other,_T);
+    block_index_qn     = other.block_index_qn;
+    block_index_qd     = other.block_index_qd;
+    block_index_qi     = other.block_index_qi;
+    block_id_by_qn_str = other.block_id_by_qn_str;
+    _initted           = other._initted;
+  }
+  return *this;
+}
+template qstensor<double>& qstensor<double>::operator=(const qtensor<double> &other);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator=(const qtensor< std::complex<double> > &other);
 
 
 template <typename T>
-qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
+qstensor<T>& qstensor<T>::operator=(qtensor<T>&& other){//convert
+  if(true){
+    clearBlock();
+    rank               = other.rank;
+    idx_set            = std::move(other.idx_set);
+    _block              = std::move(other._block);
+    //_T                 = std::move(other._T);
+    blockToSparse(other,_T);
+    block_index_qn     = std::move(other.block_index_qn);
+    block_index_qd     = std::move(other.block_index_qd);
+    block_index_qi     = std::move(other.block_index_qi);
+    block_id_by_qn_str = std::move(other.block_id_by_qn_str);
+    _initted           = other._initted;
+  }
+  return *this;
+}
+template qstensor<double>& qstensor<double>::operator=(qtensor<double>&& other);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator=(qtensor< std::complex<double> >&& other);
+
+template <typename T>
+qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
   assert(_initted || other._initted);
   if( _initted && !other._initted ){
-    qtensor<T> res(*this);
+    qstensor<T> res(*this);
     return res;
   }
   if( other._initted && !_initted ){
-    qtensor<T> res(other);
+    qstensor<T> res(other);
     return res;
   }
   //copy
-  qtensor<T> A(*this);
-  qtensor<T> B(other);
+  qstensor<T> A(*this);
+  qstensor<T> B(other);
   // mark repeated indices
   unordered_map<string,int>  index_marker;
   vector< pair<unsigned,unsigned> > idx_pair;
@@ -560,14 +625,14 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
   for (size_t i = num_rep; i < B.rank; i++) {
     res_index_set.push_back(B.idx_set[i]);
   }
-  qtensor<T> res(res_index_set);
+  qstensor<T> res(res_index_set);
   res._initted = true;
   // get blocks info
   set<int> mid_QN_set;
   unordered_map< int, set<uint_vec> > left_index_qi;
   unordered_map< int, set<uint_vec> > mid_index_qi;
   unordered_map< int, set<uint_vec> > right_index_qi;
-  for (size_t i = 0; i < A._block.size(); i++) {
+  for (size_t i = 0; i < A.block_index_qn.size(); i++) {
     int mid_QN = 0;
     uint_vec left_qi;
     for (size_t j = 0; j < A.rank-num_rep; j++) {
@@ -581,7 +646,7 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
     mid_QN_set.insert(mid_QN);
     left_index_qi[mid_QN].insert(left_qi);
   }
-  for (size_t i = 0; i < B._block.size(); i++) {
+  for (size_t i = 0; i < B.block_index_qn.size(); i++) {
     int mid_QN = 0;
     uint_vec right_qi;
     for (size_t j = num_rep; j < B.rank; j++) {
@@ -603,7 +668,8 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
   string indA_L = A.getIndices(charMap);
   string indB_R = B.getIndices(charMap);
   string indC   = res.getIndices(charMap);
-  //perr<<indC << " "<<indA_L<< " "<<indB_R<<endl;
+  idxToSparse(res_index_set, res._T);
+  res._T[indC.c_str()] = A._T[indA_L.c_str()]*B._T[indB_R.c_str()];
   // merge blocks
   for (auto i1 = mid_QN_set.begin(); i1 != mid_QN_set.end(); ++i1){
     int q = *i1;
@@ -641,64 +707,35 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
           N *= res_block_index_qd.back();
         }
         // std::cout << "\n" << '\n';
-        //res.block.emplace_back(res_block_size);
-        res._block.emplace_back(res_index_set.size(),res_block_index_qd.data());
+        //res._block.emplace_back(res_index_set.size(),res_block_index_qd.data());
         res.block_index_qn.push_back(res_block_index_qn);
         res.block_index_qd.push_back(res_block_index_qd);
         res.block_index_qi.push_back(res_block_index_qi);
         res.block_id_by_qn_str[res_qn_str] = res._block.size()-1;
         // sum over all blocks
-        for (auto i4 = mid_qi_set.begin(); i4 != mid_qi_set.end(); ++i4){
-          const uint_vec& mid_qi = *i4;
-          int_vec A_block_qn_complete(A_block_qn);
-          int_vec B_block_qn_complete(B_block_qn);
-          string A_qn_str, B_qn_str;
-          int K=1;
-          for (size_t i = 0; i < num_rep; i++) {
-            A_block_qn_complete[i+A.rank-num_rep] = A.idx_set[i+A.rank-num_rep].qn(mid_qi[i]);
-            B_block_qn_complete[i] = B.idx_set[i].qn(mid_qi[i]);
-            K *= B.idx_set[i].qdim(mid_qi[i]);
-          }
-          for (size_t i = 0; i < A.rank; i++) {
-            A_qn_str += (to_string(A_block_qn_complete[i])+" ");
-          }
-          for (size_t i = 0; i < B.rank; i++) {
-            B_qn_str += (to_string(B_block_qn_complete[i])+" ");
-          }
-
-          // MAT_VEC(M, K, N, A.block[A.block_id_by_qn_str.at(A_qn_str)].data(), B.block[B.block_id_by_qn_str.at(B_qn_str)].data(), res.block.back().data());
-          if(A.block_id_by_qn_str.find(A_qn_str)!=A.block_id_by_qn_str.end() && B.block_id_by_qn_str.find(B_qn_str)!=B.block_id_by_qn_str.end()){
-            //MAT_VEC(M, K, N, A.block[A.block_id_by_qn_str[A_qn_str]].data(), B.block[B.block_id_by_qn_str[B_qn_str]].data(), res.block.back().data());
-            //Do  C = A_L*B_R
-            auto& C = res._block.back();
-            auto A_L = A._block[A.block_id_by_qn_str[A_qn_str]][indA_L.c_str()];
-            auto B_R = B._block[B.block_id_by_qn_str[B_qn_str]][indB_R.c_str()];
-            C[indC.c_str()] += A_L*B_R;
-          }
-        }
       }
     }
   }
 
-  for(int ii=0;ii<res._block.size();ii++){
+  /*for(int ii=0;ii<res._block.size();ii++){
     for(int l=0;l<res.rank;l++){
       assert(res._block[ii].lens[l]==res.block_index_qd[ii][l]);
     }
-  }
+  }*/
   return res;
 }
-template qtensor<double> qtensor<double>::operator * (qtensor<double>& other);
-template qtensor< std::complex<double> > qtensor< std::complex<double> >::operator * (qtensor< std::complex<double> >& other);
+template qstensor<double> qstensor<double>::operator * (qstensor<double>& other);
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::operator * (qstensor< std::complex<double> >& other);
 
 
 #if !defined(USE_HPTT)
 template <typename T>
-qtensor<T> qtensor<T>::operator + (qtensor<T>& A){
+qstensor<T> qstensor<T>::operator + (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   // copy
-  qtensor<T> res = A;
+  qstensor<T> res = A;
   // permute
   uint_vec perm;
   find_index_permutation(res.idx_set, idx_set, perm);
@@ -726,12 +763,12 @@ qtensor<T> qtensor<T>::operator + (qtensor<T>& A){
 }
 #else
 template <typename T>
-qtensor<T> qtensor<T>::operator + (qtensor<T>& A){
+qstensor<T> qstensor<T>::operator + (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   // copy
-  qtensor<T> res(*this);
+  qstensor<T> res(*this);
   // find permutation
   uint_vec perm;
   find_index_permutation(A.idx_set, res.idx_set, perm);
@@ -762,18 +799,18 @@ qtensor<T> qtensor<T>::operator + (qtensor<T>& A){
   return res;
 }
 #endif
-template qtensor<double> qtensor<double>::operator + (qtensor<double>& A);
-template qtensor< std::complex<double> > qtensor< std::complex<double> >::operator + (qtensor< std::complex<double> >& A);
+template qstensor<double> qstensor<double>::operator + (qstensor<double>& A);
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::operator + (qstensor< std::complex<double> >& A);
 
 
 #if !defined(USE_HPTT)
 template <typename T>
-qtensor<T> qtensor<T>::operator - (qtensor<T>& A){
+qstensor<T> qstensor<T>::operator - (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   // copy
-  qtensor<T> res = A;
+  qstensor<T> res = A;
   // permute
   uint_vec perm;
   find_index_permutation(res.idx_set, idx_set, perm);
@@ -801,12 +838,12 @@ qtensor<T> qtensor<T>::operator - (qtensor<T>& A){
 }
 #else
 template <typename T>
-qtensor<T> qtensor<T>::operator - (qtensor<T>& A){
+qstensor<T> qstensor<T>::operator - (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
   // copy
-  qtensor<T> res(*this);
+  qstensor<T> res(*this);
   // find permutation
   uint_vec perm;
   find_index_permutation(A.idx_set, res.idx_set, perm);
@@ -837,13 +874,13 @@ qtensor<T> qtensor<T>::operator - (qtensor<T>& A){
   return res;
 }
 #endif
-template qtensor<double> qtensor<double>::operator - (qtensor<double>& A);
-template qtensor< std::complex<double> > qtensor< std::complex<double> >::operator - (qtensor< std::complex<double> >& A);
+template qstensor<double> qstensor<double>::operator - (qstensor<double>& A);
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::operator - (qstensor< std::complex<double> >& A);
 
 
 #if !defined(USE_HPTT)
 template <typename T>
-qtensor<T>& qtensor<T>::operator += (qtensor<T>& A){
+qstensor<T>& qstensor<T>::operator += (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
@@ -874,7 +911,7 @@ qtensor<T>& qtensor<T>::operator += (qtensor<T>& A){
 }
 #else
 template <typename T>
-qtensor<T>& qtensor<T>::operator += (qtensor<T>& A){
+qstensor<T>& qstensor<T>::operator += (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
@@ -908,13 +945,13 @@ qtensor<T>& qtensor<T>::operator += (qtensor<T>& A){
   return *this;
 }
 #endif
-template qtensor<double>& qtensor<double>::operator += (qtensor<double>& A);
-template qtensor< std::complex<double> >& qtensor< std::complex<double> >::operator += (qtensor< std::complex<double> >& A);
+template qstensor<double>& qstensor<double>::operator += (qstensor<double>& A);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator += (qstensor< std::complex<double> >& A);
 
 
 #if !defined(USE_HPTT)
 template <typename T>
-qtensor<T>& qtensor<T>::operator -= (qtensor<T>& A){
+qstensor<T>& qstensor<T>::operator -= (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
@@ -945,7 +982,7 @@ qtensor<T>& qtensor<T>::operator -= (qtensor<T>& A){
 }
 #else
 template <typename T>
-qtensor<T>& qtensor<T>::operator -= (qtensor<T>& A){
+qstensor<T>& qstensor<T>::operator -= (qstensor<T>& A){
   assert(1==2);
   assert(_initted && A._initted);
   assert(rank==A.rank);
@@ -979,44 +1016,46 @@ qtensor<T>& qtensor<T>::operator -= (qtensor<T>& A){
   return *this;
 }
 #endif
-template qtensor<double>& qtensor<double>::operator -= (qtensor<double>& A);
-template qtensor< std::complex<double> >& qtensor< std::complex<double> >::operator -= (qtensor< std::complex<double> >& A);
+template qstensor<double>& qstensor<double>::operator -= (qstensor<double>& A);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator -= (qstensor< std::complex<double> >& A);
 
 
 template <typename T>
-qtensor<T>& qtensor<T>::operator *= (const T c){
+qstensor<T>& qstensor<T>::operator *= (const T c){
   assert(_initted);
   CTF::Scalar<T> cs(c);
   auto ind = getIndices();
-  for (size_t i = 0; i < _block.size(); i++) {
+  /*for (size_t i = 0; i < _block.size(); i++) {
     _block[i][ind.c_str()]*=cs[""];
-  }
+  }*/
+  _T[ind.c_str()]*=cs[""];
   return *this;
 }
-template qtensor<double>& qtensor<double>::operator*=(const double c);
-template qtensor< std::complex<double> >& qtensor< std::complex<double> >::operator*=(const std::complex<double> c);
+template qstensor<double>& qstensor<double>::operator*=(const double c);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator*=(const std::complex<double> c);
 
 
 template <typename T>
-qtensor<T>& qtensor<T>::operator /= (const T c){
+qstensor<T>& qstensor<T>::operator /= (const T c){
   assert(_initted);
   auto invC = 1./c;
   CTF::Scalar<T> cs(invC);
   string indA = getIndices();
-  for (size_t i = 0; i < _block.size(); i++) {
+  /*for (size_t i = 0; i < _block.size(); i++) {
     _block[i][indA.c_str()]*=cs[""];
-  }
+  }*/
+  _T[indA.c_str()]*=cs[""];
   return *this;
 }
-template qtensor<double>& qtensor<double>::operator/=(const double c);
-template qtensor< std::complex<double> >& qtensor< std::complex<double> >::operator/=(const std::complex<double> c);
+template qstensor<double>& qstensor<double>::operator/=(const double c);
+template qstensor< std::complex<double> >& qstensor< std::complex<double> >::operator/=(const std::complex<double> c);
 
 
 template <typename T>
-qtensor<T> qtensor<T>::operator*(const T c){
+qstensor<T> qstensor<T>::operator*(const T c){
   assert(1==2);
   assert(_initted);
-  qtensor A(*this);
+  qstensor A(*this);
   for (size_t i = 0; i < A.block.size(); i++) {
     for (size_t j = 0; j < A.block[i].size(); j++) {
       A.block[i][j] *= c;
@@ -1024,15 +1063,15 @@ qtensor<T> qtensor<T>::operator*(const T c){
   }
   return A;
 }
-template qtensor<double> qtensor<double>::operator*(const double c);
-template qtensor< std::complex<double> > qtensor< std::complex<double> >::operator*(const std::complex<double> c);
+template qstensor<double> qstensor<double>::operator*(const double c);
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::operator*(const std::complex<double> c);
 
 
 template <typename T>
-qtensor<T> qtensor<T>::operator/(const T c){
+qstensor<T> qstensor<T>::operator/(const T c){
   assert(1==2);
   assert(_initted);
-  qtensor A(*this);
+  qstensor A(*this);
   for (size_t i = 0; i < A.block.size(); i++) {
     for (size_t j = 0; j < A.block[i].size(); j++) {
       A.block[i][j] *= c;
@@ -1040,49 +1079,52 @@ qtensor<T> qtensor<T>::operator/(const T c){
   }
   return A;
 }
-template qtensor<double> qtensor<double>::operator/(const double c);
-template qtensor< std::complex<double> > qtensor< std::complex<double> >::operator/(const std::complex<double> c);
+template qstensor<double> qstensor<double>::operator/(const double c);
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::operator/(const std::complex<double> c);
 //-----------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Contract to scalar
 template <typename T>
-T qtensor<T>::contract(qtensor<T>& A){
+T qstensor<T>::contract(qstensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
   uint_vec perm;
-  qtensor<T> B(A); B.dag();
+  //TODO: more effecient dag (copy vectors only)
+  qstensor<T> B(A); B.dag();
   //find_index_permutation(B.idx_set, idx_set, perm);
   //B.permute(perm);
   T res = 0;
   unordered_map<string,char> charMap;
-  string indA = getIndices(charMap);
-  string indB = B.getIndices(charMap);
-  for(auto it = block_id_by_qn_str.begin(); it != block_id_by_qn_str.end(); ++it){
+  string indA = B.getIndices(charMap);
+  string ind = getIndices(charMap);
+  /*for(auto it = block_id_by_qn_str.begin(); it != block_id_by_qn_str.end(); ++it){
     string qn_str = it->first;
     unsigned this_idx = it->second;
     unsigned B_idx = B.block_id_by_qn_str.at(qn_str);
     res += _block[this_idx][indA.c_str()]*B._block[B_idx][indB.c_str()];
-  }
+  }*/
+  res=_T[ind.c_str()]*B._T[indA.c_str()];
   return res;
 }
-template double qtensor<double>::contract(qtensor<double>& A);
-template std::complex<double> qtensor< std::complex<double> >::contract(qtensor< std::complex<double> >& A);
+template double qstensor<double>::contract(qstensor<double>& A);
+template std::complex<double> qstensor< std::complex<double> >::contract(qstensor< std::complex<double> >& A);
 //-----------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
 // special arithmetic operations with another tensor in the format/pattern
 template <typename T>
-void qtensor<T>::add(qtensor<T>& A, T c){
+void qstensor<T>::add(qstensor<T>& A, T c){
   assert(A._initted && _initted);
   assert(A.rank == rank);
   unordered_map<string,char> charMap;
   auto ind = getIndices(charMap);
   auto indA    = A.getIndices(charMap);
   CTF::Scalar<T> cs(c);
-  for (auto i = block_id_by_qn_str.begin(); i != block_id_by_qn_str.end(); ++i){
+  _T[ind.c_str()] += cs[""]*A._T[indA.c_str()];
+  /*for (auto i = block_id_by_qn_str.begin(); i != block_id_by_qn_str.end(); ++i){
     string qn_str = i->first;
     unsigned t_id = i->second;
     if(A.block_id_by_qn_str.find(qn_str)!=A.block_id_by_qn_str.end()){
@@ -1091,47 +1133,50 @@ void qtensor<T>::add(qtensor<T>& A, T c){
       assert(A._block[A_id].order == _block[t_id].order);
       _block[t_id][ind.c_str()] += cs[""]*A._block[A_id][indA.c_str()];
     }
-  }
+  }*/
 }
-template void qtensor<double>::add(qtensor<double>& A, double c);
-template void qtensor< std::complex<double> >::add(qtensor< std::complex<double> >& A, std::complex<double> c);
+template void qstensor<double>::add(qstensor<double>& A, double c);
+template void qstensor< std::complex<double> >::add(qstensor< std::complex<double> >& A, std::complex<double> c);
 
 
-template <typename T>
-T qtensor<T>::inner_product(qtensor<T>& A){
+template <>
+double qstensor<double>::inner_product(qstensor<double>& A){
   assert(A._initted && _initted);
   assert(A.rank == rank);
   unordered_map<string,char> charMap;
   auto ind  =   getIndices(charMap);
   auto indA = A.getIndices(charMap);
-  T res = 0;
-  for (auto i = block_id_by_qn_str.begin(); i != block_id_by_qn_str.end(); ++i){
-    string qn_str = i->first;
-    unsigned t_id = i->second;
-    if(A.block_id_by_qn_str.find(qn_str)!=A.block_id_by_qn_str.end()){
-      unsigned A_id = A.block_id_by_qn_str.at(qn_str);
-      assert(A._block[A_id].get_tot_size(false) == _block[t_id].get_tot_size(false));
-      res += CTF::Function<double,T,T>([](T l, T r){ return std::real(cconj(l)*r);})(_block[t_id][ind.c_str()],A._block[A_id][indA.c_str()]);
-    }
-  }
+  double res = 0;
+  res += _T[ind.c_str()]*A._T[indA.c_str()];
   return res;
 }
-template double qtensor<double>::inner_product(qtensor<double>& A);
-template std::complex<double> qtensor< std::complex<double> >::inner_product(qtensor< std::complex<double> >& A);
+template<> 
+std::complex<double> qstensor< std::complex<double> >::inner_product(qstensor< std::complex<double> >& A){
+
+  assert(A._initted && _initted);
+  assert(A.rank == rank);
+  unordered_map<string,char> charMap;
+  auto ind  =   getIndices(charMap);
+  auto indA = A.getIndices(charMap);
+  double res = 0;
+  using cmplx = std::complex<double>;
+  res += CTF::Function<double,cmplx,cmplx>([](cmplx l, cmplx r){ return std::real(cconj(l)*r);})(_T[ind.c_str()],A._T[indA.c_str()]);
+  return res;
+}
 //---------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
 // Get diagonal subtensor
-// e.g. For a qtensor with index (i1, i1p, i2, i2p), assume
+// e.g. For a qstensor with index (i1, i1p, i2, i2p), assume
 // (i1, i1p) cancel each other's quantum number, and
 // (i2, i2p) cancel each other's quantum number.
 // Then the diagonal is then made by only two index (i1, i2).
 // But this only makes sense if i1 is able to cancel i2 as well.
-// So not every qtensor with paired indices can have a sensible
+// So not every qstensor with paired indices can have a sensible
 // diagonal subtensor.
 template <typename T>
-qtensor<T> qtensor<T>::diagonal(){
+qstensor<T> qstensor<T>::diagonal(){
   assert(_initted && rank>1);
   assert(rank%2==0);
   vector<qtensor_index> new_idx_set;
@@ -1157,14 +1202,14 @@ qtensor<T> qtensor<T>::diagonal(){
     }
   }
   assert(2*new_idx_set.size()==rank);
-  // Set up new qtensor
-  qtensor<T> res(new_idx_set);
+  // Set up new qstensor
+  qstensor<T> res(new_idx_set);
   res._initted = true;
   unordered_map<string,char> charMap;
   auto indNew  = indicesToCharNP(new_idx_set,charMap);
   auto indOrig = indicesToCharNP(idx_set,charMap);
   // extract diagonal blocks
-  for (size_t i = 0; i < _block.size(); i++) {
+  for (size_t i = 0; i < block_index_qn.size(); i++) {
     uint_vec t_stride;
     t_stride.push_back(1);
     for (size_t j = 0; j < rank; j++) {
@@ -1192,50 +1237,28 @@ qtensor<T> qtensor<T>::diagonal(){
         res_block_size *= res_block_index_qd.back();
         res_qn_str += (to_string(res_block_index_qn.back())+" ");
       }
-      res._block.emplace_back(res_block_index_qd.size(),res_block_index_qd.data());
+      //res._block.emplace_back(res_block_index_qd.size(),res_block_index_qd.data());
       res.block_index_qn.push_back(res_block_index_qn);
       res.block_index_qd.push_back(res_block_index_qd);
       res.block_index_qi.push_back(res_block_index_qi);
-      res.block_id_by_qn_str[res_qn_str] = res._block.size()-1;
+      res.block_id_by_qn_str[res_qn_str] = res.block_index_qn.size()-1;
       // copy values
-      uint_vec stride;
-      stride.push_back(1);
-      for (size_t j = 0; j < res.rank; j++) {
-        stride.push_back(res_block_index_qd[j] * stride[j]);
-      }
-      //#pragma omp parallel for default(shared)
-      /*for (size_t j = 0; j < res_block_size; j++) {
-        uint_vec res_idx(res.rank);
-        uint_vec this_idx(rank);
-        for (size_t k = 0; k < res.rank; k++) {
-          res_idx[k] = unsigned(j/stride[k])%res_block_index_qd[k];
-          int i1 = idx_pair[k].first;
-          int i2 = idx_pair[k].second;
-          this_idx[i1] = res_idx[k];
-          this_idx[i2] = res_idx[k];
-        }
-        unsigned idx = 0;
-        for (size_t k = 0; k < rank; k++) {
-          idx += this_idx[k] * t_stride[k];
-        }
-        perr<< rank<< " "<<res_block_index_qd.size()<< " "<<res_block_size<< " "<<_block[i].get_tot_size(false)<<endl;
-        //assert(1==2);
-        //res.block.back().at(j) = block[i].at(idx);
-      }*/
-      res._block.back()[indNew.c_str()] = _block[i][indOrig.c_str()];
+      //res._block.back()[indNew.c_str()] = _block[i][indOrig.c_str()];
     }
   }
+  idxToSparse(new_idx_set,res._T);
+  res._T[indNew.c_str()] = _T[indOrig.c_str()];
   return res;
 }
-template qtensor<double> qtensor<double>::diagonal();
-template qtensor< std::complex<double> > qtensor< std::complex<double> >::diagonal();
+template qstensor<double> qstensor<double>::diagonal();
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::diagonal();
 //---------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Print Info
 template <typename T>
-void qtensor<T>::print(unsigned print_level){
+void qstensor<T>::print(unsigned print_level){
   pout<<"-------------------------------------"<<'\n';
   pout<<"(1) Tensor's rank = "<<rank<<'\n';
   pout<<"(2) Tensor's index (arrow, name, type, prime level), {(qn, qdim)}"<<'\n';
@@ -1259,9 +1282,9 @@ void qtensor<T>::print(unsigned print_level){
     pout << "}" << '\n';
   }
   if (print_level>0) {
-    pout<<"(3) Number of legal QN block = "<<_block.size()<<'\n';
+    pout<<"(3) Number of legal QN block = "<<block_index_qn.size()<<'\n';
     pout<<"(4) QN block"<<'\n';
-    for (size_t i = 0; i < _block.size(); i++){
+    for (size_t i = 0; i < block_index_qi.size(); i++){
       uint_vec v = block_index_qi[i];
       pout<<"Block "<<i<<" indices: ";
       for (size_t j = 0; j < rank; j++) {
@@ -1273,26 +1296,24 @@ void qtensor<T>::print(unsigned print_level){
         }
         pout<<block_index_qn[i][j]<<", qdim="<<block_index_qd[i][j]<<")"<<" ";
       }
-      pout << "size = " << _block[i].get_tot_size(false) << '\n';
-      if(print_level>1){
-        /*for (size_t j = 0; j < block[i].size(); j++) {
-          pout<<block[i][j]<<" ";
-        }*/
-        _block[i].print();
-        pout<<'\n';
-      }
+      pout << '\n';
     }
+    if(print_level>1){
+      _T.print();
+      pout<<'\n';
+    }
+  
   }
-  pout << "-------------------------------------" << '\n';
+  std::cout << "-------------------------------------" << '\n';
 }
-template void qtensor<double>::print(unsigned print_level);
-template void qtensor< std::complex<double> >::print(unsigned print_level);
+template void qstensor<double>::print(unsigned print_level);
+template void qstensor< std::complex<double> >::print(unsigned print_level);
 
 
 //-----------------------------------------------------------------------------
 // Save/Load
 template <typename T>
-void qtensor<T>::save(string fn){
+void qstensor<T>::save(string fn){
   assert(1==2);
   assert(_initted);
   uint_vec idx_arrows;
@@ -1330,12 +1351,12 @@ void qtensor<T>::save(string fn){
     fh5W["block_"+to_string(i)+"_qi"] = block_index_qi[i];
   }
 }
-template void qtensor<double>::save(string fn);
-template void qtensor< std::complex<double> >::save(string fn);
+template void qstensor<double>::save(string fn);
+template void qstensor< std::complex<double> >::save(string fn);
 
 
 template <typename T>
-void qtensor<T>::save(ezh5::Node& fh5W){
+void qstensor<T>::save(ezh5::Node& fh5W){
   assert(1==2);
   assert(_initted);
   uint_vec idx_arrows;
@@ -1372,12 +1393,12 @@ void qtensor<T>::save(ezh5::Node& fh5W){
     fh5W["block_"+to_string(i)+"_qi"] = block_index_qi[i];
   }
 }
-template void qtensor<double>::save(ezh5::Node& fW);
-template void qtensor< std::complex<double> >::save(ezh5::Node& fW);
+template void qstensor<double>::save(ezh5::Node& fW);
+template void qstensor< std::complex<double> >::save(ezh5::Node& fW);
 
 
 template <typename T>
-void qtensor<T>::load(string fn){
+void qstensor<T>::load(string fn){
   assert(1==2);
   uint_vec idx_arrows_int;
   arr_vec  idx_arrows;
@@ -1407,7 +1428,7 @@ void qtensor<T>::load(string fn){
     fh5R["idx_qdim_"+to_string(i)] >> idx_qdim;
     idx_set[i].addQN(idx_qn, idx_qdim);
   }
-  qtensor<T> A(idx_set);
+  qstensor<T> A(idx_set);
   A._initted = true;
   for (size_t i = 0; i < num_blocks; i++) {
     uint_vec qi_vec;
@@ -1429,12 +1450,12 @@ void qtensor<T>::load(string fn){
   }
   (*this) = A;
 }
-template void qtensor<double>::load(string fn);
-template void qtensor< std::complex<double> >::load(string fn);
+template void qstensor<double>::load(string fn);
+template void qstensor< std::complex<double> >::load(string fn);
 
 
 template <typename T>
-void qtensor<T>::load(ezh5::Node& fh5R){
+void qstensor<T>::load(ezh5::Node& fh5R){
   assert(1==2);
   uint_vec idx_arrows_int;
   arr_vec  idx_arrows;
@@ -1463,7 +1484,7 @@ void qtensor<T>::load(ezh5::Node& fh5R){
     fh5R["idx_qdim_"+to_string(i)] >> idx_qdim;
     idx_set[i].addQN(idx_qn, idx_qdim);
   }
-  qtensor<T> A(idx_set);
+  qstensor<T> A(idx_set);
   A._initted = true;
   for (size_t i = 0; i < num_blocks; i++) {
     uint_vec qi_vec;
@@ -1485,146 +1506,137 @@ void qtensor<T>::load(ezh5::Node& fh5R){
   }
   (*this) = A;
 }
-template void qtensor<double>::load(ezh5::Node& fR);
-template void qtensor< std::complex<double> >::load(ezh5::Node& fR);
+template void qstensor<double>::load(ezh5::Node& fR);
+template void qstensor< std::complex<double> >::load(ezh5::Node& fR);
 //-----------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------
 // Prime level manipulation
 template <typename T>
-void qtensor<T>::prime(int inc){
+void qstensor<T>::prime(int inc){
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].prime(inc);
   }
 }
-template void qtensor<double>::prime(int inc);
-template void qtensor< std::complex<double> >::prime(int inc);
+template void qstensor<double>::prime(int inc);
+template void qstensor< std::complex<double> >::prime(int inc);
 
 template <typename T>
-void qtensor<T>::primeLink(int inc){
+void qstensor<T>::primeLink(int inc){
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].primeLink(inc);
   }
 }
-template void qtensor<double>::primeLink(int inc);
-template void qtensor< std::complex<double> >::primeLink(int inc);
+template void qstensor<double>::primeLink(int inc);
+template void qstensor< std::complex<double> >::primeLink(int inc);
 
 template <typename T>
-void qtensor<T>::primeSite(int inc){
+void qstensor<T>::primeSite(int inc){
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].primeSite(inc);
   }
 }
-template void qtensor<double>::primeSite(int inc);
-template void qtensor< std::complex<double> >::primeSite(int inc);
+template void qstensor<double>::primeSite(int inc);
+template void qstensor< std::complex<double> >::primeSite(int inc);
 
 template <typename T>
-void qtensor<T>::mapPrime(unsigned from, unsigned to){
+void qstensor<T>::mapPrime(unsigned from, unsigned to){
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].mapPrime(from, to);
   }
 }
-template void qtensor<double>::mapPrime(unsigned from, unsigned to);
-template void qtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to);
+template void qstensor<double>::mapPrime(unsigned from, unsigned to);
+template void qstensor< std::complex<double> >::mapPrime(unsigned from, unsigned to);
 
 template <typename T>
-void qtensor<T>::mapPrime(unsigned from, unsigned to, index_type type){
+void qstensor<T>::mapPrime(unsigned from, unsigned to, index_type type){
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].mapPrime(from, to, type);
   }
 }
-template void qtensor<double>::mapPrime(unsigned from, unsigned to, index_type type);
-template void qtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to, index_type type);
+template void qstensor<double>::mapPrime(unsigned from, unsigned to, index_type type);
+template void qstensor< std::complex<double> >::mapPrime(unsigned from, unsigned to, index_type type);
 
 template <typename T>
-void qtensor<T>::dag(){
+void qstensor<T>::dag(){
   for (size_t i = 0; i < rank; i++) {
     idx_set[i].dag();
   }
 }
-template void qtensor<double>::dag();
-template void qtensor< std::complex<double> >::dag();
+template void qstensor<double>::dag();
+template void qstensor< std::complex<double> >::dag();
 
 template <>
-void qtensor<double>::conj(){}
+void qstensor<double>::conj(){}
 
 template <>
-void qtensor<std::complex<double> >::conj(){
+void qstensor<std::complex<double> >::conj(){
   auto ind = getIndices();
   using cmplx = std::complex<double>;
-  for (size_t i = 0; i < _block.size(); i++) {
-    CTF::Transform<cmplx>([ind](cmplx & d){ d= std::conj(d); })(_block[i][ind.c_str()]);
-  }
+  CTF::Transform<cmplx>([ind](cmplx & d){ d= std::conj(d); })(_T[ind.c_str()]);
 }
 //---------------------------------------------------------------------------
 
 
 //-----------------------------------------------------------------------------
 // Norm
-template<> double qtensor<double>::norm(){
+template<> double qstensor<double>::norm(){
   assert(_initted);
   double res = 0.0;
-  for (size_t i = 0; i < _block.size(); i++) {
-    /*for (size_t j = 0; j < block[i].size(); j++) {
-      res += std::real(block[i][j]*std::conj(block[i][j]));
-    }*/
+  /*for (size_t i = 0; i < _block.size(); i++) {
     res += _block[i].reduce(CTF::OP_SUMSQ);
-  }
-  return std::sqrt(res);
-}
-//template double qtensor<double>::norm();
-//template double qtensor< std::complex<double> >::norm();
+  }*/
 
-template<> double qtensor<std::complex<double> >::norm(){
+  return std::real(_T.norm2());
+}
+//template double qstensor<double>::norm();
+//template double qstensor< std::complex<double> >::norm();
+
+template<> double qstensor<std::complex<double> >::norm(){
   assert(_initted);
   double res = 0.0;
   string indthis = getIndices();
-  for (size_t i = 0; i < _block.size(); i++) {
-    /*for (size_t j = 0; j < block[i].size(); j++) {
-      res += std::real(block[i][j]*std::conj(block[i][j]));
-    }*/
-    using cmplx = std::complex<double>;
-    CTF::Scalar<double> tot;
-    auto A  = _block[i][indthis.c_str()];
-    tot[""] += CTF::Function<double,cmplx,cmplx>([](cmplx l, cmplx r){ return std::real(cconj(l)*r);})(A,A);
-    res+= tot;
-    
-  }
+  using cmplx = std::complex<double>;
+  CTF::Scalar<double> tot;
+  auto A  = _T[indthis.c_str()];
+  tot[""] += CTF::Function<double,cmplx,cmplx>([](cmplx l, cmplx r){ return std::real(cconj(l)*r);})(A,A);
+  res+= tot;
   return std::sqrt(res);
 }
 
 template <typename T>
-double qtensor<T>::normalize(){
+double qstensor<T>::normalize(){
   assert(_initted);
   double res = norm();
   auto ind = getIndices();
-  for (size_t i = 0; i < _block.size(); i++) {
+  /*for (size_t i = 0; i < _block.size(); i++) {
     _block[i][ind.c_str()]*=(1./res);
-  }
+  }*/
+  _T[ind.c_str()]*=1./res;
   return res;
 }
-template double qtensor<double>::normalize();
-template double qtensor< std::complex<double> >::normalize();
+template double qstensor<double>::normalize();
+template double qstensor< std::complex<double> >::normalize();
 //-----------------------------------------------------------------------------
 // Index help
 template <typename T>
-string qtensor<T>::getIndices(){
+string qstensor<T>::getIndices(){
   char ch='a';
   _indices = string(ch,rank);
   for (unsigned i=0;i<rank;i++){ _indices[i]=ch++; }
   return _indices;
 }
-template string qtensor<double>::getIndices();
-template string qtensor<std::complex<double> >::getIndices();
+template string qstensor<double>::getIndices();
+template string qstensor<std::complex<double> >::getIndices();
 
 template <typename T>
-string qtensor<T>::getIndices(unordered_map<string,char> &charMap){
+string qstensor<T>::getIndices(unordered_map<string,char> &charMap){
   _indices = indicesToChar(idx_set,charMap);
   return _indices;
 }
-template string qtensor<double>::getIndices(unordered_map<string,char> &charMap);
-template string qtensor<std::complex<double> >::getIndices(unordered_map<string,char> &charMap);
+template string qstensor<double>::getIndices(unordered_map<string,char> &charMap);
+template string qstensor<std::complex<double> >::getIndices(unordered_map<string,char> &charMap);
 //-----------------------------------------------------------------------------
 
 

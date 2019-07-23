@@ -50,7 +50,7 @@ EIGEN_INC = -I /home/xiongjie/CodeDoc/libraries/eigen-eigen-26667be4f70b
 
 # File names
 EXEC = run
-SOURCES = $(wildcard ./project/*.cpp ./util/*.cpp ./linalg/*.cpp ./dtensor/*.cpp ./qtensor/*.cpp ./mps/*.cpp ./models/hams/*.cpp ./models/sites/*.cpp ./algos/dmrg/*.cpp)
+SOURCES = $(wildcard ./project/*.cpp ./util/*.cpp ./linalg/*.cpp ./dtensor/*.cpp ./qtensor/*.cpp ./qstensor/*.cpp ./mps/*.cpp ./models/hams/*.cpp ./models/sites/*.cpp ./algos/dmrg/*.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 
 # Main target
