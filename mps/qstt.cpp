@@ -824,7 +824,7 @@ template void qsTensorTrain<std::complex<double>, 2>::load(ezh5::Node& fh5);
 template <typename T, unsigned N>
 void qsTensorTrain<T, N>::rc(){
   assert(tensors_allocated);
-  qstensor<T> U,V,S;
+  qstensor<T> U,V; qtensor<T> S;
   for (size_t i = length-1; i > 0; i--) {
     vector<qtensor_index> left;
     vector<qtensor_index> right;
@@ -863,7 +863,7 @@ template void qsTensorTrain<std::complex<double>, 2>::rc();
 template <typename T, unsigned N>
 void qsTensorTrain<T, N>::lc(){
   assert(tensors_allocated);
-  qstensor<T> U,V,S;
+  qstensor<T> U,V; qtensor<T> S;
   for (size_t i = 0; i < length-1; i++) {
     vector<qtensor_index> left;
     vector<qtensor_index> right;
@@ -938,7 +938,7 @@ double qsTensorTrain<T, N>::position(int site){
   assert(site>=0 && site<int(length));
   // Initialize center position if not in canonical form
   if(center == -1) rc();
-  qstensor<T> U,V,S;
+  qstensor<T> U,V; qtensor<T> S;
   while( center!=site ){
     vector<qtensor_index> left;
     vector<qtensor_index> right;

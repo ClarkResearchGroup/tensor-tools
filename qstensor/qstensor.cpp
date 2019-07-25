@@ -13,8 +13,8 @@ void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M){
  M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
  M.sparsify();
 }
-template<typename T>
-void blockToSparse(const qtensor<T> &A, CTF::Tensor<T> &M){
+template<typename T,template <typename> class TensorType >
+void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
  vector<int64_t> idx_sizes(A.rank,0);//dense storage index sizes
  vector<unordered_map<int,int64_t> > offsets(A.rank); //find corner of block in dense
 
@@ -28,7 +28,6 @@ void blockToSparse(const qtensor<T> &A, CTF::Tensor<T> &M){
   }
  M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
  //place data into M
- //TODO: ask edgar about making this better
  vector<int64_t> zeros(A.rank,0);
  for(int i=0;i<A._block.size();i++){
    vector<int64_t> starts(A.rank);
@@ -40,10 +39,12 @@ void blockToSparse(const qtensor<T> &A, CTF::Tensor<T> &M){
 
    M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
  }
-M.sparsify();
-
-  
+ M.sparsify();
 }
+template void blockToSparse(const qtensor<double> &A,  CTF::Tensor<double> &M);
+template void blockToSparse(const qstensor<complex<double> > &A, CTF::Tensor<complex<double> > &M);
+template void blockToSparse(const qtensor<complex<double> > &A,  CTF::Tensor<complex<double> > &M);
+template void blockToSparse(const qstensor<double> &A, CTF::Tensor<double> &M);
 //-----------------------------------------------------------------------------
 // Constructors
 template <typename T>
@@ -344,7 +345,7 @@ void qstensor<T>::initBlock(){
         block_index_qn.push_back(std::move(qns));
         block_index_qd.push_back(std::move(qds));
         block_index_qi.push_back(std::move(pos));
-        block_id_by_qn_str[qn_str] = _block.size()-1;
+        block_id_by_qn_str[qn_str] = block_index_qn.size()-1;
       }
     }
   }
@@ -711,7 +712,7 @@ qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
         res.block_index_qn.push_back(res_block_index_qn);
         res.block_index_qd.push_back(res_block_index_qd);
         res.block_index_qi.push_back(res_block_index_qi);
-        res.block_id_by_qn_str[res_qn_str] = res._block.size()-1;
+        res.block_id_by_qn_str[res_qn_str] = res.block_index_qn.size()-1;
         // sum over all blocks
       }
     }
@@ -1204,7 +1205,6 @@ qstensor<T> qstensor<T>::diagonal(){
   assert(2*new_idx_set.size()==rank);
   // Set up new qstensor
   qstensor<T> res(new_idx_set);
-  res._initted = true;
   unordered_map<string,char> charMap;
   auto indNew  = indicesToCharNP(new_idx_set,charMap);
   auto indOrig = indicesToCharNP(idx_set,charMap);
@@ -1248,6 +1248,7 @@ qstensor<T> qstensor<T>::diagonal(){
   }
   idxToSparse(new_idx_set,res._T);
   res._T[indNew.c_str()] = _T[indOrig.c_str()];
+  res._initted = true;
   return res;
 }
 template qstensor<double> qstensor<double>::diagonal();

@@ -148,14 +148,17 @@ public:
   void print(unsigned print_level=0);
 
 };
+//convert blocks into sparse tensor
+template<typename T,template <typename> class TensorType >
+void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M);
 
-template<typename T>
+/*template<typename T>
 double calcEntropy(qstensor<T>& S, double cutoff=1e-24){
   assert(S.rank==1); assert(S._initted==true);
   CTF::Scalar<double> vNEE = 0.0;
   for(auto block : S._block)
     vNEE[""] += CTF::Function<T,double>([cutoff](T sg){ if(real(sg)>cutoff) return -norm(sg)*std::log(norm(sg)); else return 0.0; })(block["i"]);
   return vNEE;
-}
+}*/
 
 #endif

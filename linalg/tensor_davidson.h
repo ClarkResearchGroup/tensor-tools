@@ -12,8 +12,11 @@
 #include "../qtensor/qtensor_index_op.h"
 #include "../qtensor/qtensor.h"
 
+#include "../qstensor/qstensor.h"
+
 #include "../dtensor/big_dtensor.h"
 #include "../qtensor/big_qtensor.h"
+#include "../qstensor/big_qstensor.h"
 
 //#include "tensor_cg.h"
 
@@ -22,6 +25,9 @@ void elemWiseDivide(dtensor<T>& A, double theta, dtensor<T>& B);
 
 template <typename T>
 void elemWiseDivide(qtensor<T>& A, double theta, qtensor<T>& B);
+
+template <typename T>
+void elemWiseDivide(qstensor<T>& A, double theta, qstensor<T>& B);
 
 // Restarted Davidson method to find the smallest/largest (algebraically) eigenvalue
 template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>

@@ -40,6 +40,17 @@ void elemWiseDivide(qtensor<T>& A, double theta, qtensor<T>& B){
 template void elemWiseDivide(qtensor<double>& A, double theta, qtensor<double>& B);
 template void elemWiseDivide(qtensor< std::complex<double> >& A, double theta, qtensor< std::complex<double> >& B);
 
+template <typename T>
+void elemWiseDivide(qstensor<T>& A, double theta, qstensor<T>& B){
+  assert(A._initted && B._initted);
+  assert(A.rank == B.rank);
+ unordered_map<string,char> charMap;
+ auto indA = indicesToChar(A.idx_set,charMap);
+ auto indB = indicesToChar(B.idx_set,charMap);
+ CTF::Transform<T,T>([theta](T b, T& a){ if(b!=T(theta)) a/=(b-theta); })(B._T[indB.c_str()],A._T[indA.c_str()]);
+}
+template void elemWiseDivide(qstensor<double>& A, double theta, qstensor<double>& B);
+template void elemWiseDivide(qstensor< std::complex<double> >& A, double theta, qstensor< std::complex<double> >& B);
 
 template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
 double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode){
@@ -144,6 +155,8 @@ template double tensor_davidson(big_dtensor<double>& A, dtensor<double>& x, int 
 template double tensor_davidson(big_dtensor< std::complex<double> >& A, dtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
 template double tensor_davidson(big_qtensor<double>& A, qtensor<double>& x, int m, int max_restart, double tol, char mode);
 template double tensor_davidson(big_qtensor< std::complex<double> >& A, qtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidson(big_qstensor<double>& A, qstensor<double>& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidson(big_qstensor< std::complex<double> >& A, qstensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
 
 
 #endif

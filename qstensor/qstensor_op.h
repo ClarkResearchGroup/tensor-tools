@@ -30,7 +30,7 @@ void svd(qstensor<T>& A,
 template <typename T>
 void svd(qstensor<T>& A,
         vector<qtensor_index>& left, vector<qtensor_index>& right,
-        qstensor<T>& U, qstensor<T>& V, qstensor<T>& S,
+        qstensor<T>& U, qstensor<T>& V, qtensor<T>& S,
         int direction, double cutoff=0, unsigned K=0);
 
 /*template <typename T>
@@ -40,12 +40,12 @@ void svd_bond(qstensor<T>& A_left, qstensor<T>& A_right,
 
 template <typename T>
 void svd_bond(qstensor<T>& A_left, qstensor<T>& A_right,
-        qtensor_index& mid, qstensor<T>& S,
+        qtensor_index& mid, qtensor<T>& S,
         int direction, double cutoff=0, long unsigned K=0);
 
 template <typename T>
 void svd_bond(qstensor<T>& combined, qstensor<T>& A_left, qstensor<T>& A_right,
-        qtensor_index& mid, qstensor<T>& S,
+        qtensor_index& mid, qtensor<T>& S,
         int direction, double cutoff=0, long unsigned K=0);
 
 #endif

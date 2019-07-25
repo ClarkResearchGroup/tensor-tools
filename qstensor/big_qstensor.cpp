@@ -41,6 +41,7 @@ T big_qstensor<T>::expec(qstensor<T>& v){
   // }
   // if(R!=nullptr) res = std::move(res*(*R));
 
+  assert(1==2);
   qstensor<T> res = std::move(A*v);
   if(R!=nullptr) res = std::move(res*(*R));
 
@@ -53,13 +54,16 @@ template std::complex<double> big_qstensor< std::complex<double> >::expec(qstens
 
 template <typename T>
 qstensor<T> big_qstensor<T>::diagonal(){
-  // qstensor<T> res;
-  // if(L!=nullptr) res = (*L);
-  // for(auto m : mid){
-  //   res = std::move(res*(*m));
-  // }
-  // if(R!=nullptr) res = std::move(res*(*R));
-  // res = std::move(res.diagonal());
+   /*qstensor<T> res;
+   if(L!=nullptr) res = (*L).diagonal();
+   for(auto m : mid){
+     qstensor<T> dm = m->diagonal();
+     res = std::move(res*(dm));
+   }
+   if(R!=nullptr){
+     qstensor<T> dR = R->diagonal();
+     res = std::move(res*dR);
+   }*/
 
   qstensor<T> res;
   if(R==nullptr){

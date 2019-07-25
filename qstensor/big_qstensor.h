@@ -34,7 +34,7 @@ public:
   ~big_qstensor(){}
 
   void setLeft(qstensor<T>* Left) {L=Left; A=std::move(A*(*L));}
-  void setRight(qstensor<T>* Right) {R=Right; }
+  void setRight(qstensor<T>* Right) {R=Right; A._T.sparsify();}
   void addMid(qstensor<T>* m) {mid.push_back(m); A=std::move(A*(*m));}
 
   qstensor<T> product(qstensor<T>& v);
