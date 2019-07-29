@@ -1095,7 +1095,15 @@ void svd(qtensor<T>& A,
   }
   uint_vec perm;
   find_index_permutation(A.idx_set, new_idx_set, perm);
-  A.permute(perm);
+  //A.permute(perm);
+  unordered_map< string, unsigned > A_block_id_by_qn_str;
+  for(size_t i=0;i<A._block.size();i++){
+    string A_qn_str;
+    for (size_t j = 0; j < A.rank; j++) {
+      A_qn_str += (to_string(A.block_index_qn[i][perm[j]])+" ");
+    }
+    A_block_id_by_qn_str[A_qn_str] = i;
+  }
   // Accumulate legal quantum numbers for the mid bond
   set<int> mid_Q_set;
   unordered_map<int, set<uint_vec> > l_index_qi;
@@ -1105,14 +1113,14 @@ void svd(qtensor<T>& A,
     uint_vec l_qi, r_qi;
     for (size_t j = 0; j < left.size(); j++) {
       if(left[j].arrow()==Inward){
-        mid_QN += A.block_index_qn[i][j];
+        mid_QN += A.block_index_qn[i][perm[j]];
       }else{
-        mid_QN -= A.block_index_qn[i][j];
+        mid_QN -= A.block_index_qn[i][perm[j]];
       }
-      l_qi.push_back(A.block_index_qi[i][j]);
+      l_qi.push_back(A.block_index_qi[i][perm[j]]);
     }
     for (size_t j = 0; j < right.size(); j++) {
-      r_qi.push_back(A.block_index_qi[i][j+left.size()]);
+      r_qi.push_back(A.block_index_qi[i][perm[j+left.size()]]);
     }
     mid_Q_set.insert(mid_QN);
     l_index_qi[mid_QN].insert(l_qi);
@@ -1200,7 +1208,7 @@ void svd(qtensor<T>& A,
     CTF::Vector<T>& _S = mS[ii];
     if(mA.get_tot_size(false)==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
-      unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
+      unsigned A_block = A_block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
       vector<int64_t> lens = {1}; 
       _S = std::move(A._block[A_block].reshape(1,lens.data()));
       new_QDim[ii] = _S.len;
@@ -1213,7 +1221,7 @@ void svd(qtensor<T>& A,
       c_col = 0;
       for (size_t j = 0; j < r_qn_str_map[q].size(); j++) {
         string qn_str = l_qn_str_map[q][i] + r_qn_str_map[q][j];
-        unsigned A_block = A.block_id_by_qn_str[qn_str];
+        unsigned A_block = A_block_id_by_qn_str[qn_str];
 
         std::vector<int64_t> offsetmA = {c_row,c_col};
         std::vector<int64_t> endsmA   = {c_row+l_qn_sizes_map[q][i],c_col+r_qn_sizes_map[q][j]};
@@ -1357,7 +1365,7 @@ void svd(qtensor<T>& A,
     S._block.emplace_back(_S);
     if(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
-      unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
+      unsigned A_block = A_block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
       unsigned U_block = U.block_id_by_qn_str[l_qn_str_map[q][0]+to_string(q)+" "];
       unsigned V_block = V.block_id_by_qn_str[to_string(q)+" "+r_qn_str_map[q][0]];
       if(direction==MoveFromLeft){

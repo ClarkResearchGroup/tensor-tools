@@ -512,30 +512,32 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
     return res;
   }
   //copy
-  qtensor<T> A(*this);
-  qtensor<T> B(other);
+  //qtensor<T> A(*this);
+  //qtensor<T> B(other);
+  vector<qtensor_index> A_idx_set = idx_set;
+  vector<qtensor_index> B_idx_set = other.idx_set;
   // mark repeated indices
   unordered_map<string,int>  index_marker;
   vector< pair<unsigned,unsigned> > idx_pair;
-  for (size_t i = 0; i < A.rank; i++) {
-    index_marker[A.idx_set[i].tag()] = i;
+  for (size_t i = 0; i < rank; i++) {
+    index_marker[A_idx_set[i].tag()] = i;
   }
-  for (size_t i = 0; i < B.rank; i++) {
-    qtensor_index tp = B.idx_set[i];
+  for (size_t i = 0; i < other.rank; i++) {
+    qtensor_index tp = B_idx_set[i];
     tp.dag();
     if(index_marker.find(tp.tag()) == index_marker.end()){
-      index_marker[B.idx_set[i].tag()] = i;
+      index_marker[B_idx_set[i].tag()] = i;
     }else{
       idx_pair.push_back( std::make_pair(unsigned(index_marker[tp.tag()]), i) );
       index_marker[tp.tag()] = -1;
-      index_marker[B.idx_set[i].tag()] = -1;
+      index_marker[B_idx_set[i].tag()] = -1;
     }
   }
   // permute
   uint_vec A_perm;
   uint_vec B_perm;
-  for (size_t i = 0; i < A.rank; i++) {
-    if (index_marker[A.idx_set[i].tag()] != -1){
+  for (size_t i = 0; i < rank; i++) {
+    if (index_marker[A_idx_set[i].tag()] != -1){
       A_perm.push_back(i);
     }
   }
@@ -543,22 +545,45 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
     A_perm.push_back(idx_pair[i].first);
     B_perm.push_back(idx_pair[i].second);
   }
-  for (size_t i = 0; i < B.rank; i++) {
-    if (index_marker[B.idx_set[i].tag()] != -1){
+  for (size_t i = 0; i < other.rank; i++) {
+    if (index_marker[B_idx_set[i].tag()] != -1){
       B_perm.push_back(i);
     }
   }
-  A.permute(A_perm);
-  B.permute(B_perm);
+  //A.permute(A_perm);
+  //B.permute(B_perm);
+  //permute by hand
+  for (size_t i = 0; i < rank; i++) {
+    A_idx_set[i] = idx_set[A_perm[i]];
+  }
+  for (size_t i = 0; i < other.rank; i++) {
+    B_idx_set[i] = other.idx_set[B_perm[i]];
+  }
+  unordered_map< string, unsigned > A_block_id_by_qn_str;
+  unordered_map< string, unsigned > B_block_id_by_qn_str;
+  for(size_t i=0;i<_block.size();i++){
+    string A_qn_str;
+    for (size_t j = 0; j < rank; j++) {
+      A_qn_str += (to_string(block_index_qn[i][A_perm[j]])+" ");
+    }
+    A_block_id_by_qn_str[A_qn_str] = i;
+  }
+  for(size_t i=0;i<other._block.size();i++){
+    string B_qn_str;
+    for (size_t j = 0; j < other.rank; j++) {
+      B_qn_str += (to_string(other.block_index_qn[i][B_perm[j]])+" ");
+    }
+    B_block_id_by_qn_str[B_qn_str] = i;
+  }
   // number of repeated indices
   unsigned num_rep = idx_pair.size();
   // set up new qtensor_index
   vector<qtensor_index> res_index_set;
-  for (size_t i = 0; i < A.rank-num_rep; i++) {
-    res_index_set.push_back(A.idx_set[i]);
+  for (size_t i = 0; i < rank-num_rep; i++) {
+    res_index_set.push_back(A_idx_set[i]);
   }
-  for (size_t i = num_rep; i < B.rank; i++) {
-    res_index_set.push_back(B.idx_set[i]);
+  for (size_t i = num_rep; i < other.rank; i++) {
+    res_index_set.push_back(B_idx_set[i]);
   }
   qtensor<T> res(res_index_set);
   res._initted = true;
@@ -567,41 +592,41 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
   unordered_map< int, set<uint_vec> > left_index_qi;
   unordered_map< int, set<uint_vec> > mid_index_qi;
   unordered_map< int, set<uint_vec> > right_index_qi;
-  for (size_t i = 0; i < A._block.size(); i++) {
+  for (size_t i = 0; i < _block.size(); i++) {
     int mid_QN = 0;
     uint_vec left_qi;
-    for (size_t j = 0; j < A.rank-num_rep; j++) {
-      left_qi.push_back(A.block_index_qi[i][j]);
-      if(A.idx_set[j].arrow()==Inward){
-        mid_QN += A.block_index_qn[i][j];
+    for (size_t j = 0; j < rank-num_rep; j++) {
+      left_qi.push_back(block_index_qi[i][A_perm[j]]);
+      if(A_idx_set[j].arrow()==Inward){
+        mid_QN += block_index_qn[i][A_perm[j]];
       }else{
-        mid_QN -= A.block_index_qn[i][j];
+        mid_QN -= block_index_qn[i][A_perm[j]];
       }
     }
     mid_QN_set.insert(mid_QN);
     left_index_qi[mid_QN].insert(left_qi);
   }
-  for (size_t i = 0; i < B._block.size(); i++) {
+  for (size_t i = 0; i < other._block.size(); i++) {
     int mid_QN = 0;
     uint_vec right_qi;
-    for (size_t j = num_rep; j < B.rank; j++) {
-      right_qi.push_back(B.block_index_qi[i][j]);
-      if(B.idx_set[j].arrow()==Inward){
-        mid_QN -= B.block_index_qn[i][j];
+    for (size_t j = num_rep; j < other.rank; j++) {
+      right_qi.push_back(other.block_index_qi[i][B_perm[j]]);
+      if(B_idx_set[j].arrow()==Inward){
+        mid_QN -= other.block_index_qn[i][B_perm[j]];
       }else{
-        mid_QN += B.block_index_qn[i][j];
+        mid_QN += other.block_index_qn[i][B_perm[j]];
       }
     }
     uint_vec mid_qi;
     for (size_t j = 0; j < num_rep; j++) {
-      mid_qi.push_back(B.block_index_qi[i][j]);
+      mid_qi.push_back(other.block_index_qi[i][B_perm[j]]);
     }
     right_index_qi[mid_QN].insert(right_qi);
     mid_index_qi[mid_QN].insert(mid_qi);
   }
   unordered_map<string,char> charMap;
-  string indA_L = A.getIndices(charMap);
-  string indB_R = B.getIndices(charMap);
+  string indA_L = getIndices(charMap);
+  string indB_R = other.getIndices(charMap);
   string indC   = res.getIndices(charMap);
   //perr<<indC << " "<<indA_L<< " "<<indB_R<<endl;
   // merge blocks
@@ -619,13 +644,13 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
         int_vec  res_block_index_qn;
         unsigned res_block_size = 1;
         string   res_qn_str;
-        int_vec  A_block_qn(A.rank);
-        int_vec  B_block_qn(B.rank);
+        int_vec  A_block_qn(rank);
+        int_vec  B_block_qn(other.rank);
         int M=1,N=1;
         for (size_t i = 0; i < left_qi.size(); i++) {
           res_block_index_qi.push_back(left_qi[i]);
-          res_block_index_qd.push_back(A.idx_set[i].qdim(left_qi[i]));
-          res_block_index_qn.push_back(A.idx_set[i].qn(left_qi[i]));
+          res_block_index_qd.push_back(A_idx_set[i].qdim(left_qi[i]));
+          res_block_index_qn.push_back(A_idx_set[i].qn(left_qi[i]));
           res_block_size *= res_block_index_qd.back();
           res_qn_str += (to_string(res_block_index_qn.back())+" ");
           A_block_qn[i] = res_block_index_qn.back();
@@ -633,8 +658,8 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
         }
         for (size_t i = 0; i < right_qi.size(); i++) {
           res_block_index_qi.push_back(right_qi[i]);
-          res_block_index_qd.push_back(B.idx_set[num_rep+i].qdim(right_qi[i]));
-          res_block_index_qn.push_back(B.idx_set[num_rep+i].qn(right_qi[i]));
+          res_block_index_qd.push_back(B_idx_set[num_rep+i].qdim(right_qi[i]));
+          res_block_index_qn.push_back(B_idx_set[num_rep+i].qn(right_qi[i]));
           res_block_size *= res_block_index_qd.back();
           res_qn_str += (to_string(res_block_index_qn.back())+" ");
           B_block_qn[num_rep+i] = res_block_index_qn.back();
@@ -655,24 +680,22 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
           string A_qn_str, B_qn_str;
           int K=1;
           for (size_t i = 0; i < num_rep; i++) {
-            A_block_qn_complete[i+A.rank-num_rep] = A.idx_set[i+A.rank-num_rep].qn(mid_qi[i]);
-            B_block_qn_complete[i] = B.idx_set[i].qn(mid_qi[i]);
-            K *= B.idx_set[i].qdim(mid_qi[i]);
+            A_block_qn_complete[i+rank-num_rep] = A_idx_set[i+rank-num_rep].qn(mid_qi[i]);
+            B_block_qn_complete[i] = B_idx_set[i].qn(mid_qi[i]);
+            K *= B_idx_set[i].qdim(mid_qi[i]);
           }
-          for (size_t i = 0; i < A.rank; i++) {
+          for (size_t i = 0; i < rank; i++) {
             A_qn_str += (to_string(A_block_qn_complete[i])+" ");
           }
-          for (size_t i = 0; i < B.rank; i++) {
+          for (size_t i = 0; i < other.rank; i++) {
             B_qn_str += (to_string(B_block_qn_complete[i])+" ");
           }
 
-          // MAT_VEC(M, K, N, A.block[A.block_id_by_qn_str.at(A_qn_str)].data(), B.block[B.block_id_by_qn_str.at(B_qn_str)].data(), res.block.back().data());
-          if(A.block_id_by_qn_str.find(A_qn_str)!=A.block_id_by_qn_str.end() && B.block_id_by_qn_str.find(B_qn_str)!=B.block_id_by_qn_str.end()){
-            //MAT_VEC(M, K, N, A.block[A.block_id_by_qn_str[A_qn_str]].data(), B.block[B.block_id_by_qn_str[B_qn_str]].data(), res.block.back().data());
+          if(A_block_id_by_qn_str.find(A_qn_str)!=A_block_id_by_qn_str.end() && B_block_id_by_qn_str.find(B_qn_str)!=B_block_id_by_qn_str.end()){
             //Do  C = A_L*B_R
             auto& C = res._block.back();
-            auto A_L = A._block[A.block_id_by_qn_str[A_qn_str]][indA_L.c_str()];
-            auto B_R = B._block[B.block_id_by_qn_str[B_qn_str]][indB_R.c_str()];
+            auto A_L = _block[A_block_id_by_qn_str[A_qn_str]][indA_L.c_str()];
+            auto B_R = other._block[B_block_id_by_qn_str[B_qn_str]][indB_R.c_str()];
             C[indC.c_str()] += A_L*B_R;
           }
         }
@@ -1052,18 +1075,20 @@ T qtensor<T>::contract(qtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
   uint_vec perm;
-  qtensor<T> B(A); B.dag();
+  //qtensor<T> B(A); B.dag();
+  vector<qtensor_index> A_idx_set = A.idx_set;
+  for(int i=0;i<A.rank;i++) A_idx_set[i].dag();
   //find_index_permutation(B.idx_set, idx_set, perm);
   //B.permute(perm);
   T res = 0;
   unordered_map<string,char> charMap;
-  string indA = getIndices(charMap);
-  string indB = B.getIndices(charMap);
+  string ind = getIndices(charMap);
+  string indA = indicesToChar(A_idx_set,charMap);//B.getIndices(charMap);
   for(auto it = block_id_by_qn_str.begin(); it != block_id_by_qn_str.end(); ++it){
     string qn_str = it->first;
     unsigned this_idx = it->second;
-    unsigned B_idx = B.block_id_by_qn_str.at(qn_str);
-    res += _block[this_idx][indA.c_str()]*B._block[B_idx][indB.c_str()];
+    unsigned A_idx = A.block_id_by_qn_str.at(qn_str);
+    res += _block[this_idx][ind.c_str()]*A._block[A_idx][indA.c_str()];
   }
   return res;
 }

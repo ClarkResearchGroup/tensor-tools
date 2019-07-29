@@ -241,7 +241,7 @@ void svd(qstensor<T>& A,
   }
   uint_vec perm;
   find_index_permutation(A.idx_set, new_idx_set, perm);
-  A.permute(perm);
+  //A.permute(perm);
   // Accumulate legal quantum numbers for the mid bond
   set<int> mid_Q_set;
   unordered_map<int, set<uint_vec> > l_index_qi;
@@ -251,14 +251,14 @@ void svd(qstensor<T>& A,
     uint_vec l_qi, r_qi;
     for (size_t j = 0; j < left.size(); j++) {
       if(left[j].arrow()==Inward){
-        mid_QN += A.block_index_qn[i][j];
+        mid_QN += A.block_index_qn[i][perm[j]];
       }else{
-        mid_QN -= A.block_index_qn[i][j];
+        mid_QN -= A.block_index_qn[i][perm[j]];
       }
-      l_qi.push_back(A.block_index_qi[i][j]);
+      l_qi.push_back(A.block_index_qi[i][perm[j]]);
     }
     for (size_t j = 0; j < right.size(); j++) {
-      r_qi.push_back(A.block_index_qi[i][j+left.size()]);
+      r_qi.push_back(A.block_index_qi[i][perm[j+left.size()]]);
     }
     mid_Q_set.insert(mid_QN);
     l_index_qi[mid_QN].insert(l_qi);
