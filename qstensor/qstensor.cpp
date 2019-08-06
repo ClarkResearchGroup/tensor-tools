@@ -45,6 +45,20 @@ template void blockToSparse(const qtensor<double> &A,  CTF::Tensor<double> &M);
 template void blockToSparse(const qstensor<complex<double> > &A, CTF::Tensor<complex<double> > &M);
 template void blockToSparse(const qtensor<complex<double> > &A,  CTF::Tensor<complex<double> > &M);
 template void blockToSparse(const qstensor<double> &A, CTF::Tensor<double> &M);
+
+template<typename T>
+void getOffsets(qstensor<T> &A, vector<unordered_map<int,int64_t> >& blockOffsets){
+ blockOffsets.resize(A.rank); //find corner of block in dense
+ for(int i=0;i<A.idx_set.size();i++){
+   int64_t offset =0;
+   for(int j=0;j<A.idx_set[i].size();j++){
+     blockOffsets[i][A.idx_set[i].qn(j)] = offset;
+     offset+= A.idx_set[i].qdim(j);
+   }
+  }
+}
+template void getOffsets(qstensor<double> &A, vector<unordered_map<int,int64_t> >& blockOffsets);
+template void getOffsets(qstensor<std::complex<double> > &A, vector<unordered_map<int,int64_t> >& blockOffsets);
 //-----------------------------------------------------------------------------
 // Constructors
 template <typename T>
@@ -1350,7 +1364,8 @@ void qstensor<T>::print(unsigned print_level){
   pout<<"-------------------------------------"<<'\n';
   pout<<"(1) Tensor's rank = "<<rank<<'\n';
   pout<<"(2) Tensor's (# non-zero, % sparsity) = ("<<_T.nnz_tot<<","<<(double)_T.nnz_tot/(_T.get_tot_size(false))<<")\n";
-  pout<<"(3) Tensor's index (arrow, name, type, prime level), {(qn, qdim)}"<<'\n';
+  pout<<"(3) Tensor's real edge lengths = ("; for(int l=0;l<rank;l++) pout<<_T.lens[l]<<","; pout<<")\n";
+  pout<<"(4) Tensor's index (arrow, name, type, prime level), {(qn, qdim)}"<<'\n';
   for (size_t i = 0; i < rank; i++) {
     pout << "    ";
     if(idx_set[i].arrow()==Inward){
@@ -1371,8 +1386,8 @@ void qstensor<T>::print(unsigned print_level){
     pout << "}" << '\n';
   }
   if (print_level>0) {
-    pout<<"(4) Number of legal QN block = "<<block_index_qn.size()<<'\n';
-    pout<<"(5) QN block"<<'\n';
+    pout<<"(5) Number of legal QN block = "<<block_index_qn.size()<<'\n';
+    pout<<"(6) QN block"<<'\n';
     for (size_t i = 0; i < block_index_qi.size(); i++){
       uint_vec v = block_index_qi[i];
       pout<<"Block "<<i<<" indices: ";

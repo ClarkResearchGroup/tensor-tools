@@ -76,6 +76,27 @@ qstensor<T> big_qstensor<T>::diagonal(){
     res = std::move(res.diagonal(All));
 
     unordered_map<string,char> charMap;
+    /*vector<qtensor_index> L_diag = {L->idx_set[1],L->idx_set[2]};
+    vector<qtensor_index> R_diag = {R->idx_set[1],R->idx_set[2]};
+    CTF::Tensor<T> LT(2,L->_T.lens+1); LT.sparsify();
+    CTF::Tensor<T> RT(2,R->_T.lens+1); RT.sparsify();
+    vector<qtensor_index> mid_diag = {mid.idx_set[0],mid.idx_set[1],
+                                      mid.idx_set[3],mid.idx_set[5]};
+    vector<int64_t> mid_sizes = {mid._T.lens[0],mid._T.lens[1],
+                                       mid._T.lens[3],mid._T.lens[5]};
+    CTF::Tensor<T> midT(4,mid_sizes.data());midT.sparsify();
+
+    //TODO: only have LT or RT in memory at once?
+
+    auto indMid_diag = indicesToCharNP(mid_diag,charMap);
+    auto indL_diag = indicesToCharNP(L_diag,charMap);
+    auto indR_diag = indicesToCharNP(R_diag,charMap);
+    LT[indL_diag.c_str()] = L->_T[indL.c_str()];
+    RT[indR_diag.c_str()] = R->_T[indR.c_str()];
+    midT[indMid_diag.c_str()] = mid._T[indMid.c_str()];
+    //perr<<indA<< " "<<indR<< " "<<indRes<<endl;
+    //TODO: check effeciency of this contraction
+    res._T[indRes.c_str()] = LT[indL_diag.c_str()]*midT[indMid_diag.c_str()]*RT[indR_diag.c_str()];*/
     auto indMid = indicesToCharNP(mid.idx_set,charMap);
     auto indL = indicesToCharNP(L->idx_set,charMap);
     auto indR = indicesToCharNP(R->idx_set,charMap);

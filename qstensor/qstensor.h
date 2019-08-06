@@ -156,6 +156,9 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M);
 template<typename T>
 void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M);
 
+template<typename T>
+void getOffsets(qstensor<T> &A, vector<unordered_map<int,int64_t> >& blockOffsets);
+
 /*template<typename T>
 double calcEntropy(qstensor<T>& S, double cutoff=1e-24){
   assert(S.rank==1); assert(S._initted==true);

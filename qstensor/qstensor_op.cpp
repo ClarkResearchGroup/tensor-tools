@@ -338,14 +338,9 @@ void svd(qstensor<T>& A,
   vector<CTF::Matrix<T>> mV(mid_Q.size());
   vector<CTF::Vector<T>> mS(mid_Q.size());
 
- vector<unordered_map<int,int64_t> > blockOffsets(A.rank); //find corner of block in dense
- for(int i=0;i<A.idx_set.size();i++){
-   int64_t offset =0;
-   for(int j=0;j<A.idx_set[i].size();j++){
-     blockOffsets[i][A.idx_set[i].qn(j)] = offset;
-     offset+= A.idx_set[i].qdim(j);
-   }
-  }
+  vector<unordered_map<int,int64_t> > blockOffsets; //find corner of block in dense
+  getOffsets(A,blockOffsets);
+ 
   // SVD block by block
   for (size_t ii = 0; ii < mid_Q.size(); ii++) {
     int q = mid_Q[ii];
@@ -586,7 +581,6 @@ void svd(qstensor<T>& A,
       //U._block[U_block] = (U._block[U_block].reshape(U.rank,U.block_index_qd[U_block].data()));
       U._block[U_block].slice(offU.data(),U.block_index_qd[U_block].data(),0.,_U,start.data(),end.data(),1.);
       c_row += l_qn_sizes_map[q][i];
-      //start+=tot_size;
     }
     //perr<<endl;
     //perr<<"V slice"<<endl;
