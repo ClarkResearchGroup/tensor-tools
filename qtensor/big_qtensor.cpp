@@ -7,18 +7,16 @@ template <typename T>
 qtensor<T> big_qtensor<T>::product(qtensor<T>& v){
   // contract pattern:
   // L-v-mid-R
-  // qtensor<T> res;
-  // if(L!=nullptr) res = std::move((*L)*v);
-  // for(auto m : mid){
-  //   if(res.rank>0)
-  //     res = std::move(res*(*m));
-  //   else
-  //     res = std::move(v*(*m));
-  // }
-  // if(R!=nullptr) res = std::move(res*(*R));
-
-  qtensor<T> res = std::move(A*v);
+  qtensor<T> res;
+  if(L!=nullptr) res = std::move((*L)*v);
+  if(res.rank>0)
+    res = std::move(res*(mid));
+  else
+    res = std::move(v*(mid));
   if(R!=nullptr) res = std::move(res*(*R));
+
+  /*qtensor<T> res = std::move(A*v);
+  if(R!=nullptr) res = std::move(res*(*R));*/
 
   res.prime(-1);
   return res;
@@ -31,18 +29,17 @@ template <typename T>
 T big_qtensor<T>::expec(qtensor<T>& v){
   // contract pattern:
   // L-v-mid-R
-  // qtensor<T> res;
-  // if(L!=nullptr) res = std::move((*L)*v);
-  // for(auto m : mid){
-  //   if(res.rank>0)
-  //     res = std::move(res*(*m));
-  //   else
-  //     res = std::move(v*(*m));
-  // }
-  // if(R!=nullptr) res = std::move(res*(*R));
-
-  qtensor<T> res = std::move(A*v);
+  qtensor<T> res;
+  if(L!=nullptr) res = std::move((*L)*v);
+  if(res.rank>0)
+    res = std::move(res*(mid));
+  else
+    res = std::move(v*(mid));
+  
   if(R!=nullptr) res = std::move(res*(*R));
+
+  /*qtensor<T> res = std::move(A*v);
+  if(R!=nullptr) res = std::move(res*(*R));*/
 
   res.prime(-1);
   return res.contract(v);
@@ -53,15 +50,14 @@ template std::complex<double> big_qtensor< std::complex<double> >::expec(qtensor
 
 template <typename T>
 qtensor<T> big_qtensor<T>::diagonal(){
-  // qtensor<T> res;
-  // if(L!=nullptr) res = (*L);
-  // for(auto m : mid){
-  //   res = std::move(res*(*m));
-  // }
-  // if(R!=nullptr) res = std::move(res*(*R));
-  // res = std::move(res.diagonal());
-
   qtensor<T> res;
+  if(L!=nullptr) res = (*L);
+  res = std::move(res*(mid));
+  
+  if(R!=nullptr) res = std::move(res*(*R));
+  res = std::move(res.diagonal());
+
+  /*qtensor<T> res;
   if(R==nullptr){
     res = std::move(A.diagonal());
   }else{
@@ -70,7 +66,7 @@ qtensor<T> big_qtensor<T>::diagonal(){
     //qtensor<T> Rd = R->diagonal();
     //res = std::move(A.diagonal());
     //res = std::move(res*Rd);
-  }
+  }*/
 
   // qtensor<T> res = std::move(A.diagonal());
 

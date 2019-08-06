@@ -1206,14 +1206,14 @@ void svd(qtensor<T>& A,
     CTF::Matrix<T>& _U = mU[ii];
     CTF::Matrix<T>& _V = mV[ii];
     CTF::Vector<T>& _S = mS[ii];
-    if(mA.get_tot_size(false)==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
+    /*if(mA.get_tot_size(false)==1 && false){ //handle single element tensor manually so we don't do a bunch of reshapes etc
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
       unsigned A_block = A_block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
       vector<int64_t> lens = {1}; 
       _S = std::move(A._block[A_block].reshape(1,lens.data()));
       new_QDim[ii] = _S.len;
       continue;
-    }
+    }*/
 
     std::vector<int64_t> offsetA(A.rank,0);
     int c_row = 0; int c_col = 0; 
@@ -1250,10 +1250,11 @@ void svd(qtensor<T>& A,
         d=tot;
       }
       _S["i"] = d;
-      _V["ij"] *= 1./d;
+      if(d!=0.) _V["ij"] *= 1./d;
+      else    { _V["ij"] = 1./sqrt(2);} //this is what lapack seems to do
 
     } else{
-        mA.svd(_U,_S,_V,K,cutoff);
+        mA.svd(_U,_S,_V,K,0);
     }
     new_QDim[ii] = _S.len;
     /*if(_S.len==1){ //CTF won't cutoff the very last element, so test if its 0

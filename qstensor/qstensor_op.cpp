@@ -243,6 +243,14 @@ void svd(qstensor<T>& A,
   find_index_permutation(A.idx_set, new_idx_set, perm);
   //A.permute(perm);
   // Accumulate legal quantum numbers for the mid bond
+  unordered_map< string, unsigned > A_block_id_by_qn_str;
+  for(size_t i=0;i<A.block_index_qn.size();i++){
+    string A_qn_str;
+    for (size_t j = 0; j < A.rank; j++) {
+      A_qn_str += (to_string(A.block_index_qn[i][perm[j]])+" ");
+    }
+    A_block_id_by_qn_str[A_qn_str] = i;
+  }
   set<int> mid_Q_set;
   unordered_map<int, set<uint_vec> > l_index_qi;
   unordered_map<int, set<uint_vec> > r_index_qi;
@@ -316,6 +324,8 @@ void svd(qstensor<T>& A,
     V_idx_set.push_back(v);
   }
   vector<qtensor_index> S_idx_set = {mid};
+  vector< pair<double, unsigned> > S_and_block_idx;
+  double nm = 0.0; //sum of all singular values
 
   unordered_map<string,char> charMap;
   auto indA = A.getIndices(charMap);
@@ -323,7 +333,7 @@ void svd(qstensor<T>& A,
   auto indV = indicesToChar(V_idx_set,charMap);
   auto indS = string(1,charMap[mid.tagNoArrow()]);
 
-  uint_vec new_QDim(mid_QDim.size());
+  uint_vec new_QDim(mid_QDim.size(),0);
   vector<CTF::Matrix<T>> mU(mid_Q.size());
   vector<CTF::Matrix<T>> mV(mid_Q.size());
   vector<CTF::Vector<T>> mS(mid_Q.size());
@@ -352,21 +362,29 @@ void svd(qstensor<T>& A,
     CTF::Matrix<T>& _U = mU[ii];
     CTF::Matrix<T>& _V = mV[ii];
     CTF::Vector<T>& _S = mS[ii];
-    if(mA.get_tot_size(false)==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
+    /*if(mA.get_tot_size(false)==1 && false){ //handle single element tensor manually so we don't do a bunch of reshapes etc
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
-      unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
+      unsigned A_block = A_block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
       vector<int64_t> starts(A.rank);
       vector<int64_t> ends(A.rank);
       for(int j=0;j<A.rank;j++){
         starts[j] = blockOffsets[j][A.block_index_qn[A_block][j]];
-        ends[j] = starts[j]+A.block_index_qd[A_block][j];
+        ends[j]   = starts[j]+A.block_index_qd[A_block][j];
         assert(ends[j]-starts[j] == 1);
       }
       vector<int64_t> lens = {1}; 
       _S = std::move(A._T.slice(starts.data(),ends.data()).reshape(1,lens.data()));
-      new_QDim[ii] = _S.len;
+      //new_QDim[ii] = _S.len;
+			int64_t ns;
+			T* s_data;
+			_S.read_all(&ns,&s_data);
+			for (size_t j = 0; j < ns; j++) {
+				S_and_block_idx.push_back(std::make_pair(s_data[j], ii));
+				nm += s_data[j]*s_data[j];
+			}
+			delete[] s_data;
       continue;
-    }
+    }*/
 
     std::vector<int64_t> offsetA(A.rank,0);
     vector<int64_t> ends(A.rank);
@@ -375,14 +393,14 @@ void svd(qstensor<T>& A,
       c_col = 0;
       for (size_t j = 0; j < r_qn_str_map[q].size(); j++) {
         string qn_str = l_qn_str_map[q][i] + r_qn_str_map[q][j];
-        unsigned A_block = A.block_id_by_qn_str[qn_str];
+        unsigned A_block = A_block_id_by_qn_str[qn_str];
 
         std::vector<int64_t> offsetmA = {c_row,c_col};
         std::vector<int64_t> endsmA   = {c_row+l_qn_sizes_map[q][i],c_col+r_qn_sizes_map[q][j]};
         
         for(int j=0;j<A.rank;j++){
           offsetA[j] = blockOffsets[j][A.block_index_qn[A_block][j]];
-          ends[j] = offsetA[j]+A.block_index_qd[A_block][j];
+          ends[j]    = offsetA[j]+A.block_index_qd[A_block][j];
         }
         mA.slice(offsetmA.data(),endsmA.data(),0.,A._T,offsetA.data(),ends.data(),1.);
         c_col += r_qn_sizes_map[q][j];
@@ -408,16 +426,13 @@ void svd(qstensor<T>& A,
         d=tot;
       }
       _S["i"] = d;
-      _V["ij"] *= 1./d;
+      if(d!=0.) _V["ij"] *= 1./d;
+      else    { _V["ij"] = 1./sqrt(2);} //this is what lapack seems to do
 
     } else{
-        mA.svd(_U,_S,_V,K,cutoff);
+        mA.svd(_U,_S,_V,K,0);
     }
-    new_QDim[ii] = _S.len;
-    /*if(_S.len==1){ //CTF won't cutoff the very last element, so test if its 0
-      T s = _S.norm_infty();
-      if(real(s)<cutoff && cutoff!=0) new_QDim[ii]=0;
-    }*/
+    //new_QDim[ii] = _S.len;
     if(cutoff==0 and K==0) assert(_S.get_tot_size(false)==dim);
 
     if(direction==MoveFromLeft){
@@ -425,8 +440,29 @@ void svd(qstensor<T>& A,
     } else if(direction==MoveFromRight){
       _U["ab"] = _S["b"]*_U["ab"];
     }
+    //TODO: make this scale better
+    int64_t ns;
+    T* s_data;
+    _S.read_all(&ns,&s_data);
+    for (size_t j = 0; j < ns; j++) {
+      S_and_block_idx.push_back(std::make_pair(s_data[j], ii));
+      nm += s_data[j]*s_data[j];
+    }
+    delete[] s_data;
   }
-  //new_QDim = mid_QDim;
+  // Tune dimensions of the mid bond
+  std::sort(S_and_block_idx.begin(), S_and_block_idx.end(), pairCompare);
+  double cumsum = 0;
+  long unsigned accBD = 0;
+  //TODO: have a cutoff free version
+  for (size_t i = 0; i < S_and_block_idx.size(); i++) {
+    cumsum += S_and_block_idx[i].first * S_and_block_idx[i].first / nm;
+		if( S_and_block_idx[i].first==0. &&cutoff!=0.) break;
+    new_QDim[S_and_block_idx[i].second] += 1;
+    accBD += 1;
+    if( (1-cumsum<cutoff &&cutoff!=0.) || (accBD>=K && K!=0) ) break;
+  }
+  // set up mid bond
   qtensor_index midCut(Outward);
   for(size_t ii=0;ii<mid_Q.size();ii++){
     if(new_QDim[ii]>0) midCut.addQN(std::make_pair(mid_Q[ii], new_QDim[ii]));
@@ -450,9 +486,6 @@ void svd(qstensor<T>& A,
   S._block.reserve(new_QDim.size());
   S._initted = true;
   unsigned mid_num = 0;
-  //for slicing
-  vector<int> offU(U.rank,0);
-  vector<int> offV(V.rank,0);
   for (size_t ii = 0; ii < mid_Q.size(); ii++) {
     int q = mid_Q[ii];
     unsigned dim  = mid_QDim[ii];
@@ -516,27 +549,29 @@ void svd(qstensor<T>& A,
       V.block_id_by_qn_str[V_qn_str] = V._block.size()-1;
     }
     mid_num++;
-
     CTF::Matrix<T>& _U = mU[ii];
     CTF::Matrix<T>& _V = mV[ii];
     CTF::Vector<T>& _S = mS[ii];
+    if(_S.len < ndim) assert(1==2); //nonsense?
+    if(_S.len != ndim){ _S = _S.slice(0,ndim-1);} 
     S._block.emplace_back(_S);
-    if(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1){ //handle single element tensor manually so we don't do a bunch of reshapes etc
+    //for slicing
+    vector<int> offU(U.rank,0);
+    vector<int> offV(V.rank,0);
+    /*if(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1 && l_qn_sizes_map[q][0]==1 && r_qn_sizes_map[q][0]==1 && false){ //handle single element tensor manually so we don't do a bunch of reshapes etc
       assert(l_qn_str_map[q].size()==1 && r_qn_str_map[q].size()==1);
-      unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
+      //unsigned A_block = A.block_id_by_qn_str[l_qn_str_map[q][0] + r_qn_str_map[q][0]];
       unsigned U_block = U.block_id_by_qn_str[l_qn_str_map[q][0]+to_string(q)+" "];
       unsigned V_block = V.block_id_by_qn_str[to_string(q)+" "+r_qn_str_map[q][0]];
       if(direction==MoveFromLeft){
           U._block[U_block][indU.c_str()] = 1.;
-          //V._block[V_block][indV.c_str()] = A._block[A_block][indA.c_str()];
           V._block[V_block][indV.c_str()] = _S[indS.c_str()];
       } else if(direction==MoveFromRight){
-          //U._block[U_block][indU.c_str()] = A._block[A_block][indA.c_str()];
           U._block[U_block][indU.c_str()] = _S[indS.c_str()];
           V._block[V_block][indV.c_str()] = 1.;
       }
       continue;
-    }
+    }*/
     int c_row = 0;
     int c_col = 0;
     //perr<<"U slice"<<endl;
@@ -546,12 +581,14 @@ void svd(qstensor<T>& A,
       int    tot_size = U._block[U_block].get_tot_size(false);
       vector<int> start = {c_row,c_col};
       vector<int> end   = {c_row+(tot_size-1)%l_qn_sizes_map[q][i]+1, c_col+tot_size/l_qn_sizes_map[q][i]};
-      //perr<< "  $"<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
+      //perr<< "  $("<<row<<","<<col<<") "<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
       //U._block[U_block] = (_U.slice(start.data(),end.data()));
       //U._block[U_block] = (U._block[U_block].reshape(U.rank,U.block_index_qd[U_block].data()));
       U._block[U_block].slice(offU.data(),U.block_index_qd[U_block].data(),0.,_U,start.data(),end.data(),1.);
       c_row += l_qn_sizes_map[q][i];
+      //start+=tot_size;
     }
+    //perr<<endl;
     //perr<<"V slice"<<endl;
     // copy data from mU to atensor V
     c_col=0;
@@ -562,17 +599,18 @@ void svd(qstensor<T>& A,
       int    tot_size = V._block[V_block].get_tot_size(false);
       vector<int> start = {c_row,c_col};
       vector<int> end   = {c_row+(tot_size-1)%ndim+1, c_col+(tot_size)/ndim};
-      //perr<< "  %"<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<endl;
+      //perr<< " %("<<row<<","<<col<<") "<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
       //V._block[V_block] = (_V.slice(start.data(),end.data()));
       //V._block[V_block] = (V._block[V_block].reshape(V.rank,V.block_index_qd[V_block].data()));
       V._block[V_block].slice(offV.data(),V.block_index_qd[V_block].data(),0.,_V,start.data(),end.data(),1.);
       c_col += r_qn_sizes_map[q][i];
     }
+    //perr<<endl;
 
   }//end midQ loop*/
 
 #ifndef NDEBUG
-  for(int ii=0;ii<mid_Q.size();ii++){
+  for(int ii=0;ii<mid_num;ii++){
     assert(U.rank==U._block[ii].order);
     for(int l=0;l<U.rank;l++){
       assert(U._block[ii].lens[l]==U.block_index_qd[ii][l]);
@@ -589,7 +627,6 @@ void svd(qstensor<T>& A,
   blockToSparse(V,V._T);
   U._block.clear();
   V._block.clear();
-  
 
 }
 template void svd(qstensor<double>& A,vector<qtensor_index>& left, vector<qtensor_index>& right, qstensor<double>& U, qstensor<double>& V, qtensor<double>& S, int direction,double cutoff, unsigned K);

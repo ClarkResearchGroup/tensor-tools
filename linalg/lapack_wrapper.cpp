@@ -30,6 +30,8 @@ void DIAG(int m, double* A, double* evals){
 	dsyev_(&jobz,&uplo,&N,A,&N,evals,work,&lwork,&info);
 	if(info!=0){
 		std::cout<<"dsyev error info is "<<info<<std::endl;
+    delete [] work;
+    assert(1==2);
 	}
 	delete [] work;
 }

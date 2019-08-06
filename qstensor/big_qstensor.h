@@ -33,9 +33,9 @@ public:
   }
   ~big_qstensor(){}
 
-  void setLeft(qstensor<T>* Left) {L=Left; A=std::move(A*(*L));}
-  void setRight(qstensor<T>* Right) {R=Right; A._T.sparsify();}
-  void addMid(qstensor<T>* m) {mid.push_back(m); A=std::move(A*(*m));}
+  void setLeft(qstensor<T>* Left) {L=Left; }
+  void setRight(qstensor<T>* Right) {R=Right;}
+  void addMid(qstensor<T>* m) {  mid=std::move(mid*(*m)); }
 
   qstensor<T> product(qstensor<T>& v);
   qstensor<T> diagonal();
@@ -45,9 +45,9 @@ private:
   // Left/Right environment
   qstensor<T>* L;
   qstensor<T>* R;
-  qstensor<T> A;
+  qstensor<T> mid;
   // (1) One site
-  vector< qstensor<T>* > mid;
+  //vector< qstensor<T>* > mid;
 };
 
 #endif

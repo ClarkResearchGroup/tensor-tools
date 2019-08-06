@@ -1259,6 +1259,87 @@ qstensor<T> qstensor<T>::diagonal(){
 }
 template qstensor<double> qstensor<double>::diagonal();
 template qstensor< std::complex<double> > qstensor< std::complex<double> >::diagonal();
+
+//this is a dummy function that doesn't allocate new memory,
+//so that the proper indices can be setup for the final call 
+//as CTF cannot figure out the proper indices along the way
+template <typename T>
+qstensor<T> qstensor<T>::diagonal(index_type type){
+  assert(_initted && rank>1);
+  assert(rank%2==0);
+  vector<qtensor_index> new_idx_set;
+  vector< std::pair<int,int> > idx_pair;
+  uint_vec left_index;
+  uint_vec right_index;
+  for (size_t i = 0; i < rank; i++) {
+    for (size_t j = i+1; j < rank; j++) {
+      if(idx_set[i].similar(idx_set[j])){
+        if(idx_set[i].level() < idx_set[j].level()){
+          new_idx_set.push_back(idx_set[i]);
+          left_index.push_back(i);
+          right_index.push_back(j);
+          idx_pair.push_back(std::make_pair(i,j));
+        }else{
+          new_idx_set.push_back(idx_set[j]);
+          left_index.push_back(j);
+          right_index.push_back(i);
+          idx_pair.push_back(std::make_pair(j,i));
+        }
+        break;
+      }
+    }
+  }
+  assert(2*new_idx_set.size()==rank);
+  // Set up new qstensor
+  qstensor<T> res(new_idx_set);
+  unordered_map<string,char> charMap;
+  auto indNew  = indicesToCharNP(new_idx_set,charMap);
+  auto indOrig = indicesToCharNP(idx_set,charMap);
+  // extract diagonal blocks
+  for (size_t i = 0; i < block_index_qn.size(); i++) {
+    uint_vec t_stride;
+    t_stride.push_back(1);
+    for (size_t j = 0; j < rank; j++) {
+      t_stride.push_back(block_index_qd[i][j] * t_stride[j]);
+    }
+    uint_vec left_qi;
+    bool is_diag_block = true;
+    for (size_t j = 0; j < left_index.size(); j++) {
+      if(block_index_qi[i][left_index[j]] != block_index_qi[i][right_index[j]]){
+        is_diag_block = false;
+        break;
+      }else{
+        left_qi.push_back(block_index_qi[i][left_index[j]]);
+      }
+    }
+    if(is_diag_block){
+      const uint_vec& res_block_index_qi = left_qi;
+      int_vec  res_block_index_qd;
+      int_vec  res_block_index_qn;
+      unsigned res_block_size = 1;
+      string   res_qn_str;
+      for (size_t j = 0; j < left_index.size(); j++) {
+        res_block_index_qn.push_back(block_index_qn[i][left_index[j]]);
+        res_block_index_qd.push_back(block_index_qd[i][left_index[j]]);
+        res_block_size *= res_block_index_qd.back();
+        res_qn_str += (to_string(res_block_index_qn.back())+" ");
+      }
+      //res._block.emplace_back(res_block_index_qd.size(),res_block_index_qd.data());
+      res.block_index_qn.push_back(res_block_index_qn);
+      res.block_index_qd.push_back(res_block_index_qd);
+      res.block_index_qi.push_back(res_block_index_qi);
+      res.block_id_by_qn_str[res_qn_str] = res.block_index_qn.size()-1;
+      // copy values
+      //res._block.back()[indNew.c_str()] = _block[i][indOrig.c_str()];
+    }
+  }
+  idxToSparse(new_idx_set,res._T);
+  //res._T[indNew.c_str()] = _T[indOrig.c_str()];
+  res._initted = true;
+  return res;
+}
+template qstensor<double> qstensor<double>::diagonal(index_type type);
+template qstensor< std::complex<double> > qstensor< std::complex<double> >::diagonal(index_type type);
 //---------------------------------------------------------------------------
 
 
@@ -1592,9 +1673,6 @@ void qstensor<std::complex<double> >::conj(){
 template<> double qstensor<double>::norm(){
   assert(_initted);
   double res = 0.0;
-  /*for (size_t i = 0; i < _block.size(); i++) {
-    res += _block[i].reduce(CTF::OP_SUMSQ);
-  }*/
 
   return std::real(_T.norm2());
 }
@@ -1618,10 +1696,8 @@ double qstensor<T>::normalize(){
   assert(_initted);
   double res = norm();
   auto ind = getIndices();
-  /*for (size_t i = 0; i < _block.size(); i++) {
-    _block[i][ind.c_str()]*=(1./res);
-  }*/
-  _T[ind.c_str()]*=1./res;
+  if( res!=0.) _T[ind.c_str()]*=1./res;
+  //else         assert(1==2);
   return res;
 }
 template double qstensor<double>::normalize();

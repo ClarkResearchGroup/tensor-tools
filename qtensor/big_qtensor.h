@@ -33,9 +33,9 @@ public:
   }
   ~big_qtensor(){}
 
-  void setLeft(qtensor<T>* Left) {L=Left; A=std::move(A*(*L));}
-  void setRight(qtensor<T>* Right) {R=Right; }
-  void addMid(qtensor<T>* m) {mid.push_back(m); A=std::move(A*(*m));}
+  void setLeft(qtensor<T>* Left) {L=Left;}
+  void setRight(qtensor<T>* Right) {R=Right;}
+  void addMid(qtensor<T>* m) {mid=std::move(mid*(*m));}
 
   qtensor<T> product(qtensor<T>& v);
   qtensor<T> diagonal();
@@ -45,9 +45,9 @@ private:
   // Left/Right environment
   qtensor<T>* L;
   qtensor<T>* R;
-  qtensor<T> A;
+  qtensor<T> mid;
   // (1) One site
-  vector< qtensor<T>* > mid;
+  //vector< qtensor<T>* > mid;
 };
 
 #endif

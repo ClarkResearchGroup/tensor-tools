@@ -115,6 +115,7 @@ public:
   // only possible when tensor indices come in "pairs",
   // meaning same name string but different prime level
   qstensor<T> diagonal();
+  qstensor<T> diagonal(index_type type);
 
   //---------------------------------------------------------------------------
   // special arithmetic operations with another tensor in the same format/pattern
@@ -151,6 +152,9 @@ public:
 //convert blocks into sparse tensor
 template<typename T,template <typename> class TensorType >
 void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M);
+
+template<typename T>
+void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M);
 
 /*template<typename T>
 double calcEntropy(qstensor<T>& S, double cutoff=1e-24){

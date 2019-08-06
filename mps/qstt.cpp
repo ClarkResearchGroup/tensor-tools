@@ -311,7 +311,7 @@ void qsTensorTrain<T, N>::allocateTensors(unsigned* product_state){
             if(A[i].block_index_qi[j][1] == product_state[i]){
               A[i]._block[j][ind.c_str()] = 1.;
             }else{
-              //A[i]._block[j][ind.c_str()] = 0;//std::numeric_limits<double>::epsilon(); //TODO: check for complex
+              //A[i]._block[j][ind.c_str()] = std::numeric_limits<double>::epsilon(); //TODO: check for complex
             }
           }
         }
