@@ -132,7 +132,31 @@ void svd(dtensor<T>& A,
   auto indA = A.getIndices(charMap);
   //  A.__T[indA.c_str()].svd(U.__T[indU.c_str()],_S[indS.c_str()],V.__T[indV.c_str()]); //,R+3); //Does this work independent of what's in U and V
   
-  A.__T[indA.c_str()].svd(U.__T[indU.c_str()],_S[indS.c_str()],V.__T[indV.c_str()],K,cutoff); //,R+3); //Does this work independent of what's in U and V
+  if(r==1 && c==2){
+    U.reset(U_idx_set);
+    V.reset(V_idx_set);
+    U.__T[indU.c_str()] = 1.;
+    _S = CTF::Vector<T>(1);
+    V.__T[indV.c_str()] = A.__T[indA.c_str()];
+    double d=0.;
+    CTF::Scalar<double> tot;
+    using cmplx = std::complex<double>;
+    if(std::is_same<T,cmplx>::value){
+      tot[""] += CTF::Function<double,cmplx>([](cmplx r){ return std::real(cconj(r)*r);})(A.__T[indA.c_str()]);
+      d=tot;
+      d=sqrt(d);
+    } else{
+      tot[""]=std::real(A.__T.norm2());
+      d=tot;
+    }
+     _S["i"] = d;
+     if(d!=0.) V.__T[indV.c_str()] *= 1./d;
+     else    { V.__T[indV.c_str()] = 1./sqrt(2);} //this is what lapack seems to do
+
+  }
+  else{
+    A.__T[indA.c_str()].svd(U.__T[indU.c_str()],_S[indS.c_str()],V.__T[indV.c_str()],K,cutoff); //,R+3); //Does this work independent of what's in U and V
+  }
   U_idx_set.back()=dtensor_index(U.__T.lens[U.__T.order-1],U_idx_set.back().name(),U_idx_set.back().type(),U_idx_set.back().level());
   V_idx_set.front()=dtensor_index(V.__T.lens[0],V_idx_set.front().name(),V_idx_set.front().type(),V_idx_set.front().level());
   vector<dtensor_index> midVec = {_S.lens[0]};
