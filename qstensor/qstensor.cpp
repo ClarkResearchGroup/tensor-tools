@@ -10,8 +10,7 @@ void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M){
      idx_sizes[i]+=idx_set[i].qdim(j);
    }
   }
- M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
- M.sparsify();
+ M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
 }
 template<typename T,template <typename> class TensorType >
 void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
@@ -283,6 +282,7 @@ qstensor<T>::qstensor(const qtensor<T>& other){
   _initted           = other._initted;
   //make _T
   blockToSparse(other,_T);
+  _block.clear();
 }
 template qstensor<double>::qstensor(const qtensor<double>& other);
 template qstensor< std::complex<double> >::qstensor(const qtensor< std::complex<double> >& other);
@@ -300,6 +300,7 @@ qstensor<T>::qstensor(qtensor<T>&& other){
   _initted           = other._initted;
   //make _T
   blockToSparse(other,_T);
+  _block.clear();
 }
 template qstensor<double>::qstensor(qtensor<double>&& other);
 template qstensor< std::complex<double> >::qstensor(qtensor< std::complex<double> >&& other);
@@ -545,7 +546,7 @@ qstensor<T>& qstensor<T>::operator=(const qtensor<T>& other){//convert
     clearBlock();
     rank               = other.rank;
     idx_set            = other.idx_set;
-    _block              = other._block;
+    //_block              = other._block;
     //_T                 = other._T;
     blockToSparse(other,_T);
     block_index_qn     = other.block_index_qn;
@@ -553,6 +554,7 @@ qstensor<T>& qstensor<T>::operator=(const qtensor<T>& other){//convert
     block_index_qi     = other.block_index_qi;
     block_id_by_qn_str = other.block_id_by_qn_str;
     _initted           = other._initted;
+    _block.clear();
   }
   return *this;
 }
@@ -566,7 +568,7 @@ qstensor<T>& qstensor<T>::operator=(qtensor<T>&& other){//convert
     clearBlock();
     rank               = other.rank;
     idx_set            = std::move(other.idx_set);
-    _block              = std::move(other._block);
+    //_block              = std::move(other._block);
     //_T                 = std::move(other._T);
     blockToSparse(other,_T);
     block_index_qn     = std::move(other.block_index_qn);
@@ -574,6 +576,7 @@ qstensor<T>& qstensor<T>::operator=(qtensor<T>&& other){//convert
     block_index_qi     = std::move(other.block_index_qi);
     block_id_by_qn_str = std::move(other.block_id_by_qn_str);
     _initted           = other._initted;
+    _block.clear();
   }
   return *this;
 }
@@ -1461,7 +1464,6 @@ template void qstensor< std::complex<double> >::save(string fn);
 
 template <typename T>
 void qstensor<T>::save(ezh5::Node& fh5W){
-  assert(1==2);
   assert(_initted);
   uint_vec idx_arrows;
   str_vec  idx_names;
@@ -1493,7 +1495,6 @@ void qstensor<T>::save(ezh5::Node& fh5W){
     fh5W["idx_name_"+std::to_string(i)] = vec;
   }
   for (size_t i = 0; i < block.size(); i++) {
-    fh5W["block_"+to_string(i)] = block[i];
     fh5W["block_"+to_string(i)+"_qi"] = block_index_qi[i];
   }
 }
@@ -1560,7 +1561,6 @@ template void qstensor< std::complex<double> >::load(string fn);
 
 template <typename T>
 void qstensor<T>::load(ezh5::Node& fh5R){
-  assert(1==2);
   uint_vec idx_arrows_int;
   arr_vec  idx_arrows;
   str_vec  idx_names;
@@ -1601,13 +1601,12 @@ void qstensor<T>::load(ezh5::Node& fh5R){
       qd_vec.push_back(idx_set[j].qdim(qi_vec[j]));
       qn_str += (to_string(qn_vec.back())+" ");
     }
-    A.block.push_back(vector<T>(1));
     A.block_index_qi.push_back(qi_vec);
     A.block_index_qd.push_back(qd_vec);
     A.block_index_qn.push_back(qn_vec);
     A.block_id_by_qn_str[qn_str] = i;
-    fh5R["block_"+to_string(i)] >> A.block.back();
   }
+  A.initBlock();
   (*this) = A;
 }
 template void qstensor<double>::load(ezh5::Node& fR);

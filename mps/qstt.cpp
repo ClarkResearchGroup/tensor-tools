@@ -276,32 +276,29 @@ void qsTensorTrain<T, N>::allocateTensors(unsigned* product_state){
         string left_link_name  = Link_name_pref+to_string(i);
         string right_link_name = Link_name_pref+to_string(i+1);
         string site_name       = Site_name_pref+to_string(i);
-        A.push_back(
-          std::move(
-            qstensor<T>(
+        qstensor<T> Ai(
               {Inward, Inward, Outward},
               {left_link_name, site_name, right_link_name},
               {Link, Site, Link},
-              {0,0,0})
-          )
-        );
+              {0,0,0});
         // Set QNs
         vector<int> left_link_qn(Link_QN[i].begin(), Link_QN[i].end());
         vector<int> right_link_qn(Link_QN[i+1].begin(), Link_QN[i+1].end());
         // Left Link
         for (size_t j = 0; j < left_link_qn.size(); j++) {
-          A[i].addQNtoIndex(0, std::make_pair(left_link_qn[j], 1));
+          Ai.addQNtoIndex(0, std::make_pair(left_link_qn[j], 1));
         }
         // Site
         for (size_t j = 0; j < phy_qn.size(); j++) {
-          A[i].addQNtoIndex(1, std::make_pair(phy_qn[j], 1));
+          Ai.addQNtoIndex(1, std::make_pair(phy_qn[j], 1));
         }
         // Right Link
         for (size_t j = 0; j < right_link_qn.size(); j++) {
-          A[i].addQNtoIndex(2, std::make_pair(right_link_qn[j], 1));
+          Ai.addQNtoIndex(2, std::make_pair(right_link_qn[j], 1));
         }
-        A[i].initBlock();
+        Ai.initBlock();
         //A[i].setRandom();
+        A.push_back(std::move(Ai));
       }
       // Set product state
       if(product_state!=nullptr){
@@ -315,6 +312,11 @@ void qsTensorTrain<T, N>::allocateTensors(unsigned* product_state){
             }
           }
         }
+      }
+      //convert A[i] to _T
+      for (size_t i = 0; i < length; i++) { 
+        blockToSparse(A[i],A[i]._T);
+        A[i]._block.clear();
       }
     }
     if(N==2){
@@ -734,30 +736,72 @@ template qsTensorTrain< std::complex<double>, 2> qsTensorTrain<std::complex<doub
 
 
 template <typename T, unsigned N>
-void qsTensorTrain<T, N>::save(std::string fn){
+void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
   assert(tensors_allocated);
-  ezh5::File fh5 (fn, H5F_ACC_TRUNC);
-  fh5["length"] = length;
-  fh5["phy_dim"] = phy_dim;
-  fh5["bond_dims"] = bond_dims;
-  fh5["center"] = center;
-  fh5["totalQ"] = totalQ;
-  fh5["phy_qn"] = phy_qn;
-  fh5["id"] = _id;
-  for (size_t i = 0; i < length; i++){
-    ezh5::Node nd = fh5["Tensor"+to_string(i)];
-    A[i].save(nd);
+  //check that all tensors are the same
+  bool is_sparse = A[0]._T.is_sparse;
+  bool allSame   = true;
+  for(auto& Ai : A) allSame = allSame && (is_sparse && Ai._T.is_sparse);
+  assert(allSame);
+
+  if(wfn.size()==0) wfn=fn+"__T.bin";
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank==0){
+    ezh5::File fh5 (fn+".h5", H5F_ACC_TRUNC);
+    std::vector<char> wfnC(wfn.begin(),wfn.end()); wfnC.push_back(0); //don't forget null terminator
+    fh5["wfn"]    = wfnC;
+    fh5["length"] = length;
+    fh5["phy_dim"] = phy_dim;
+    fh5["bond_dims"] = bond_dims;
+    fh5["center"] = center;
+    fh5["totalQ"] = totalQ;
+    fh5["phy_qn"] = phy_qn;
+    fh5["id"] = _id;
+    fh5["is_sparse"] = is_sparse;
+    int64_t offset=0;
+    for (size_t i = 0; i < length; i++){
+      ezh5::Node nd = fh5["Tensor"+to_string(i)];
+      nd["T"] = wfnC;
+      nd["offset"] = offset;
+      A[i].save(nd);
+      offset+= A[i]._T.get_tot_size(false)*sizeof(T); //for now convert to dense
+    }
   }
+  MPI_File file;
+  //first delete any file that may be there
+  MPI_File_open(MPI_COMM_WORLD, wfn.c_str(), MPI_MODE_WRONLY|MPI_MODE_CREATE|MPI_MODE_DELETE_ON_CLOSE,
+                MPI_INFO_NULL,&file);
+  MPI_File_close(&file);
+  MPI_File_open(MPI_COMM_WORLD, wfn.c_str(),  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+  if(is_sparse){
+    int64_t offset=0;
+    for (size_t i = 0; i < length; i++){
+      auto Atemp = A[i]._T; Atemp.densify();
+      Atemp.write_dense_to_file(file,offset);
+      offset+= Atemp.get_tot_size(false)*sizeof(T);
+    }
+  }
+  else{
+    int64_t offset=0;
+    for (size_t i = 0; i < length; i++){
+      A[i]._T.write_dense_to_file(file,offset);
+      offset+= A[i]._T.get_tot_size(false)*sizeof(T);
+    }
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_File_close(&file);
 }
-template void qsTensorTrain<double, 1>::save(std::string fn);
-template void qsTensorTrain<double, 2>::save(std::string fn);
-template void qsTensorTrain<std::complex<double>, 1>::save(std::string fn);
-template void qsTensorTrain<std::complex<double>, 2>::save(std::string fn);
+template void qsTensorTrain<double, 1>::save(std::string fn, std::string wfn);
+template void qsTensorTrain<double, 2>::save(std::string fn, std::string wfn);
+template void qsTensorTrain<std::complex<double>, 1>::save(std::string fn, std::string wfn);
+template void qsTensorTrain<std::complex<double>, 2>::save(std::string fn, std::string wfn);
 
 
 template <typename T, unsigned N>
 void qsTensorTrain<T, N>::load(std::string fn){
   freeTensors();
+  bool is_sparse;
   ezh5::File fh5 (fn, H5F_ACC_RDONLY);
   fh5["length"] >> length;
   fh5["phy_dim"] >> phy_dim;
@@ -766,11 +810,27 @@ void qsTensorTrain<T, N>::load(std::string fn){
   fh5["totalQ"] >> totalQ;
   fh5["phy_qn"] >> phy_qn;
   fh5["id"] >> _id;
+  fh5["is_sparse"] >> is_sparse;
+  std::vector<char> wfnC; fh5["wfn"] >> wfnC;
   allocateTensors();
+  MPI_File file;
+  MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
+                MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  int64_t offset=0;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
+    nd["offset"] >> offset;
     A[i].load(nd);
+    A[i]._T.densify();
+    if(is_sparse){
+      A[i]._T.read_dense_from_file(file,offset);
+      A[i]._T.sparsify();
+    }
+    else{ A[i]._T.read_dense_from_file(file,offset); }
+    A[i]._initted = true;
   }
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_File_close(&file);
 }
 template void qsTensorTrain<double, 1>::load(std::string fn);
 template void qsTensorTrain<double, 2>::load(std::string fn);

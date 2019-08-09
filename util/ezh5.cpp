@@ -18,6 +18,7 @@ namespace ezh5{
 		}
   };
 
+  template<> hid_t DataType<bool>::id = H5T_NATIVE_HBOOL;
   template<> hid_t DataType<char>::id = H5T_NATIVE_CHAR;
   template<> hid_t DataType<double>::id = H5T_NATIVE_DOUBLE;
   template<> hid_t DataType<float>::id = H5T_NATIVE_FLOAT;
@@ -60,6 +61,7 @@ namespace ezh5{
 		this->id = -1;
 		return *this;
 	}
+	template Node& Node::operator = (bool val);
 	template Node& Node::operator = (int val);
   template Node& Node::operator = (unsigned val);
   template Node& Node::operator = (unsigned long val);
@@ -78,6 +80,7 @@ namespace ezh5{
 		H5Dclose(dataset_id);
 		return *this;
 	}
+	template Node& Node::operator >> (bool& val);
 	template Node& Node::operator >> (int& val);
 	template Node& Node::operator >> (long& val);
   template Node& Node::operator >> (unsigned& val);
