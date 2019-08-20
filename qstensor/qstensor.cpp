@@ -25,7 +25,7 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
      offset+= A.idx_set[i].qdim(j);
    }
   }
- M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
+ M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
  //place data into M
  vector<int64_t> zeros(A.rank,0);
  for(int i=0;i<A._block.size();i++){
@@ -38,7 +38,7 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
 
    M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
  }
- M.sparsify();
+ //M.sparsify();
 }
 template void blockToSparse(const qtensor<double> &A,  CTF::Tensor<double> &M);
 template void blockToSparse(const qstensor<complex<double> > &A, CTF::Tensor<complex<double> > &M);
@@ -1481,7 +1481,7 @@ void qstensor<T>::save(ezh5::Node& fh5W){
       idx_qdim[i].push_back(idx_set[i].qdim(j));
     }
   }
-  fh5W["num_blocks"] = block.size();
+  fh5W["num_blocks"] = block_index_qn.size();
   fh5W["rank"] = rank;
   fh5W["idx_arrows"] = idx_arrows;
   fh5W["idx_types"] = idx_types;
@@ -1494,7 +1494,7 @@ void qstensor<T>::save(ezh5::Node& fh5W){
     std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
     fh5W["idx_name_"+std::to_string(i)] = vec;
   }
-  for (size_t i = 0; i < block.size(); i++) {
+  for (size_t i = 0; i < block_index_qn.size(); i++) {
     fh5W["block_"+to_string(i)+"_qi"] = block_index_qi[i];
   }
 }
@@ -1606,6 +1606,10 @@ void qstensor<T>::load(ezh5::Node& fh5R){
     A.block_index_qn.push_back(qn_vec);
     A.block_id_by_qn_str[qn_str] = i;
   }
+  assert(A.block_index_qi.size()==num_blocks);
+  assert(A.block_index_qd.size()==num_blocks);
+  assert(A.block_index_qn.size()==num_blocks);
+  assert(A.block_id_by_qn_str.size()==num_blocks);
   A.initBlock();
   (*this) = A;
 }
