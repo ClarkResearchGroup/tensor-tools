@@ -656,8 +656,8 @@ void qTensorTrain<T, N>::save(std::string fn, std::string wfn){
       for(int l=0;l<A[i]._block.size();l++){
         nd["offset_"+to_string(l)] = offset;
         int64_t tot_size = 1;
-        for(auto qd : A[i].block_index_qd[l]) tot_size*=qd*sizeof(T);
-        offset+= tot_size;
+        for(auto qd : A[i].block_index_qd[l]) tot_size*=qd;
+        offset+= tot_size*sizeof(T);
       }
       A[i].save(nd);
     }
@@ -674,8 +674,8 @@ void qTensorTrain<T, N>::save(std::string fn, std::string wfn){
     for(int l=0; l<A[i]._block.size(); l++){
       A[i]._block[l].write_dense_to_file(file,offset);
       int64_t tot_size = 1;
-      for(auto qd : A[i].block_index_qd[l]) tot_size*=qd*sizeof(T);
-      offset+= tot_size;
+      for(auto qd : A[i].block_index_qd[l]) tot_size*=qd;
+      offset+= tot_size*sizeof(T);
     }
   }
   MPI_Barrier(MPI_COMM_WORLD);
