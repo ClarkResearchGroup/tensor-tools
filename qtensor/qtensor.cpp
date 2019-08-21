@@ -1361,7 +1361,6 @@ template void qtensor< std::complex<double> >::save(string fn);
 
 template <typename T>
 void qtensor<T>::save(ezh5::Node& fh5W){
-  assert(1==2);
   assert(_initted);
   uint_vec idx_arrows;
   str_vec  idx_names;
@@ -1379,7 +1378,7 @@ void qtensor<T>::save(ezh5::Node& fh5W){
       idx_qdim[i].push_back(idx_set[i].qdim(j));
     }
   }
-  fh5W["num_blocks"] = block.size();
+  fh5W["num_blocks"] = _block.size();
   fh5W["rank"] = rank;
   fh5W["idx_arrows"] = idx_arrows;
   fh5W["idx_types"] = idx_types;
@@ -1392,10 +1391,10 @@ void qtensor<T>::save(ezh5::Node& fh5W){
     std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
     fh5W["idx_name_"+std::to_string(i)] = vec;
   }
-  for (size_t i = 0; i < block.size(); i++) {
-    fh5W["block_"+to_string(i)] = block[i];
+  for (size_t i = 0; i < _block.size(); i++) {
     fh5W["block_"+to_string(i)+"_qi"] = block_index_qi[i];
   }
+  //save blocks externally
 }
 template void qtensor<double>::save(ezh5::Node& fW);
 template void qtensor< std::complex<double> >::save(ezh5::Node& fW);
@@ -1460,7 +1459,6 @@ template void qtensor< std::complex<double> >::load(string fn);
 
 template <typename T>
 void qtensor<T>::load(ezh5::Node& fh5R){
-  assert(1==2);
   uint_vec idx_arrows_int;
   arr_vec  idx_arrows;
   str_vec  idx_names;
@@ -1501,12 +1499,13 @@ void qtensor<T>::load(ezh5::Node& fh5R){
       qd_vec.push_back(idx_set[j].qdim(qi_vec[j]));
       qn_str += (to_string(qn_vec.back())+" ");
     }
-    A.block.push_back(vector<T>(1));
+    //A.block.push_back(vector<T>(1));
+    A._block.emplace_back(rank,qd_vec.data());
     A.block_index_qi.push_back(qi_vec);
     A.block_index_qd.push_back(qd_vec);
     A.block_index_qn.push_back(qn_vec);
     A.block_id_by_qn_str[qn_str] = i;
-    fh5R["block_"+to_string(i)] >> A.block.back();
+    //fh5R["block_"+to_string(i)] >> A.block.back();
   }
   (*this) = A;
 }
