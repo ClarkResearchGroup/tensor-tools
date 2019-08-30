@@ -63,7 +63,8 @@ double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_res
   // uint_vec perm;
   // find_index_permutation(D.idx_set, x.idx_set, perm);
   // D.permute(perm);
-  T* M              = new T [m*m];
+  T* M              = new T [(m+1)*(m+1)];
+  T* Mnext          = new T [(m+1)*(m+1)];
   double* evals     = new double [m];
   double eval       = 0;
   double r_norm     = 0.0;
@@ -86,10 +87,21 @@ double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_res
       }*/
       va[j] = std::move(A.product(v[j]));
       // (4) Update Hamiltonian projected to subspace
-      for (int k = 0; k < j+1; k++) {
+      /*for (int k = 0; k < j+1; k++) {
         for (int l = 0; l <= k; l++) {
           M[l + k*(j+1)] = va[l].inner_product(v[k]);
           M[k + l*(j+1)] = cconj(M[l + k*(j+1)]);
+        }
+      }*/
+      int l = j;
+      for (int k = 0; k < j+1; k++) {
+        M[l + k*(j+1)] = va[l].inner_product(v[k]);
+        M[k + l*(j+1)] = cconj(M[l + k*(j+1)]);
+      }
+      for(int k =0;k<j+1;k++){
+        for(int l=0;l<=k;l++){
+          Mnext[l + k*(j+2)] = M[l + k*(j+1)];
+          Mnext[k + l*(j+2)] = M[k + l*(j+1)];
         }
       }
       if(j>0){
@@ -140,6 +152,7 @@ double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_res
         x.normalize();
       }
       // std::cout << "Residue norm = " << r_norm << '\n';
+      swap(M,Mnext);
     }
     x = u;
     if(r_norm<tol) break;
@@ -170,7 +183,7 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
   TensorType<T>* va = new TensorType<T> [actual_maxiter+2];
   
   T* M              = new T [(actual_maxiter+2)*(actual_maxiter+2)];
-  T* Mtemp          = new T [(actual_maxiter+2)*(actual_maxiter+2)];
+  T* Mnext          = new T [(actual_maxiter+2)*(actual_maxiter+2)];
   double* evals     = new double [(actual_maxiter+2)];
   double* evecs     = new double [(actual_maxiter+2)*(actual_maxiter+2)];
   double eval       = 0;
@@ -198,7 +211,7 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
       lambda = initEn;
       for(int mi=0;mi<ni;mi++){ //M is (ni,ni)
         M[mi] = lambda;
-        Mtemp[mi] = lambda;
+        Mnext[mi] = lambda;
       }
       q = va[0];
       q.add(v[0],-lambda); 
@@ -210,8 +223,8 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
       //assume that we'll add a row/column
       for(int mi =0;mi<ni;mi++){
         for(int mj=0;mj<=mi;mj++){
-          Mtemp[mj + mi*(ni+1)] = M[mj + mi*(ni)];
-          Mtemp[mi + mj*(ni+1)] = M[mi + mj*(ni)];
+          Mnext[mj + mi*(ni+1)] = M[mj + mi*(ni)];
+          Mnext[mi + mj*(ni+1)] = M[mi + mj*(ni)];
         }
       }
       DIAG(ni,M,evals);
@@ -290,7 +303,7 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
     va[ni] = std::move(A.product(v[ni]));
     //Step H of Davidson (1975)
     //Add new row and column to M
-    swap(Mtemp,M);
+    swap(Mnext,M);
     //for(int mi=0;mi<ni*ni;mi++) perr<<M[mi]<<" ";perr<<endl;
     int l = ni;
     for (int k = 0; k < ni+1; k++) {
@@ -307,7 +320,7 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
   delete [] va;
   delete [] evals;
   delete [] M;
-  delete [] Mtemp;
+  delete [] Mnext;
   
   return lambda;
 
