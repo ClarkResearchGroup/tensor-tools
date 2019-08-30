@@ -405,13 +405,22 @@ template void qstensor< std::complex<double> >::reset(vector<qtensor_index>& idx
 // Set values
 template <typename T>
 void qstensor<T>::setRandom(){
-  assert(1==2);
   assert(_initted);
-  /*for (size_t i = 0; i < _block.size(); i++) {
-    //random_array(block[i].data(), block[i].size());
-    _block[i].fill_random(0,1);
-  }*/
-  _T.fill_random(0,1); //TODO: fix for sparse
+  vector<unordered_map<int,int64_t> >offsets;
+  getOffsets(*this,offsets);
+  vector<int64_t> zeros(rank,0);
+  for(int i=0;i< block_index_qd.size();i++){
+    CTF::Tensor<T> ran(rank,block_index_qd[i].data());
+    ran.fill_random(0,1);
+   vector<int64_t> starts(rank);
+   vector<int64_t> ends(rank);
+   for(int j=0;j<rank;j++){
+    starts[j] = offsets[j][block_index_qn[i][j]];
+    ends[j] = starts[j]+block_index_qd[i][j];
+   }
+   _T.slice(starts.data(),ends.data(),0.,ran,zeros.data(),ran.lens,1.);
+
+  }
 }
 template void qstensor<double>::setRandom();
 template void qstensor< std::complex<double> >::setRandom();
@@ -1143,6 +1152,7 @@ template <typename T>
 void qstensor<T>::add(qstensor<T>& A, T c){
   assert(A._initted && _initted);
   assert(A.rank == rank);
+  //assert(A.block_index_qn.size() == block_index_qn.size()); //assumed but not necessary
   unordered_map<string,char> charMap;
   auto ind = getIndices(charMap);
   auto indA    = A.getIndices(charMap);

@@ -158,5 +158,169 @@ template double tensor_davidson(big_qtensor< std::complex<double> >& A, qtensor<
 template double tensor_davidson(big_qstensor<double>& A, qstensor<double>& x, int m, int max_restart, double tol, char mode);
 template double tensor_davidson(big_qstensor< std::complex<double> >& A, qstensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
 
+template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
+double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode){
+  assert(m>=1 && max_restart>=1 && tol>0);
+  auto x_norm = x.norm();
+  x *= 1./x_norm;
+  auto maxsize = 4;//A.rank //not sure
+  auto actual_maxiter = std::min(max_restart,maxsize-1);
+
+  TensorType<T>* v  = new TensorType<T> [actual_maxiter+2];
+  TensorType<T>* va = new TensorType<T> [actual_maxiter+2];
+  
+  T* M              = new T [(actual_maxiter+2)*(actual_maxiter+2)];
+  T* Mtemp          = new T [(actual_maxiter+2)*(actual_maxiter+2)];
+  double* evals     = new double [(actual_maxiter+2)];
+  double* evecs     = new double [(actual_maxiter+2)*(actual_maxiter+2)];
+  double eval       = 0;
+  double qnorm = 0.;
+
+  double last_lambda = 1000.;
+  double Approx0 = 1e-12;
+
+  v[0] = x;
+  va[0] = std::move(A.product(v[0]));
+
+  double initEn = std::real(va[0].inner_product(v[0])); //TODO check for cmplx
+  size_t t = 0;
+  size_t iter = 0;
+
+  double lambda = 0.;
+  for(size_t ii=0;ii<actual_maxiter+1;ii++){
+    //diag v*A*v
+    //compute residual q
+    int ni = ii+1;
+    auto& q = v[ni];
+
+    //Step A (or I) of Davidson (1975)
+    if(ii==0){
+      lambda = initEn;
+      for(int mi=0;mi<ni;mi++){ //M is (ni,ni)
+        M[mi] = lambda;
+        Mtemp[mi] = lambda;
+      }
+      q = va[0];
+      q.add(v[0],-lambda); 
+    }
+    else{
+      /*for(int mi=0;mi<ni*ni;mi++)
+        M[mi] *= -1;*/
+      //copy M->Mtemp since it gets destroyed
+      //assume that we'll add a row/column
+      for(int mi =0;mi<ni;mi++){
+        for(int mj=0;mj<=mi;mj++){
+          Mtemp[mj + mi*(ni+1)] = M[mj + mi*(ni)];
+          Mtemp[mi + mj*(ni+1)] = M[mi + mj*(ni)];
+        }
+      }
+      DIAG(ni,M,evals);
+      /*for(int mi=0;mi<ni*ni;mi++)
+        M[mi] *= -1;
+      for(int k=0;k<ni;k++)
+        evals[k]*=-1;*/
+      lambda = evals[0];
+      //perr<<"L="<<lambda<<endl;
+      x = v[0]; x*=M[0];//x*=evals[0];
+      q = va[0]; q*=M[0];//q*=evals[0];
+      for(int k=1;k<ii;k++){
+        x.add(v[k],M[k]);
+        q.add(va[k],M[k]);
+      }
+      //Step B of Davidson (1975)
+      //Calculate residual q
+      q.add(x,-lambda);
+      /*if(std::real(M[0]) < 0){
+        x *= -1.;
+        q *= -1.;
+      }*/
+    }
+    //Step C of Davidson (1975)
+    //Check convergence
+    qnorm = q.norm();
+    bool converged = (qnorm < tol && std::abs(lambda-last_lambda) < tol) || qnorm < std::max(Approx0,tol*1e-3);
+    last_lambda = lambda;
+    if((qnorm < 1e-20) || (converged && ii >= 1) || (ii==actual_maxiter))
+      goto done;
+    //Step D of Davidson (1975)
+    //Apply Davidson preconditioner
+    //TODO
+
+    //Step E and F of Davidson (1975)
+    //Do Gram-Schmidt on d (Npass times)
+    //to include it in the subbasis
+
+    int Npass = 1;
+    auto Vq = std::vector<T>(ni);
+    int pass = 1;
+    int tot_pass = 0;
+    while(pass <=Npass){
+      ++tot_pass;
+      for(int k=0;k<ni;k++){
+        Vq[k] = q.contract(v[k]); //includes dag
+      }
+      for(int k=0;k<ni;k++){
+        q.add(v[k],-Vq[k]);
+      }
+      auto qnrm = q.norm();
+      if(qnrm<1e-10){
+        //assert(1==2);
+        //Orthogonalization failure,
+        //try randomizing
+        q = v[ni-1];
+        q.setRandom();
+        qnrm = q.norm();
+        --pass;
+        if(ni >= maxsize){
+          //Not be possible to orthogonalize if
+          //max size of q (vecSize after randomize)
+          //is size of current basis
+          goto done;
+        }
+        if(tot_pass > Npass*3){
+          goto done;
+        }
+      }
+      q *= 1./qnrm;
+      ++pass; 
+    }
+    //Step G of Davidson (1975)
+    //Expand AV and M
+    //for next step
+    va[ni] = std::move(A.product(v[ni]));
+    //Step H of Davidson (1975)
+    //Add new row and column to M
+    swap(Mtemp,M);
+    //for(int mi=0;mi<ni*ni;mi++) perr<<M[mi]<<" ";perr<<endl;
+    int l = ni;
+    for (int k = 0; k < ni+1; k++) {
+      M[l + k*(ni+1)] = va[l].inner_product(v[k]);
+      M[k + l*(ni+1)] = cconj(M[l + k*(ni+1)]);
+    }
+    //for(int mi=0;mi<(ni+1)*(ni+1);mi++) perr<<M[mi]<<" ";perr<<endl;
+
+  } //(ii)
+  
+   done:
+  x.normalize();
+  delete [] v;
+  delete [] va;
+  delete [] evals;
+  delete [] M;
+  delete [] Mtemp;
+  
+  return lambda;
+
+
+  
+
+
+}
+template double tensor_davidsonIT(big_dtensor<double>& A, dtensor<double>& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidsonIT(big_dtensor< std::complex<double> >& A, dtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidsonIT(big_qtensor<double>& A, qtensor<double>& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidsonIT(big_qtensor< std::complex<double> >& A, qtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidsonIT(big_qstensor<double>& A, qstensor<double>& x, int m, int max_restart, double tol, char mode);
+template double tensor_davidsonIT(big_qstensor< std::complex<double> >& A, qstensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
 
 #endif

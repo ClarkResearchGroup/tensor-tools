@@ -32,5 +32,8 @@ void elemWiseDivide(qstensor<T>& A, double theta, qstensor<T>& B);
 // Restarted Davidson method to find the smallest/largest (algebraically) eigenvalue
 template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
 double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode='S');
+//recreated ITensor version
+template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
+double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode='S');
 
 #endif
