@@ -1281,6 +1281,7 @@ void svd(qtensor<T>& A,
     accBD += 1;
     if( (1-cumsum<cutoff &&cutoff!=0.) || (accBD>=K && K!=0) ) break;
   }
+  //perr<<"Trunc err="<< std::max(1-cumsum,0.) <<" "<<endl;
   // set up mid bond
   qtensor_index midCut(Outward);
   for(size_t ii=0;ii<mid_Q.size();ii++){

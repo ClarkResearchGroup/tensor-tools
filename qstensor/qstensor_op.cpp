@@ -393,9 +393,9 @@ void svd(qstensor<T>& A,
         std::vector<int64_t> offsetmA = {c_row,c_col};
         std::vector<int64_t> endsmA   = {c_row+l_qn_sizes_map[q][i],c_col+r_qn_sizes_map[q][j]};
         
-        for(int j=0;j<A.rank;j++){
-          offsetA[j] = blockOffsets[j][A.block_index_qn[A_block][j]];
-          ends[j]    = offsetA[j]+A.block_index_qd[A_block][j];
+        for(int k=0;k<A.rank;k++){
+          offsetA[k] = blockOffsets[k][A.block_index_qn[A_block][k]];
+          ends[k]    = offsetA[k]+A.block_index_qd[A_block][k];
         }
         mA.slice(offsetmA.data(),endsmA.data(),0.,A._T,offsetA.data(),ends.data(),1.);
         c_col += r_qn_sizes_map[q][j];
@@ -457,6 +457,7 @@ void svd(qstensor<T>& A,
     accBD += 1;
     if( (1-cumsum<cutoff &&cutoff!=0.) || (accBD>=K && K!=0) ) break;
   }
+  //perr<<"Trunc err="<< std::max(1-cumsum,0.) <<" "<<endl;
   // set up mid bond
   qtensor_index midCut(Outward);
   for(size_t ii=0;ii<mid_Q.size();ii++){
