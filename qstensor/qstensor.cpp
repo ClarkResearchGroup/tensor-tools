@@ -1168,6 +1168,17 @@ void qstensor<T>::add(qstensor<T>& A, T c){
       _block[t_id][ind.c_str()] += cs[""]*A._block[A_id][indA.c_str()];
     }
   }*/
+  for (auto i = A.block_id_by_qn_str.begin(); i != A.block_id_by_qn_str.end(); ++i){
+    string qn_str = i->first;
+    unsigned A_id = i->second;
+    //TODO this can be made slightly more effecient
+    if(block_id_by_qn_str.find(qn_str)==block_id_by_qn_str.end()){
+      block_index_qn.push_back(A.block_index_qn[A_id]);
+      block_index_qd.push_back(A.block_index_qd[A_id]);
+      block_index_qi.push_back(A.block_index_qi[A_id]);
+      block_id_by_qn_str[qn_str] = block_index_qn.size();
+    }
+  }
 }
 template void qstensor<double>::add(qstensor<double>& A, double c);
 template void qstensor< std::complex<double> >::add(qstensor< std::complex<double> >& A, std::complex<double> c);

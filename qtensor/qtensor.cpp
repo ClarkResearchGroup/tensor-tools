@@ -1074,20 +1074,29 @@ template <typename T>
 T qtensor<T>::contract(qtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
+  /*if(_block.size() != A._block.size()){
+    perr<<"mis match"<<endl;
+    A.dag();
+   auto vtemp = (*this)*A; 
+   A.dag();
+   return vtemp.norm();
+  }*/
   uint_vec perm;
   //qtensor<T> B(A); B.dag();
   vector<qtensor_index> A_idx_set = A.idx_set;
   for(int i=0;i<A.rank;i++) A_idx_set[i].dag();
-  //find_index_permutation(B.idx_set, idx_set, perm);
+  //find_index_permutation(A.idx_set, idx_set, perm);
   //B.permute(perm);
   T res = 0;
   unordered_map<string,char> charMap;
-  string ind = getIndices(charMap);
+  string ind  = getIndices(charMap);
   string indA = indicesToChar(A_idx_set,charMap);//B.getIndices(charMap);
   for(auto it = block_id_by_qn_str.begin(); it != block_id_by_qn_str.end(); ++it){
-    string qn_str = it->first;
+    string qn_str     = it->first;
     unsigned this_idx = it->second;
-    unsigned A_idx = A.block_id_by_qn_str.at(qn_str);
+    auto A_it = A.block_id_by_qn_str.find(qn_str);
+    if(A_it == A.block_id_by_qn_str.end()) continue;
+    unsigned A_idx = A_it->second;
     res += _block[this_idx][ind.c_str()]*A._block[A_idx][indA.c_str()];
   }
   return res;
@@ -1103,18 +1112,34 @@ template <typename T>
 void qtensor<T>::add(qtensor<T>& A, T c){
   assert(A._initted && _initted);
   assert(A.rank == rank);
+  /*if(A._block.size()!=_block.size()){
+    perr<<"add mismatch"<<endl;
+    perr<<A._block.size()<< " "<<A.block_index_qn.size()
+        << " "<<_block.size()<< " "<<block_index_qn.size()<<endl;
+  }*/
   unordered_map<string,char> charMap;
-  auto ind = getIndices(charMap);
+  auto ind     = getIndices(charMap);
   auto indA    = A.getIndices(charMap);
   CTF::Scalar<T> cs(c);
-  for (auto i = block_id_by_qn_str.begin(); i != block_id_by_qn_str.end(); ++i){
+  for (auto i = A.block_id_by_qn_str.begin(); i != A.block_id_by_qn_str.end(); ++i){
     string qn_str = i->first;
-    unsigned t_id = i->second;
-    if(A.block_id_by_qn_str.find(qn_str)!=A.block_id_by_qn_str.end()){
-      unsigned A_id = A.block_id_by_qn_str.at(qn_str);
+    unsigned A_id = i->second;
+    auto it       = block_id_by_qn_str.find(qn_str);
+    if(it!=block_id_by_qn_str.end()){
+      unsigned t_id = it->second;
       assert(A._block[A_id].get_tot_size(false) == _block[t_id].get_tot_size(false));
       assert(A._block[A_id].order == _block[t_id].order);
       _block[t_id][ind.c_str()] += cs[""]*A._block[A_id][indA.c_str()];
+    }
+    else{
+      //perr<<"add:"<<A_id<< " "<<_block.size()+1<<endl;
+      block_index_qn.push_back(A.block_index_qn[A_id]);
+      block_index_qd.push_back(A.block_index_qd[A_id]);
+      block_index_qi.push_back(A.block_index_qi[A_id]);
+      CTF::Tensor<T> aBlock(rank,A.block_index_qd[A_id].data());
+      aBlock[ind.c_str()] = cs[""]*A._block[A_id][indA.c_str()];
+      _block.push_back(std::move(aBlock)); 
+      block_id_by_qn_str[qn_str] = _block.size()-1;
     }
   }
 }
