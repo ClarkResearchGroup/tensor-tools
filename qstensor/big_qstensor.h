@@ -30,6 +30,7 @@ public:
   big_qstensor(){
     L=nullptr;
     R=nullptr;
+    size_=-1;
   }
   ~big_qstensor(){}
 
@@ -40,6 +41,7 @@ public:
   qstensor<T> product(qstensor<T>& v);
   qstensor<T> diagonal();
   T expec(qstensor<T>& v);
+  size_t size() const;
 
 private:
   // Left/Right environment
@@ -48,6 +50,7 @@ private:
   qstensor<T> mid;
   // (1) One site
   //vector< qstensor<T>* > mid;
+  mutable size_t size_;
 };
 
 #endif

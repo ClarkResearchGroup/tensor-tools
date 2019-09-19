@@ -112,4 +112,37 @@ dtensor<T> big_dtensor<T>::diagonal(){
 template dtensor<double> big_dtensor<double>::diagonal();
 template dtensor< std::complex<double> > big_dtensor< std::complex<double> >::diagonal();
 
+
+template <typename T>
+size_t big_dtensor<T>::size() const{
+  if(size_ == -1){
+    size_ = 1;
+    if(L!=nullptr){
+      for(int l=0; l< L->rank; l++){
+        if(L->idx_set[l].level() > 0)
+          size_ *= L->idx_set[l].size();
+      }
+    }
+    if(R!=nullptr){
+      for(int l=0; l< R->rank; l++){
+        if(R->idx_set[l].level() > 0)
+          size_ *= R->idx_set[l].size();
+      }
+    }
+  }
+  /*for(int l=0;l<mid.rank;l++){
+    if(mid.idx_set[l].type() == Site)
+      size_*= mid.idx_set[l].size();
+  }*/
+  for(auto m : mid){
+    for(int l=0;l<m->rank;l++){
+      if(m->idx_set[l].type() == Site)
+        size_*= m->idx_set[l].size();
+    }
+  }
+  return size_;
+}
+
+template size_t big_dtensor<double>::size() const;
+template size_t big_dtensor< std::complex<double> >::size() const;
 #endif

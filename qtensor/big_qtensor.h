@@ -30,6 +30,7 @@ public:
   big_qtensor(){
     L=nullptr;
     R=nullptr;
+    size_=-1;
   }
   ~big_qtensor(){}
 
@@ -40,6 +41,7 @@ public:
   qtensor<T> product(qtensor<T>& v);
   qtensor<T> diagonal();
   T expec(qtensor<T>& v);
+  size_t size() const;
 
 private:
   // Left/Right environment
@@ -48,6 +50,7 @@ private:
   qtensor<T> mid;
   // (1) One site
   //vector< qtensor<T>* > mid;
+  mutable size_t size_;
 };
 
 #endif

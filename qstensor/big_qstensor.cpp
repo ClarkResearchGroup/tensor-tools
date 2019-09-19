@@ -113,4 +113,30 @@ qstensor<T> big_qstensor<T>::diagonal(){
 template qstensor<double> big_qstensor<double>::diagonal();
 template qstensor< std::complex<double> > big_qstensor< std::complex<double> >::diagonal();
 
+template <typename T>
+size_t big_qstensor<T>::size() const{
+  if(size_ == -1){
+    size_ = 1;
+    if(L!=nullptr){
+      for(int l=0; l< L->rank; l++){
+        if(L->idx_set[l].level() > 0)
+          size_ *= L->idx_set[l].size();
+      }
+    }
+    if(R!=nullptr){
+      for(int l=0; l< R->rank; l++){
+        if(R->idx_set[l].level() > 0)
+          size_ *= R->idx_set[l].size();
+      }
+    }
+  }
+  for(int l=0;l<mid.rank;l++){
+    if(mid.idx_set[l].type() == Site)
+      size_*= mid.idx_set[l].size();
+  }
+  return size_;
+}
+template size_t big_qstensor<double>::size() const;
+template size_t big_qstensor< std::complex<double> >::size() const;
+
 #endif

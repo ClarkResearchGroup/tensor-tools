@@ -75,4 +75,30 @@ qtensor<T> big_qtensor<T>::diagonal(){
 template qtensor<double> big_qtensor<double>::diagonal();
 template qtensor< std::complex<double> > big_qtensor< std::complex<double> >::diagonal();
 
+template <typename T>
+size_t big_qtensor<T>::size() const{
+  if(size_ == -1){
+    size_ = 1;
+    if(L!=nullptr){
+      for(int l=0; l< L->rank; l++){
+        if(L->idx_set[l].level() > 0)
+          size_ *= L->idx_set[l].size();
+      }
+    }
+    if(R!=nullptr){
+      for(int l=0; l< R->rank; l++){
+        if(R->idx_set[l].level() > 0)
+          size_ *= R->idx_set[l].size();
+      }
+    }
+  }
+  for(int l=0;l<mid.rank;l++){
+    if(mid.idx_set[l].type() == Site)
+      size_*= mid.idx_set[l].size();
+  }
+  return size_;
+}
+
+template size_t big_qtensor<double>::size() const;
+template size_t big_qtensor< std::complex<double> >::size() const;
 #endif

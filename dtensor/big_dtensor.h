@@ -54,6 +54,7 @@ public:
   big_dtensor(){
     L=nullptr;
     R=nullptr;
+    size_=-1;
   }
   ~big_dtensor(){}
 
@@ -68,6 +69,7 @@ public:
 
   T expec(dtensor<T>& v);
   //T expec(dtensor_view<T>& v);
+  size_t size() const;
 
 private:
   // Left/Right environment
@@ -75,6 +77,7 @@ private:
   dtensor<T>* R;
   // Ops between L and R
   vector< dtensor<T>* > mid;
+  mutable size_t size_;
 };
 
 #endif

@@ -176,8 +176,8 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
   assert(m>=1 && max_restart>=1 && tol>0);
   auto x_norm = x.norm();
   x *= 1./x_norm;
-  auto maxsize = 4;//A.rank //not sure
-  auto actual_maxiter = std::min(max_restart,maxsize-1);
+  auto maxsize = A.size();
+  auto actual_maxiter = std::min((size_t) max_restart,maxsize-1);
 
   TensorType<T>* v  = new TensorType<T> [actual_maxiter+2];
   TensorType<T>* va = new TensorType<T> [actual_maxiter+2];
