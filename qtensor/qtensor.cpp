@@ -408,6 +408,7 @@ void qtensor<T>::permute(uint_vec& perm){
     }
   }
   if (perm_needed){
+    perr<<"perm"<<endl;
     qtensor<T> A(*this);
     for (size_t i = 0; i < rank; i++) {
       A.idx_set[i] = idx_set[perm[i]];
@@ -691,11 +692,13 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
             B_qn_str += (to_string(B_block_qn_complete[i])+" ");
           }
 
-          if(A_block_id_by_qn_str.find(A_qn_str)!=A_block_id_by_qn_str.end() && B_block_id_by_qn_str.find(B_qn_str)!=B_block_id_by_qn_str.end()){
+          auto Ait = A_block_id_by_qn_str.find(A_qn_str);
+          auto Bit = B_block_id_by_qn_str.find(B_qn_str);
+          if(Ait!=A_block_id_by_qn_str.end() && Bit!=B_block_id_by_qn_str.end()){
             //Do  C = A_L*B_R
             auto& C = res._block.back();
-            auto A_L = _block[A_block_id_by_qn_str[A_qn_str]][indA_L.c_str()];
-            auto B_R = other._block[B_block_id_by_qn_str[B_qn_str]][indB_R.c_str()];
+            auto A_L = _block[Ait->second][indA_L.c_str()];
+            auto B_R = other._block[Bit->second][indB_R.c_str()];
             C[indC.c_str()] += A_L*B_R;
           }
         }
