@@ -280,6 +280,7 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
         //assert(1==2);
         //Orthogonalization failure,
         //try randomizing
+        //perr<<"Randomizing"<<endl;
         q = v[ni-1];
         q.setRandom();
         qnrm = q.norm();

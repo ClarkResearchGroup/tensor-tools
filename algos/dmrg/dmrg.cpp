@@ -80,7 +80,7 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     left_ends.setOne();
     left_ends.dag();
     TL[0] = left_ends;
-    //TL[0]._T.sparsify();
+    TL[0]._T.sparsify();
   }
   // right ends
   {
@@ -90,7 +90,7 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     right_ends.setOne();
     right_ends.dag();
     TR[psi.length-1] = right_ends;
-    //TR[psi.length-1]._T.sparsify();
+    TR[psi.length-1]._T.sparsify();
   }
   qstensor<T> t1, t2, t3, t4, t5;
   for (size_t i = psi.length-1; i > 0; i--) {
@@ -100,7 +100,7 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     t4 = std::move(t1*TR[i]);
     t5 = std::move(t4*t2);
     TR[i-1] = std::move(t5*t3);
-    //TR[i-1]._T.sparsify();
+    TR[i-1]._T.sparsify();
   }
 }
 template void buildEnv(qsMPS<double>& psi, qsMPO<double>& H, std::vector< qstensor<double> >& TR, std::vector< qstensor<double> >& TL);
@@ -257,6 +257,10 @@ template void updateSite(qMPS< std::complex<double> >& psi, qMPO< std::complex<d
 template <typename T>
 void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &diag){
   if(direction==MoveFromLeft){
+    //change sparsity of current sites
+    TL[site]._T.densify();
+    TR[site+1]._T.densify();
+    
     // Set up big_dtensor for two site optimization
     big_qstensor<T> A;
     A.setLeft (&TL[site]);
@@ -265,8 +269,13 @@ void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std:
     A.setRight(&TR[site+1]);
     // Davidson Eigen solver (two-site)
     qstensor<T> x = std::move(psi.A[site]*psi.A[site+1]);
+    //x should now be sparse*sparse -> dense
+    
+
     diag.Start();
-    energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+    energy = tensor_davidsonIT(A, x, search_space_size, max_restart, 1e-12, mode);
+    //energy = tensor_lanczosMPT(A, x, search_space_size, max_restart, 1e-12, mode);
+    perr<<energy<< " ";
     diag.Stop();
     // SVD and move canonical center
     qtensor<T> S;
@@ -290,6 +299,10 @@ void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std:
       perr << vNEE << " ";
     }
   }else{
+    //change sparsity of current sites
+    TL[site-1]._T.densify();
+    TR[site]._T.densify();
+
     // Set up big_dtensor for two site optimization
     big_qstensor<T> A;
     A.setLeft (&TL[site-1]);
@@ -298,8 +311,12 @@ void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std:
     A.setRight(&TR[site]);
     // Davidson Eigen solver (two-site)
     qstensor<T> x = std::move(psi.A[site-1]*psi.A[site]);
+    //x should now be sparse*sparse -> dense
+
     diag.Start();
-    energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+    energy = tensor_davidsonIT(A, x, search_space_size, max_restart, 1e-12, mode);
+    //energy = tensor_lanczosMPT(A, x, search_space_size, max_restart, 1e-12, mode);
+    perr<<energy<< " ";
     diag.Stop();
     // SVD and move canonical center
     qtensor<T> S;
@@ -376,6 +393,10 @@ template void updateEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<do
 
 template <typename T>
 void updateEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL, const unsigned& site, int& direction){
+  //perr<<TR[site]._T.nnz_tot<< " "<<TL[site]._T.nnz_tot<<" |";
+  TR[site]._T.sparsify();
+  TL[site]._T.sparsify();
+  //perr<<TR[site]._T.nnz_tot<< " "<<TL[site]._T.nnz_tot<<" "<<endl;
   int phy = psi.phy_dim;
   unsigned L = psi.length;
   qstensor<T> t1, t4, t5;
@@ -686,7 +707,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, const std::vector<int>& max_b
     //psi.position(0);
     psi.normalize();
   }
-  if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
+  //if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
  return Energy; 
 }
 template double dmrg(qsMPS<double>& psi, qsMPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);

@@ -10,7 +10,8 @@ void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M){
      idx_sizes[i]+=idx_set[i].qdim(j);
    }
   }
- M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
+ //M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
+ M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
 }
 template<typename T,template <typename> class TensorType >
 void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
@@ -25,7 +26,8 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
      offset+= A.idx_set[i].qdim(j);
    }
   }
- M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
+ //M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
+ M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
  //place data into M
  vector<int64_t> zeros(A.rank,0);
  for(int i=0;i<A._block.size();i++){
@@ -38,7 +40,7 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
 
    M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
  }
- //M.sparsify();
+ M.sparsify();
 }
 template void blockToSparse(const qtensor<double> &A,  CTF::Tensor<double> &M);
 template void blockToSparse(const qstensor<complex<double> > &A, CTF::Tensor<complex<double> > &M);
