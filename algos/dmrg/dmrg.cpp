@@ -80,6 +80,7 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     left_ends.setOne();
     left_ends.dag();
     TL[0] = left_ends;
+    //TL[0]._T.sparsify();
   }
   // right ends
   {
@@ -89,6 +90,7 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     right_ends.setOne();
     right_ends.dag();
     TR[psi.length-1] = right_ends;
+    //TR[psi.length-1]._T.sparsify();
   }
   qstensor<T> t1, t2, t3, t4, t5;
   for (size_t i = psi.length-1; i > 0; i--) {
@@ -98,7 +100,7 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     t4 = std::move(t1*TR[i]);
     t5 = std::move(t4*t2);
     TR[i-1] = std::move(t5*t3);
-    TR[i-1]._T.sparsify();
+    //TR[i-1]._T.sparsify();
   }
 }
 template void buildEnv(qsMPS<double>& psi, qsMPO<double>& H, std::vector< qstensor<double> >& TR, std::vector< qstensor<double> >& TL);
@@ -188,7 +190,9 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
     // Davidson Eigen solver (two-site)
     qtensor<T> x = std::move(psi.A[site]*psi.A[site+1]);
     diag.Start();
-    energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+    energy = tensor_davidsonIT(A, x, search_space_size, max_restart, 1e-12, mode);
+    //energy = tensor_lanczosMPT(A, x, search_space_size, max_restart, 1e-12, mode);
+    perr<<energy<< " ";
     diag.Stop();
     // SVD and move canonical center
     qtensor<T> S;
@@ -221,7 +225,8 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
     // Davidson Eigen solver (two-site)
     qtensor<T> x = std::move(psi.A[site-1]*psi.A[site]);
     diag.Start();
-    energy = tensor_davidson(A, x, search_space_size, max_restart, 1e-12, mode);
+    energy = tensor_davidsonIT(A, x, search_space_size, max_restart, 1e-12, mode);
+    perr<<energy<< " ";
     diag.Stop();
     // SVD and move canonical center
     qtensor<T> S;
@@ -373,21 +378,21 @@ template <typename T>
 void updateEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL, const unsigned& site, int& direction){
   int phy = psi.phy_dim;
   unsigned L = psi.length;
-  qstensor<T> t1, t2, t3, t4, t5;
+  qstensor<T> t1, t4, t5;
   t1 = psi.A[site]; t1.conj(); t1.dag(); t1.prime();
-  t2 = H.A[site];
-  t3 = psi.A[site];
+  qstensor<T>& t2 = H.A[site];
+  qstensor<T>& t3 = psi.A[site];
   ////////////////////////////////////////////////
   if(direction == MoveFromLeft){
     t4 = std::move(t1*TL[site]);
     t5 = std::move(t4*t2);
     TL[site+1] = std::move(t5*t3);
-    TL[site+1]._T.sparsify();
+    //TL[site+1]._T.sparsify();
   }else if(direction == MoveFromRight){
     t4 = std::move(t1*TR[site]);
     t5 = std::move(t4*t2);
     TR[site-1] = std::move(t5*t3);
-    TR[site-1]._T.sparsify();
+    //TR[site-1]._T.sparsify();
   }
 }
 template void updateEnv(qsMPS<double>& psi, qsMPO<double>& H, std::vector< qstensor<double> >& TR, std::vector< qstensor<double> >& TL, const unsigned& site, int& direction);

@@ -486,7 +486,7 @@ void qstensor<T>::permute(uint_vec& perm){
       A.block_id_by_qn_str[A_qn_str] = i;
     }
     //permute by "hand"
-    CTF::Tensor<> B(A.rank,idx_sizes.data());
+    CTF::Tensor<> B(A.rank,true,idx_sizes.data());
     B[indNew.c_str()] = A._T[indOld.c_str()];
     A._T = std::move(B);
     *this = A;
