@@ -34,6 +34,31 @@ void DIAG(int m, double* A, double* evals){
 	delete [] work;
 }
 
+void DIAGD(int m, double* A, double* evals){
+	int N = m;
+  char jobz = 'V';
+  char uplo = 'U';
+  int lwork = -1; //std::max(1,1+6*N+2*N*N);
+  double * work = new double [1];
+  int info;
+  int liwork = -1;//std::max(1,3+5*N);
+  int* iwork = new int[1];
+	dsyevd_(&jobz,&uplo,&N,A,&N,evals,work,&lwork,iwork,&liwork,&info);
+  lwork = *work+2;
+  liwork = *iwork+2;
+	delete [] work;
+  delete [] iwork;
+  work = new double[lwork];
+  iwork = new int[liwork];
+	dsyevd_(&jobz,&uplo,&N,A,&N,evals,work,&lwork,iwork,&liwork,&info);
+
+	if(info!=0){
+		std::cout<<"dsyevd error info is "<<info<<std::endl;
+	}
+	delete [] work;
+  delete [] iwork;
+}
+
 void DIAG(int m, std::complex<double>* A, double* evals){
 	int N = m;
   char jobz = 'V';
@@ -305,6 +330,47 @@ void SVD(int r, int c, double* A, double* U, vector<double>& S, double* V, char 
 	delete [] work;
 }
 
+void SVDD(int r, int c, double* A, double* U, vector<double>& S, double* V, char direction)
+{
+	///////////////////////////////////
+	// INITIALIZATION
+	char jobZ = 'S'; 
+	int M = r;
+	int N = c;
+	double* B = new double [M*N];
+	std::copy(A, A+M*N, B);
+
+	int LDA = M;//The leading dimension of the array A
+	int K = std::min(M, N);
+	S.resize(K);
+
+	int LDU = M;//The leading dimension of the array U
+	int LDV = K;//The leading dimension of the array VT
+	int lwork = -1; //std::max(6*K+2*std::max(M,N),10*K);
+	double * work = new double [1];
+  int * iwork = new int[8*K];
+	int INFO;
+	///////////////////////////////////
+	// CALL LAPACK
+	dgesdd_(&jobZ, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork,iwork, &INFO);
+  lwork = *work;
+  delete [] work;
+  work = new double[lwork];
+	dgesdd_(&jobZ, &M, &N, B, &LDA, S.data(), U, &LDU, V, &LDV, work, &lwork,iwork, &INFO);
+
+	///////////////////////////////////
+	if (INFO<0) {
+		std::cout<<"SVD illegal value at "<<-INFO<<"!\n";
+	}else if (INFO>0){
+		std::cout << "SVD did not converge! Calling dgesvd\n";
+    SVD(r,c,A,U,S,V,direction); //attempt with safer SVD
+	}
+	///////////////////////////////////
+	//Free Space
+	delete [] B;
+	delete [] work;
+  delete [] iwork;
+}
 
 void SVD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<double>& S, std::complex<double>* V, char direction)
 {
@@ -352,6 +418,9 @@ void SVD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<
 	delete [] rwork;
 }
 
+void SVDD(int r, int c, std::complex<double>* A, std::complex<double>* U, vector<double>& S, std::complex<double>* V, char direction){
+  assert(1==2);
+}
 void SVD(int r, int c, double* A, double* U, vector<double>& S, double* V, char direction, double cutoff)
 {
 	///////////////////////////////////

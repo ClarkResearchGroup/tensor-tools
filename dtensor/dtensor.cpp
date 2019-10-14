@@ -182,7 +182,7 @@ dtensor<T>::dtensor(uint_list idx_sizes, str_list names, typ_list types, uint_li
     ++rank;
     size *= v_sizes[i];
   }
-  _T.reset(idx_lens);
+  _T.reset(idx_lens,tblis::uninitialized);
   std::copy(data_array,data_array+size,_T.data());
   _initted = true;
 }
@@ -201,7 +201,7 @@ dtensor<T>::dtensor(uint_vec& idx_sizes, str_vec& names, typ_vec& types, uint_ve
     ++rank;
     size *= idx_sizes[i];
   }
-  _T.reset(idx_lens);
+  _T.reset(idx_lens,tblis::uninitialized);
   std::copy(data_array,data_array+size,_T.data());
   _initted = true;
 }
@@ -256,7 +256,7 @@ dtensor<T>::dtensor(vector<dtensor_index>& idx_vec, T* data_array){
     ++rank;
     size *= idx_vec[i].size();
   }
-  _T.reset(idx_lens);
+  _T.reset(idx_lens,tblis::uninitialized);
   std::copy(data_array,data_array+size,_T.data());
   _initted = true;
 }
@@ -419,8 +419,10 @@ void dtensor<T>::permute(uint_vec& perm)
   }
   if (perm_needed){
     vector<dtensor_index> idx_set_p(idx_set);
+    len_vec idx_lens(rank);
     for (size_t i = 0; i < rank; i++) {
-      idx_set[i] = idx_set_p[perm[i]];
+      idx_set[i]  = idx_set_p[perm[i]];
+      idx_lens[i] = idx_set[i].size();
     }
     uint_vec stride1, stride2;
     int s1 = 1, s2 = 1;
@@ -434,6 +436,7 @@ void dtensor<T>::permute(uint_vec& perm)
     }
     T* A = new T [size]();
     std::copy(_T.data(), _T.data()+size, A);
+    _T.reset(idx_lens);
     ////////////////////////////////
     char* p = std::getenv("OMP_NUM_THREADS");
     int numThreads = 1;
@@ -472,17 +475,21 @@ void dtensor<T>::permute(uint_vec& perm){
     }
   }
   if (perm_needed){
+    //std::cerr<<"Need perm!"<<std::endl;
     vector<dtensor_index> idx_set_p(idx_set);
     T* A = new T [size];
     std::copy(_T.data(), _T.data()+size, A);
-    T* B = _T.data();
     T alpha = 1;
     T beta  = 0;
+    len_vec idx_lens(rank);
     int idx_sizes[rank];
     for (size_t i = 0; i < rank; i++) {
       idx_sizes[i] = idx_set[i].size();
-      idx_set[i] = idx_set_p[perm[i]];
+      idx_set[i]   = idx_set_p[perm[i]];
+      idx_lens[i]  = idx_set[i].size();
     }
+    _T.reset(idx_lens,tblis::uninitialized);
+    T* B = _T.data(); //ensure B points to new data
     char* p = std::getenv("OMP_NUM_THREADS");
     int numThreads = 1;
     if(p){
@@ -722,7 +729,7 @@ dtensor<T> dtensor<T>::operator * (dtensor<T>& A){
     }
   }
   dtensor<T> res(res_index_set);
-  tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
+  tblis::mult<T>(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
   return res;
 }
 template dtensor<double> dtensor<double>::operator * (dtensor<double>& A);
@@ -778,7 +785,7 @@ dtensor<T> dtensor<T>::operator * (dtensor_view<T>& A){
     }
   }
   dtensor<T> res(res_index_set);
-  tblis::mult(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
+  tblis::mult<T>(T(1),_T,this_labels.data(),A._T,A_labels.data(),T(0),res._T,res_labels.data());
   return res;
 }
 template dtensor<double> dtensor<double>::operator * (dtensor_view<double>& A);
@@ -806,7 +813,7 @@ dtensor<T> dtensor<T>::operator + (dtensor<T>& A){
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
   dtensor<T> res = *this;
-  tblis::add(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
+  tblis::add<T>(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
   return res;
 }
 template dtensor<double> dtensor<double>::operator + (dtensor<double>& A);
@@ -834,7 +841,7 @@ dtensor<T> dtensor<T>::operator + (dtensor_view<T>& A){
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
   dtensor<T> res = *this;
-  tblis::add(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
+  tblis::add<T>(T(1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
   return res;
 }
 template dtensor<double> dtensor<double>::operator + (dtensor_view<double>& A);
@@ -862,7 +869,7 @@ dtensor<T> dtensor<T>::operator - (dtensor<T>& A){
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
   dtensor<T> res = *this;
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
+  tblis::add<T>(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
   return res;
 }
 template dtensor<double> dtensor<double>::operator - (dtensor<double>& A);
@@ -890,7 +897,7 @@ dtensor<T> dtensor<T>::operator - (dtensor_view<T>& A){
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
   dtensor<T> res = *this;
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
+  tblis::add<T>(T(-1),A._T,A_labels.data(),T(1),res._T,this_labels.data());
   return res;
 }
 template dtensor<double> dtensor<double>::operator - (dtensor_view<double>& A);
@@ -917,7 +924,7 @@ dtensor<T>& dtensor<T>::operator += (dtensor<T>& A){
   for (size_t i = 0; i < A.rank; i++) {
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
-  tblis::add(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
+  tblis::add<T>(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator += (dtensor<double>& A);
@@ -944,7 +951,7 @@ dtensor<T>& dtensor<T>::operator += (dtensor_view<T>& A){
   for (size_t i = 0; i < A.rank; i++) {
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
-  tblis::add(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
+  tblis::add<T>(T(1),A._T,A_labels.data(),T(1),_T,this_labels.data());
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator += (dtensor_view<double>& A);
@@ -971,7 +978,7 @@ dtensor<T>& dtensor<T>::operator -= (dtensor<T>& A){
   for (size_t i = 0; i < A.rank; i++) {
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
+  tblis::add<T>(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator -= (dtensor<double>& A);
@@ -998,7 +1005,7 @@ dtensor<T>& dtensor<T>::operator -= (dtensor_view<T>& A){
   for (size_t i = 0; i < A.rank; i++) {
     A_labels.push_back(labels_map.at(A.idx_set[i].tag()));
   }
-  tblis::add(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
+  tblis::add<T>(T(-1),A._T,A_labels.data(),T(1),_T,this_labels.data());
   return *this;
 }
 template dtensor<double>& dtensor<double>::operator -= (dtensor_view<double>& A);
@@ -1117,7 +1124,7 @@ T dtensor<T>::contract(dtensor<T>& A){
     }
   }
   T res = 0;
-  tblis::dot(_T,this_labels.data(),A._T,A_labels.data(),res);
+  tblis::dot<T>(_T,this_labels.data(),A._T,A_labels.data(),res);
   return res;
 }
 template double dtensor<double>::contract(dtensor<double>& A);
@@ -1150,7 +1157,7 @@ T dtensor<T>::contract(dtensor_view<T>& A){
     }
   }
   T res = 0;
-  tblis::dot(_T,this_labels.data(),A._T,A_labels.data(),res);
+  tblis::dot<T>(_T,this_labels.data(),A._T,A_labels.data(),res);
   return res;
 }
 template double dtensor<double>::contract(dtensor_view<double>& A);
@@ -1493,6 +1500,41 @@ void dtensor<T>::mapPrime(unsigned from, unsigned to, index_type type){
 }
 template void dtensor<double>::mapPrime(unsigned from, unsigned to, index_type type);
 template void dtensor< std::complex<double> >::mapPrime(unsigned from, unsigned to, index_type type);
+
+template <typename T>
+void dtensor<T>::mapPrime(dtensor_index& in, unsigned from, unsigned to){
+  for (size_t i = 0; i < rank; i++) {
+    if(idx_set[i] == in){
+      idx_set[i].mapPrime(from, to);
+      break;
+    }
+  }
+}
+template void dtensor<double>::mapPrime(dtensor_index& in, unsigned from, unsigned to);
+template void dtensor< std::complex<double> >::mapPrime(dtensor_index& in, unsigned from, unsigned to);
+
+template <typename T>
+void dtensor<T>::mapPrime(std::vector<dtensor_index>& vec_in, unsigned from, unsigned to){
+  for(auto in : vec_in){
+    for (size_t i = 0; i < rank; i++) {
+      if(idx_set[i] == in){
+        idx_set[i].mapPrime(from, to);
+        break;
+      }
+    }
+  }
+}
+template void dtensor<double>::mapPrime(std::vector<dtensor_index>& vec_in, unsigned from, unsigned to);
+template void dtensor< std::complex<double> >::mapPrime(std::vector<dtensor_index>& vec_in, unsigned from, unsigned to);
+
+template <typename T>
+void dtensor<T>::noPrime(index_type type){
+  for (size_t i = 0; i < rank; i++) {
+    idx_set[i].noPrime(type);
+  }
+}
+template void dtensor<double>::noPrime(index_type type);
+template void dtensor< std::complex<double> >::noPrime(index_type type);
 
 template <typename T>
 void dtensor<T>::conj(){

@@ -309,6 +309,7 @@ dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (const dTensorTrain<T, N>& ot
     setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
     A = other.A;
+    center = other.center;
     tensors_allocated = true;
   }
   return *this;
@@ -328,6 +329,7 @@ dTensorTrain<T, N>& dTensorTrain<T, N>::operator = (dTensorTrain<T, N>&& other){
     setPhysicalDim(other.phy_dim);
     setBondDims(other.bond_dims);
     A = std::move(other.A);
+    center = other.center;
     tensors_allocated = true;
     other.tensors_allocated = false;
   }
@@ -548,11 +550,15 @@ template void dTensorTrain<std::complex<double>, 2>::lc();
 template <typename T, unsigned N>
 void dTensorTrain<T, N>::normalize(){
   assert(tensors_allocated);
-  double nm = norm();
-  if(center == -1)
+  if(center == -1){
+    //std::cerr<< "using norm()"<<std::endl;
+    double nm = norm();
     A[0] /= nm;
-  else
+  }
+  else{
+    double nm = A[center].norm();
     A[center] /= nm;
+  }
 }
 template void dTensorTrain<double, 1>::normalize();
 template void dTensorTrain<double, 2>::normalize();

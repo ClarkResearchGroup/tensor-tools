@@ -114,7 +114,7 @@ inline bool pairCompare(const pair<double, unsigned>& p1, const pair<double, uns
 //------------------------------------------------------------------------------
 // Index type
 //------------------------------------------------------------------------------
-enum index_type {Link, Site};
+enum index_type {Link, Site,All};
 //------------------------------------------------------------------------------
 // Arrow type, for qtensor
 //------------------------------------------------------------------------------
@@ -140,11 +140,14 @@ inline std::complex<double> cconj(std::complex<double> val) {return std::conj(va
 //------------------------------------------------------------------------------
 // Thread safe random numbers
 //------------------------------------------------------------------------------
+inline std::mt19937& _gen(){
+  static thread_local std::mt19937 generator;
+  return generator;
+}
 inline double thread_safe_random_double() {
   // static thread_local std::mt19937 generator(std::random_device{}());
-  static thread_local std::mt19937 generator;
   std::uniform_real_distribution<double> distribution(0, 1);
-  return distribution(generator);
+  return distribution(_gen());
 }
 //------------------------------------------------------------------------------
 

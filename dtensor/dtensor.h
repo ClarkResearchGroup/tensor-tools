@@ -87,6 +87,12 @@ public:
   void setRandom();
   void setZero();
   void setOne();
+  template <typename Func> void generate(Func& f){
+    assert(_initted);
+    for (size_t i = 0; i < size; i++) {
+      _T.data()[i] = f();
+    }
+  }
 
   //---------------------------------------------------------------------------
   // Permutate
@@ -132,6 +138,9 @@ public:
   void primeSite(int inc=1);
   void mapPrime(unsigned from, unsigned to);
   void mapPrime(unsigned from, unsigned to, index_type type);
+  void mapPrime(dtensor_index& in,unsigned from, unsigned to);
+  void mapPrime(std::vector<dtensor_index>& vec_in,unsigned from, unsigned to);
+  void noPrime(index_type type=All);
 
   void dag(){};
   void conj();

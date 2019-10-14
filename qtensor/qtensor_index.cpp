@@ -90,7 +90,8 @@ bool qtensor_index::operator != (const qtensor_index& A) const{
 }
 
 bool qtensor_index::operator <  (const qtensor_index& A) const{
-  return (_tag<A._tag && _arrow<A._arrow && _level<A._level);
+  //return (_tag<A._tag && _arrow<A._arrow && _level<A._level);
+  return std::tie(_tag,_arrow,_level) < std::tie(A._tag,A._arrow,A._level); //strict weak ordering
 }
 
 #endif

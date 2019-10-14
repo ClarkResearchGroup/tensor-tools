@@ -4,6 +4,7 @@
 #include <iostream>
 #include "hdf5.h"
 #include <Eigen/Dense>
+#include <vector>
 
 namespace ezh5{
   ///////////////////////////
