@@ -757,19 +757,16 @@ void dtensor<T>::primeLink(int inc){
 template void dtensor<double>::primeLink(int inc);
 template void dtensor< std::complex<double> >::primeLink(int inc);
 
+template <>
+void dtensor<double>::conj(){ }
 
-//This shoudl be cleaned up
-template <typename T>
-void dtensor<T>::conj(){
-  if (std::is_same<T, std::complex<double>>::value) {
+template<>
+void dtensor<std::complex<double> >::conj(){
     auto ind = getIndices();
-    ////C++ sdf    
-    CTF::Transform<T>([ind](T & d){ d= std::conj(d); })(__T[ind.c_str()]);
-  }
-  
+    using Cmplx = std::complex<double>;
+    CTF::Transform<Cmplx>([ind](Cmplx & d){ d= std::conj(d); })(__T[ind.c_str()]);
 }
-template void dtensor<double>::conj();
-template void dtensor< std::complex<double> >::conj();
+
 //---------------------------------------------------------------------------
 
 ///What does this do and this should be cleaned up
