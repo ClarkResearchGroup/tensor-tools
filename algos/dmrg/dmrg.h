@@ -25,6 +25,8 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
 template <typename T>
 void buildEnv(qMPS<T>& psi, qMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL);
 template <typename T>
+void buildEnv(qMPS<T>& psi, qMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL, int start, int stop);
+template <typename T>
 void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
 template <typename T>
 void updateEnv(qMPS<T>& psi, qMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL, const unsigned& site, int& direction);
@@ -33,10 +35,14 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd = 100, double cutoff
 
 template <typename T>
 T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
+template <typename T>
+T dmrg(qMPS<T>& psi, qMPO<T>& H,int start,int stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 //-------------------------------------------------------------------------------------------
 // qsMPS, qsMPO
 template <typename T>
 void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL);
+template <typename T>
+void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL, int start, int stop);
 template <typename T>
 void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector<qtensor<T>>& TR, std::vector<qtensor<T>>& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart);
 template <typename T>
@@ -46,4 +52,6 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, int max_bd = 100, double cuto
 
 template <typename T>
 T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
+template <typename T>
+T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int start, int stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 #endif
