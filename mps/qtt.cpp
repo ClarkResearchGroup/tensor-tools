@@ -688,7 +688,7 @@ template void qTensorTrain<std::complex<double>, 2>::save(std::string fn, std::s
 
 
 template <typename T, unsigned N>
-void qTensorTrain<T, N>::load(std::string fn){
+void qTensorTrain<T, N>::load(std::string fn, std::string dataPrefix){
   freeTensors();
   ezh5::File fh5 (fn, H5F_ACC_RDONLY);
   fh5["length"] >> length;
@@ -699,10 +699,20 @@ void qTensorTrain<T, N>::load(std::string fn){
   fh5["phy_qn"] >> phy_qn;
   fh5["id"] >> _id;
   std::vector<char> wfnC; fh5["wfn"] >> wfnC;
+  std::vector<char> temp = wfnC;
+  wfnC = std::vector<char>();
+  for(auto c : dataPrefix) wfnC.push_back(c);
+  for(auto c : temp)       wfnC.push_back(c);
   allocateTensors();
   MPI_File file;
-  MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
-                MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  int rc = MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
+                         MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  if(rc){
+    perr<<"Bad filename: ";
+    for(auto c: wfnC) perr<<c;
+    perr<<endl;
+    assert(1==2);
+  }
   int64_t offset=0;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
@@ -716,10 +726,10 @@ void qTensorTrain<T, N>::load(std::string fn){
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_File_close(&file);
 }
-template void qTensorTrain<double, 1>::load(std::string fn);
-template void qTensorTrain<double, 2>::load(std::string fn);
-template void qTensorTrain<std::complex<double>, 1>::load(std::string fn);
-template void qTensorTrain<std::complex<double>, 2>::load(std::string fn);
+template void qTensorTrain<double, 1>::load(std::string fn, std::string dataPrefix);
+template void qTensorTrain<double, 2>::load(std::string fn, std::string dataPrefix);
+template void qTensorTrain<std::complex<double>, 1>::load(std::string fn, std::string dataPrefix);
+template void qTensorTrain<std::complex<double>, 2>::load(std::string fn, std::string dataPrefix);
 
 
 template <typename T, unsigned N>

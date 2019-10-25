@@ -738,12 +738,6 @@ template qsTensorTrain< std::complex<double>, 2> qsTensorTrain<std::complex<doub
 template <typename T, unsigned N>
 void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
   assert(tensors_allocated);
-  //check that all tensors are the same
-  bool is_sparse = A[0]._T.is_sparse;
-  bool allSame   = true;
-  for(auto& Ai : A) allSame = allSame && (is_sparse && Ai._T.is_sparse);
-  assert(allSame);
-
   if(wfn.size()==0) wfn=fn+"__T.bin";
   int rankp;
   MPI_Comm_rank(MPI_COMM_WORLD, &rankp);
@@ -758,7 +752,6 @@ void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
     fh5["totalQ"] = totalQ;
     fh5["phy_qn"] = phy_qn;
     fh5["id"] = _id;
-    fh5["is_sparse"] = is_sparse;
     int64_t offset=0;
     for (size_t i = 0; i < length; i++){
       ezh5::Node nd = fh5["Tensor"+to_string(i)];
@@ -774,17 +767,14 @@ void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
                 MPI_INFO_NULL,&file);
   MPI_File_close(&file);
   MPI_File_open(MPI_COMM_WORLD, wfn.c_str(),  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
-  if(is_sparse){
-    int64_t offset=0;
-    for (size_t i = 0; i < length; i++){
+  int64_t offset=0;
+  for(size_t i = 0; i < length; i++){
+    if(A[i]._T.is_sparse){
       auto Atemp = A[i]._T; Atemp.densify();
       Atemp.write_dense_to_file(file,offset);
       offset+= Atemp.get_tot_size(false)*sizeof(T);
     }
-  }
-  else{
-    int64_t offset=0;
-    for (size_t i = 0; i < length; i++){
+    else{
       A[i]._T.write_dense_to_file(file,offset);
       offset+= A[i]._T.get_tot_size(false)*sizeof(T);
     }
@@ -799,9 +789,8 @@ template void qsTensorTrain<std::complex<double>, 2>::save(std::string fn, std::
 
 
 template <typename T, unsigned N>
-void qsTensorTrain<T, N>::load(std::string fn){
+void qsTensorTrain<T, N>::load(std::string fn, std::string dataPrefix){
   freeTensors();
-  bool is_sparse;
   ezh5::File fh5 (fn, H5F_ACC_RDONLY);
   fh5["length"] >> length;
   fh5["phy_dim"] >> phy_dim;
@@ -810,32 +799,36 @@ void qsTensorTrain<T, N>::load(std::string fn){
   fh5["totalQ"] >> totalQ;
   fh5["phy_qn"] >> phy_qn;
   fh5["id"] >> _id;
-  fh5["is_sparse"] >> is_sparse;
   std::vector<char> wfnC; fh5["wfn"] >> wfnC;
+  std::vector<char> temp = wfnC;
+  wfnC = std::vector<char>();
+  for(auto c : dataPrefix) wfnC.push_back(c);
+  for(auto c : temp)       wfnC.push_back(c);
   allocateTensors();
   MPI_File file;
-  MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
-                MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  int rc = MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
+                         MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  if(rc){
+    perr<<"Bad filename: ";
+    for(auto c: wfnC) perr<<c;
+    perr<<endl;
+    assert(1==2);
+  }
   int64_t offset=0;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
     nd["offset"] >> offset;
     A[i].load(nd);
-    A[i]._T.densify();
-    if(is_sparse){
-      A[i]._T.read_dense_from_file(file,offset);
-      A[i]._T.sparsify();
-    }
-    else{ A[i]._T.read_dense_from_file(file,offset); }
-    A[i]._initted = true;
+    A[i]._T.read_dense_from_file(file,offset);
+    A[i]._T.sparsify();
   }
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_File_close(&file);
 }
-template void qsTensorTrain<double, 1>::load(std::string fn);
-template void qsTensorTrain<double, 2>::load(std::string fn);
-template void qsTensorTrain<std::complex<double>, 1>::load(std::string fn);
-template void qsTensorTrain<std::complex<double>, 2>::load(std::string fn);
+template void qsTensorTrain<double, 1>::load(std::string fn, std::string dataPrefix);
+template void qsTensorTrain<double, 2>::load(std::string fn, std::string dataPrefix);
+template void qsTensorTrain<std::complex<double>, 1>::load(std::string fn, std::string dataPrefix);
+template void qsTensorTrain<std::complex<double>, 2>::load(std::string fn, std::string dataPrefix);
 
 
 template <typename T, unsigned N>

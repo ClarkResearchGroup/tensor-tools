@@ -486,8 +486,12 @@ void dTensorTrain<T, N>::load(std::string fn){
   std::vector<char> wfnC; fh5["wfn"] >> wfnC;
   allocateTensors();
   MPI_File file;
-  MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
-                MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  int rc = MPI_File_open(MPI_COMM_WORLD, wfnC.data(),  
+                         MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
+  if(rc){
+    perr<<"Bad filename: ";for(auto c: wfnC) perr<<c;perr<<endl;
+    assert(1==2);
+  }
   int64_t offset=0;
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];

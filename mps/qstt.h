@@ -85,7 +85,7 @@ public:
   //---------------------------------------------------------------------------
   // txt or HDF5 storage
   void save(std::string fn, std::string wfn="");
-  void load(std::string fn);
+  void load(std::string fn, std::string dataPrefix="");
   void save(ezh5::Node& fW);
   void load(ezh5::Node& fR);
 
