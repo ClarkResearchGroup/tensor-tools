@@ -47,10 +47,9 @@ template dtensor< std::complex<double> > big_dtensor< std::complex<double> >::pr
 
 template <typename T>
 T big_dtensor<T>::expec(dtensor<T>& v){
-    assert(1==2);
   // contract pattern:
   // L-v-mid-R
-  dtensor<T> res;
+  /*dtensor<T> res;
   if(L!=nullptr) res = std::move((*L)*v);
   for(auto m : mid){
     if(res.rank>0)
@@ -59,7 +58,8 @@ T big_dtensor<T>::expec(dtensor<T>& v){
       res = std::move(v*(*m));
   }
   if(R!=nullptr) res = std::move(res*(*R));
-  res.prime(-1);
+  res.prime(-1);*/
+  dtensor<T> res = std::move(product(v));
   return res.contract(v);
 }
 template double big_dtensor<double>::expec(dtensor<double>& v);

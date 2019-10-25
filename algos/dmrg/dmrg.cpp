@@ -22,11 +22,11 @@ void buildEnv(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector
     right_ends.dag();
     TR[psi.length-1] = right_ends;
   }
-  dtensor<T> t1, t2, t3, t4, t5;
+  dtensor<T> t1, t4, t5;
   for (size_t i = psi.length-1; i > 0; i--) {
     t1 = psi.A[i]; t1.conj(); t1.dag(); t1.prime();
-    t2 = H.A[i];
-    t3 = psi.A[i];
+    dtensor<T>& t2 = H.A[i];
+    dtensor<T>& t3 = psi.A[i];
     t4 = std::move(t1*TR[i]);
     t5 = std::move(t4*t2);
     TR[i-1] = std::move(t5*t3);
@@ -56,11 +56,11 @@ void buildEnv(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::vect
     right_ends.dag();
     TR[psi.length-1] = right_ends;
   }
-  qtensor<T> t1, t2, t3, t4, t5;
+  qtensor<T> t1, t4, t5;
   for (size_t i = psi.length-1; i > 0; i--) {
     t1 = psi.A[i]; t1.conj(); t1.dag(); t1.prime();
-    t2 = H.A[i];
-    t3 = psi.A[i];
+    qtensor<T>& t2 = H.A[i];
+    qtensor<T>& t3 = psi.A[i];
     t4 = std::move(t1*TR[i]);
     t5 = std::move(t4*t2);
     TR[i-1] = std::move(t5*t3);
@@ -140,11 +140,11 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     TR[psi.length-1] = right_ends;
     TR[psi.length-1]._T.sparsify();
   }
-  qstensor<T> t1, t2, t3, t4, t5;
+  qstensor<T> t1, t4, t5;
   for (size_t i = psi.length-1; i > 0; i--) {
     t1 = psi.A[i]; t1.conj(); t1.dag(); t1.prime();
-    t2 = H.A[i];
-    t3 = psi.A[i];
+    qstensor<T>& t2 = H.A[i];
+    qstensor<T>& t3 = psi.A[i];
     t4 = std::move(t1*TR[i]);
     t5 = std::move(t4*t2);
     TR[i-1] = std::move(t5*t3);
@@ -526,18 +526,22 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
   Timer davidsonTimer("Davidson");
   int L = H.length;
   int direction, site=0;
-  if(start_sweep%2==0) psi.position(0); else psi.position(L-1);
-
-
+  psi.position(0);
   psi.normalize();
-
-  //exit(1);
-  T Energy = psiHphi(psi, H, psi);
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< dtensor<T> > TR(L);
   std::vector< dtensor<T> > TL(L);
   buildEnv(psi, H, TR, TL);
+  T Energy = 0;
+  {
+    big_dtensor<T> A;
+    A.setLeft(&TL[0]);
+    A.addMid(&H.A[0]);
+    A.setRight(&TR[0]);
+    Energy = A.expec(psi.A[0]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   ////////////////////////////////////////////////
   // Repeat Nsweep
   if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
@@ -559,7 +563,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
     davidsonTimer.Clear();
     t.Clear();
   }
-  //psi.position(0);
+  psi.position(0);
   psi.normalize();
   return Energy;
 }
@@ -576,13 +580,21 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
   int direction, site=0;
   psi.position(0);
   psi.normalize();
-  T Energy= psiHphi(psi, H, psi);
   int search_space_size = 3;
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< dtensor<T> > TR(L);
   std::vector< dtensor<T> > TL(L);
   buildEnv(psi, H, TR, TL);
+  T Energy = 0;
+  {
+    big_dtensor<T> A;
+    A.setLeft(&TL[0]);
+    A.addMid(&H.A[0]);
+    A.setRight(&TR[0]);
+    Energy = A.expec(psi.A[0]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   ////////////////////////////////////////////////
   // Repeat Nsweep
   perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
@@ -592,9 +604,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
     int lbd = sweep%(max_bd.size());
     int lc  = sweep%(cutoff.size());
     int lmr = sweep%(max_restart.size());
-    //always do two sweeps so that we go left to right
-    //Energy = dmrg(psi,H,2*(sweep+1),
-     //             max_bd[lbd],cutoff[lc],'S',3,max_restart[lmr],2*sweep);
+    
     for(int l = 2*sweep; l < 2*(sweep+1); l++) {
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
@@ -603,7 +613,8 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = L-1-i;
-        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 'S', search_space_size, max_restart[lmr],davidsonTimer);
+        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 
+                   'S', search_space_size, max_restart[lmr],davidsonTimer);
         updateEnv(psi, H, TR, TL, site, direction);
       }
       t.Stop();
@@ -612,7 +623,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
       t.Clear();
     }//end true sweep
   }
-  if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
+  psi.position(0);
   psi.normalize();
  return Energy; 
 }
@@ -629,13 +640,20 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
   int direction, site=0;
   if(start_sweep%2==0) psi.position(0); else psi.position(L-1);
   psi.normalize();
-  T Energy = psiHphi(psi, H, psi);
-  /*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< qtensor<T> > TR(L);
   std::vector< qtensor<T> > TL(L);
   buildEnv(psi, H, TR, TL);
+  T Energy = 0;
+  {
+    big_qtensor<T> A;
+    A.setLeft(&TL[0]);
+    A.addMid(&H.A[0]);
+    A.setRight(&TR[0]);
+    Energy = A.expec(psi.A[0]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   ////////////////////////////////////////////////
   // Repeat Nsweep
   if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
@@ -657,7 +675,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
     davidsonTimer.Clear();
     t.Clear();
   }
-  //psi.position(0);
+  psi.position(0);
   psi.normalize();
   return Energy;
 }
@@ -671,26 +689,30 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd,
   int search_space_size =3;
   psi.position(0); 
   psi.normalize();
-  T Energy; //= psiHphi(psi, H, psi);
-  Timer davidsonTimer("Davidon");
-  /*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
+  Timer davidsonTimer("Davidson");
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< qtensor<T> > TR(L);
   std::vector< qtensor<T> > TL(L);
   buildEnv(psi, H, TR, TL);
+  T Energy = 0;
+  {
+    big_qtensor<T> A;
+    A.setLeft(&TL[0]);
+    A.addMid(&H.A[0]);
+    A.setRight(&TR[0]);
+    Energy = A.expec(psi.A[0]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
   for(int sweep =0;sweep<num_sweeps;sweep++){
     //allow sweeps to loop through
     int lbd = sweep%(max_bd.size());
     int lc  = sweep%(cutoff.size());
     int lmr = sweep%(max_restart.size());
-    //always do two sweeps so that we go left to right
-  //  Energy = dmrg(psi,H,2*(sweep+1),
-  //                max_bd[lbd],cutoff[lc],'S',3,max_restart[lmr],2*sweep);
 
-  ////////////////////////////////////////////////
-  // Repeat Nsweep
+    ////////////////////////////////////////////////
+    // Repeat Nsweep
     Timer t("time");
     for(int l = 2*sweep; l < 2*(sweep+1); l++) {
       t.Start();
@@ -700,7 +722,8 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd,
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = L-1-i;
-        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 'S', search_space_size, max_restart[lmr],davidsonTimer);
+        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 
+                   'S', search_space_size, max_restart[lmr],davidsonTimer);
         updateEnv(psi, H, TR, TL, site, direction);
       }
       t.Stop();
@@ -708,10 +731,9 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd,
       davidsonTimer.Clear();
       t.Clear();
     }
-    //psi.position(0);
     psi.normalize();
   }
-  if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
+  psi.position(0);
  return Energy; 
 }
 template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
@@ -725,24 +747,30 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int start, int stop, int num_sweeps, const std:
   int search_space_size =3;
   psi.position(start); 
   psi.normalize();
-  T Energy;//= psiHphi(psi, H, psi);
-  //perr<<"Initial E = "<<Energy<<'\n';
-  Timer davidsonTimer("Davidon");
+  Timer davidsonTimer("Davidson");
   /*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< qtensor<T> > TR(L);
   std::vector< qtensor<T> > TL(L);
   buildEnv(psi, H, TR, TL,start,stop);
+  T Energy = 0;
+  {
+    big_qtensor<T> A;
+    A.setLeft(&TL[start]);
+    A.addMid(&H.A[start]);
+    A.setRight(&TR[start]);
+    Energy = A.expec(psi.A[start]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
   for(int sweep =0;sweep<num_sweeps;sweep++){
     //allow sweeps to loop through
     int lbd = sweep%(max_bd.size());
     int lc  = sweep%(cutoff.size());
     int lmr = sweep%(max_restart.size());
-    //always do two sweeps so that we go left to right
-  ////////////////////////////////////////////////
-  // Repeat Nsweep
+    ////////////////////////////////////////////////
+    // Repeat Nsweep
     Timer t("time");
     for(int l = 2*sweep; l < 2*(sweep+1); l++) {
       t.Start();
@@ -752,7 +780,8 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int start, int stop, int num_sweeps, const std:
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = stop-(i-start);
-        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 'S', search_space_size, max_restart[lmr],davidsonTimer);
+        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 
+                   'S', search_space_size, max_restart[lmr],davidsonTimer);
         updateEnv(psi, H, TR, TL, site, direction);
       }
       t.Stop();
@@ -762,7 +791,8 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int start, int stop, int num_sweeps, const std:
     }
     psi.normalize();
   }
- return Energy; 
+  psi.position(0);
+  return Energy; 
 }
 template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, int start, int stop, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 
@@ -776,13 +806,20 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, int max_bd, double cutoff, ch
   int direction, site=0;
   if(start_sweep%2==0) psi.position(0); else psi.position(L-1);
   psi.normalize();
-  T Energy = psiHphi(psi, H, psi);
-  /*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< qstensor<T> > TR(L);
   std::vector< qstensor<T> > TL(L);
   buildEnv(psi, H, TR, TL);
+  T Energy = 0;
+  {
+    big_qstensor<T> A;
+    A.setLeft(&TL[0]);
+    A.addMid(&H.A[0]);
+    A.setRight(&TR[0]);
+    Energy = A.expec(psi.A[0]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   ////////////////////////////////////////////////
   // Repeat Nsweep
   if(start_sweep==0) perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
@@ -804,7 +841,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, int max_bd, double cutoff, ch
     davidsonTimer.Clear();
     t.Clear();
   }
-  //psi.position(0);
+  psi.position(0);
   psi.normalize();
   return Energy;
 }
@@ -818,27 +855,31 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, const std::vector<int>& max_b
   int search_space_size =3;
   psi.position(0); 
   psi.normalize();
-  T Energy= psiHphi(psi, H, psi);
-  perr<<"Initial E = "<<Energy<<'\n';
-  Timer davidsonTimer("Davidon");
+  Timer davidsonTimer("Davidson");
   /*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< qstensor<T> > TR(L);
   std::vector< qstensor<T> > TL(L);
   buildEnv(psi, H, TR, TL);
+  T Energy = 0;
+  {
+    big_qstensor<T> A;
+    A.setLeft(&TL[0]);
+    A.addMid(&H.A[0]);
+    A.setRight(&TR[0]);
+    Energy = A.expec(psi.A[0]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
   for(int sweep =0;sweep<num_sweeps;sweep++){
     //allow sweeps to loop through
     int lbd = sweep%(max_bd.size());
     int lc  = sweep%(cutoff.size());
     int lmr = sweep%(max_restart.size());
-    //always do two sweeps so that we go left to right
-  //  Energy = dmrg(psi,H,2*(sweep+1),
-  //                max_bd[lbd],cutoff[lc],'S',3,max_restart[lmr],2*sweep);
 
-  ////////////////////////////////////////////////
-  // Repeat Nsweep
+    ////////////////////////////////////////////////
+    // Repeat Nsweep
     Timer t("time");
     for(int l = 2*sweep; l < 2*(sweep+1); l++) {
       t.Start();
@@ -848,7 +889,8 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, const std::vector<int>& max_b
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = L-1-i;
-        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 'S', search_space_size, max_restart[lmr],davidsonTimer);
+        updateSite(psi, H, TR, TL, site, Energy, direction, max_bd[lbd], cutoff[lc], 
+                   'S', search_space_size, max_restart[lmr],davidsonTimer);
         updateEnv(psi, H, TR, TL, site, direction);
       }
       t.Stop();
@@ -859,7 +901,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, const std::vector<int>& max_b
     //psi.position(0);
     psi.normalize();
   }
-  //if(num_sweeps%2==0) psi.position(0); else psi.position(psi.length-1);
+  psi.position(0);
  return Energy; 
 }
 template double dmrg(qsMPS<double>& psi, qsMPO<double>& H, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
@@ -873,27 +915,31 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int start, int stop, int num_sweeps, const st
   int search_space_size =3;
   psi.position(start); 
   psi.normalize();
-  T Energy= psiHphi(psi, H, psi);
-  perr<<"Initial E = "<<Energy<<'\n';
-  Timer davidsonTimer("Davidon");
+  Timer davidsonTimer("Davidson");
   /*std::cout<<"Initial energy of the MPS: "<<Energy<<std::endl;*/
   ////////////////////////////////////////////
   // Environment tensors
   std::vector< qstensor<T> > TR(L);
   std::vector< qstensor<T> > TL(L);
   buildEnv(psi, H, TR, TL,start,stop);
+  T Energy = 0;
+  {
+    big_qstensor<T> A;
+    A.setLeft(&TL[start]);
+    A.addMid(&H.A[start]);
+    A.setRight(&TR[start]);
+    Energy = A.expec(psi.A[start]);
+    perr<<"Initial E = "<<Energy<<'\n';
+  }
   perr<<"# Sweep # Mid bond EE # Energy # Time(s) # Davidson(s)"<<std::endl;
   for(int sweep =0;sweep<num_sweeps;sweep++){
     //allow sweeps to loop through
     int lbd = sweep%(max_bd.size());
     int lc  = sweep%(cutoff.size());
     int lmr = sweep%(max_restart.size());
-    //always do two sweeps so that we go left to right
-  //  Energy = dmrg(psi,H,2*(sweep+1),
-  //                max_bd[lbd],cutoff[lc],'S',3,max_restart[lmr],2*sweep);
 
-  ////////////////////////////////////////////////
-  // Repeat Nsweep
+    ////////////////////////////////////////////////
+    // Repeat Nsweep
     Timer t("time");
     for(int l = 2*sweep; l < 2*(sweep+1); l++) {
       t.Start();
@@ -913,7 +959,8 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int start, int stop, int num_sweeps, const st
     }
     psi.normalize();
   }
- return Energy; 
+  psi.position(0);
+  return Energy; 
 }
 template double dmrg(qsMPS<double>& psi, qsMPO<double>& H, int num_sweeps, int start, int stop, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 

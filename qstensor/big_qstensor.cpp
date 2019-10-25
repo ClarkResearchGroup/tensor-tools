@@ -28,7 +28,7 @@ template qstensor< std::complex<double> > big_qstensor< std::complex<double> >::
 template <typename T>
 T big_qstensor<T>::expec(qstensor<T>& v){
   // contract pattern:
-  // L-v-mid-R
+  /*// L-v-mid-R
    qstensor<T> res;
    if(L!=nullptr) res = std::move((*L)*v);
    if(res.rank>0)
@@ -37,11 +37,11 @@ T big_qstensor<T>::expec(qstensor<T>& v){
      res = std::move(v*(mid));
    if(R!=nullptr) res = std::move(res*(*R));
 
-  assert(1==2);
+  assert(1==2);*/
   //qstensor<T> res = std::move(A*v);
   //if(R!=nullptr) res = std::move(res*(*R));
+  qstensor<T> res = std::move(product(v));
 
-  res.prime(-1);
   return res.contract(v);
 }
 template double big_qstensor<double>::expec(qstensor<double>& v);

@@ -29,19 +29,20 @@ template <typename T>
 T big_qtensor<T>::expec(qtensor<T>& v){
   // contract pattern:
   // L-v-mid-R
-  qtensor<T> res;
+  /*qtensor<T> res;
   if(L!=nullptr) res = std::move((*L)*v);
   if(res.rank>0)
     res = std::move(res*(mid));
   else
     res = std::move(v*(mid));
   
-  if(R!=nullptr) res = std::move(res*(*R));
+  if(R!=nullptr) res = std::move(res*(*R));*/
 
   /*qtensor<T> res = std::move(A*v);
   if(R!=nullptr) res = std::move(res*(*R));*/
 
-  res.prime(-1);
+  //res.prime(-1);
+  qtensor<T> res = std::move(product(v));
   return res.contract(v);
 }
 template double big_qtensor<double>::expec(qtensor<double>& v);
