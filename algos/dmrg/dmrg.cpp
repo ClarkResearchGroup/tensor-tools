@@ -70,7 +70,7 @@ template void buildEnv(qMPS<double>& psi, qMPO<double>& H, std::vector< qtensor<
 template void buildEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, std::vector< qtensor< std::complex<double> > >& TR, std::vector< qtensor< std::complex<double> > >& TL);
 
 template <typename T>
-void buildEnv(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::vector< qtensor<T> >& TL, int start, int stop){
+void buildEnv(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::vector< qtensor<T> >& TL, unsigned start, unsigned stop){
   // Left ends
   {
     qtensor<T> left_ends({psi.A[0].idx_set[0], H.A[0].idx_set[0], psi.A[0].idx_set[0]});
@@ -115,8 +115,8 @@ void buildEnv(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::vect
     TR[i-1] = std::move(t5*t3);
   }
 }
-template void buildEnv(qMPS<double>& psi, qMPO<double>& H, std::vector< qtensor<double> >& TR, std::vector< qtensor<double> >& TL,int start, int stop);
-template void buildEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, std::vector< qtensor< std::complex<double> > >& TR, std::vector< qtensor< std::complex<double> > >& TL, int start, int stop);
+template void buildEnv(qMPS<double>& psi, qMPO<double>& H, std::vector< qtensor<double> >& TR, std::vector< qtensor<double> >& TL, unsigned start, unsigned stop);
+template void buildEnv(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, std::vector< qtensor< std::complex<double> > >& TR, std::vector< qtensor< std::complex<double> > >& TL, unsigned start, unsigned stop);
 
 template <typename T>
 void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL){
@@ -155,7 +155,7 @@ template void buildEnv(qsMPS<double>& psi, qsMPO<double>& H, std::vector< qstens
 template void buildEnv(qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, std::vector< qstensor< std::complex<double> > >& TR, std::vector< qstensor< std::complex<double> > >& TL);
 
 template <typename T>
-void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL, int start, int stop){
+void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL, unsigned start, unsigned stop){
   // Left ends
   {
     qstensor<T> left_ends({psi.A[0].idx_set[0], H.A[0].idx_set[0], psi.A[0].idx_set[0]});
@@ -206,8 +206,8 @@ void buildEnv(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::v
     TR[i-1]._T.sparsify();
   }
 }
-template void buildEnv(qsMPS<double>& psi, qsMPO<double>& H, std::vector< qstensor<double> >& TR, std::vector< qstensor<double> >& TL,int start, int stop);
-template void buildEnv(qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, std::vector< qstensor< std::complex<double> > >& TR, std::vector< qstensor< std::complex<double> > >& TL, int start, int stop);
+template void buildEnv(qsMPS<double>& psi, qsMPO<double>& H, std::vector< qstensor<double> >& TR, std::vector< qstensor<double> >& TL,unsigned start, unsigned stop);
+template void buildEnv(qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, std::vector< qstensor< std::complex<double> > >& TR, std::vector< qstensor< std::complex<double> > >& TL, unsigned start, unsigned stop);
 template <typename T>
 void updateSite(MPS<T>& psi, MPO<T>& H, std::vector< dtensor<T> >& TR, std::vector< dtensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &davidsonTimer){
   if(direction==MoveFromLeft){
@@ -741,7 +741,7 @@ template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, const s
 template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, int num_sweeps, 
                                    const std::vector<int>& max_bd, const std::vector<double>& cutoff_vec,const std::vector<int>& max_restart);
 template <typename T>
-T dmrg(qMPS<T>& psi, qMPO<T>& H, int start, int stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
+T dmrg(qMPS<T>& psi, qMPO<T>& H, unsigned start, unsigned stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
   int L = H.length;
   int direction, site=0;
   int search_space_size =3;
@@ -776,7 +776,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int start, int stop, int num_sweeps, const std:
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(int i = start; i < stop-1; i++) // direction change happens at the last site of any sweep
+      for(unsigned i = start; i < stop-1; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = stop-(i-start);
@@ -794,9 +794,9 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int start, int stop, int num_sweeps, const std:
   psi.position(0);
   return Energy; 
 }
-template double dmrg(qMPS<double>& psi, qMPO<double>& H, int num_sweeps, int start, int stop, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
+template double dmrg(qMPS<double>& psi, qMPO<double>& H, unsigned start, unsigned stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 
-template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, int start, int stop, int num_sweeps, 
+template std::complex<double> dmrg(qMPS< std::complex<double> >& psi, qMPO< std::complex<double> >& H, unsigned start, unsigned stop, int num_sweeps, 
                                    const std::vector<int>& max_bd, const std::vector<double>& cutoff_vec,const std::vector<int>& max_restart);
 template <typename T>
 T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char mode, int search_space_size, int max_restart,int start_sweep){
@@ -909,7 +909,7 @@ template double dmrg(qsMPS<double>& psi, qsMPO<double>& H, int num_sweeps, const
 template std::complex<double> dmrg(qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, int num_sweeps, 
                                    const std::vector<int>& max_bd, const std::vector<double>& cutoff_vec,const std::vector<int>& max_restart);
 template <typename T>
-T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int start, int stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
+T dmrg(qsMPS<T>& psi, qsMPO<T>& H, unsigned start, unsigned stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart){
   int L = H.length;
   int direction, site=0;
   int search_space_size =3;
@@ -945,7 +945,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int start, int stop, int num_sweeps, const st
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(int i = start; i < stop-1; i++) // direction change happens at the last site of any sweep
+      for(unsigned i = start; i < stop-1; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = stop-(i-start);
@@ -962,8 +962,8 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int start, int stop, int num_sweeps, const st
   psi.position(0);
   return Energy; 
 }
-template double dmrg(qsMPS<double>& psi, qsMPO<double>& H, int num_sweeps, int start, int stop, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
+template double dmrg(qsMPS<double>& psi, qsMPO<double>& H, unsigned start, unsigned stop, int num_sweeps, const std::vector<int>& max_bd, const std::vector<double>& cutoff, const std::vector<int>& max_restart);
 
-template std::complex<double> dmrg(qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, int start, int stop, int num_sweeps, 
+template std::complex<double> dmrg(qsMPS< std::complex<double> >& psi, qsMPO< std::complex<double> >& H, unsigned start, unsigned stop, int num_sweeps, 
                                    const std::vector<int>& max_bd, const std::vector<double>& cutoff_vec,const std::vector<int>& max_restart);
 #endif

@@ -393,7 +393,7 @@ void svd(qstensor<T>& A,
         std::vector<int64_t> offsetmA = {c_row,c_col};
         std::vector<int64_t> endsmA   = {c_row+l_qn_sizes_map[q][i],c_col+r_qn_sizes_map[q][j]};
         
-        for(int k=0;k<A.rank;k++){
+        for(unsigned k=0; k < A.rank; k++){
           offsetA[k] = blockOffsets[k][A.block_index_qn[A_block][k]];
           ends[k]    = offsetA[k]+A.block_index_qd[A_block][k];
         }
@@ -439,7 +439,7 @@ void svd(qstensor<T>& A,
     int64_t ns;
     T* s_data;
     _S.read_all(&ns,&s_data);
-    for (size_t j = 0; j < ns; j++) {
+    for (int64_t j = 0; j < ns; j++) {
       S_and_block_idx.push_back(std::make_pair(s_data[j], ii));
       nm += s_data[j]*s_data[j];
     }
@@ -605,13 +605,13 @@ void svd(qstensor<T>& A,
   }//end midQ loop*/
 
 #ifndef NDEBUG
-  for(int ii=0;ii<mid_num;ii++){
+  for(unsigned ii=0;ii<mid_num;ii++){
     assert(U.rank==U._block[ii].order);
-    for(int l=0;l<U.rank;l++){
+    for(unsigned l=0;l<U.rank;l++){
       assert(U._block[ii].lens[l]==U.block_index_qd[ii][l]);
     }
     assert(V.rank==V._block[ii].order);
-    for(int l=0;l<V.rank;l++){
+    for(unsigned l=0;l<V.rank;l++){
       assert(V._block[ii].lens[l]==V.block_index_qd[ii][l]);
     }
   }

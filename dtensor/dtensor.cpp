@@ -457,7 +457,7 @@ dtensor<T> dtensor<T>::diagonal(){
     dtensor<T> A(*this);
     return A;
   }
-  //dtensor<T> A(new_idx_set);
+  //dtensor<T> A(new_idx_set);*/
   /*#pragma omp parallel for default(shared)
   for (size_t i = 0; i < A.size; i++) {
     int A_idx[A.rank];
@@ -607,16 +607,16 @@ void dtensor<T>::save(string fn){
   std::string wfn = fn+"__T.bin";
   //perr<<"Saving "<<wfn<<endl;
   std::vector<char> wfnC(wfn.begin(),wfn.end()); wfnC.push_back(0);
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank==0){
+  int rankp;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rankp);
+  if(rankp==0){
     ezh5::File fh5W (fn, H5F_ACC_TRUNC);
     fh5W["rank"] = rank;
     fh5W["size"] = size;
     fh5W["idx_sizes"] = idx_sizes;
     fh5W["idx_types"] = idx_types;
     fh5W["idx_levels"] = idx_levels;
-    for (size_t i = 0; i < rank; i++) {
+    for (unsigned i = 0; i < rank; i++) {
       std::vector<char> vec(idx_names[i].begin(),idx_names[i].end());
       fh5W[idx_name_pref+std::to_string(i)] = vec;
     }

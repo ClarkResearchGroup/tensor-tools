@@ -200,10 +200,10 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   auto HL = SiteTerm("HL",0);
   vector<vector<SiteQN>> basis(N+1);
 
-  for(int n=0;n<N;++n){
+  for(unsigned n=0;n<N;++n){
     basis.at(n).emplace_back(IL,0);
   }
-  for(int n=1;n<=N;++n){
+  for(unsigned n=1;n<=N;++n){
     basis.at(n).emplace_back(HL,0);
   }
   const auto Zero = 0; //QN type
@@ -227,8 +227,8 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
     auto qn_comp = [&Zero](const SiteQN& sq1,const SiteQN& sq2){
                     //first two if statements are to artificially make
                     //Zero QN come first in the sort
-                    if(sq1.q==Zero && sq2.q != Zero) return true;
-                    else if(sq2.q==Zero && sq1.q !=Zero) return false;
+                    if(sq1.q==Zero      && sq2.q != Zero) return true;
+                    else if(sq2.q==Zero && sq1.q !=Zero)  return false;
                     return sq1.q < sq2.q;
                   };
     for(auto& bn : basis) std::sort(bn.begin(),bn.end(),qn_comp);
@@ -237,7 +237,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   auto links = vector<vector<quantum_number>>(N+1);
   // first: qn;    second: dimension
   auto inqn = vector<quantum_number>{}; //IndexQN
-  for(int n=0;n<=N;++n){
+  for(unsigned n=0;n<=N;++n){
     auto& bn = basis.at(n);
     inqn.clear();
     int currq = bn.front().q;
@@ -264,7 +264,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
       ht_by_n.at(st.i+1).push_back(ht);
   }
   vector<unsigned> bdList(N+1);
-  for(int i=0;i<N+1;i++) bdList[i] = basis.at(i).size();
+  for(unsigned i=0;i<N+1;i++) bdList[i] = basis.at(i).size();
   bdList[0] = 1; bdList.back()=1;
   unsigned maxbd = *std::max_element(bdList.begin(),bdList.end());
   perr<<"Warning! MPO max bond dim is "<<maxbd<<endl;
@@ -466,10 +466,10 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
   auto HL = SiteTerm("HL",0);
   vector<vector<SiteQN>> basis(N+1);
 
-  for(int n=0;n<N;++n){
+  for(unsigned n=0;n<N;++n){
     basis.at(n).emplace_back(IL,0);
   }
-  for(int n=1;n<=N;++n){
+  for(unsigned n=1;n<=N;++n){
     basis.at(n).emplace_back(HL,0);
   }
   const auto Zero = 0; //QN type
@@ -503,7 +503,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
   auto links = vector<vector<quantum_number>>(N+1);
   // first: qn;    second: dimension
   auto inqn = vector<quantum_number>{}; //IndexQN
-  for(int n=0;n<=N;++n){
+  for(unsigned n=0;n<=N;++n){
     auto& bn = basis.at(n);
     inqn.clear();
     int currq = bn.front().q;

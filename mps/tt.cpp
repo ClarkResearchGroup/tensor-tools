@@ -434,9 +434,9 @@ template <typename T, unsigned N>
 void dTensorTrain<T, N>::save(std::string fn, std::string wfn){
   assert(tensors_allocated);
   if(wfn.size()==0) wfn=fn+"__T.bin";
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank==0){
+  int rankp;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rankp);
+  if(rankp==0){
     ezh5::File fh5 (fn+".h5", H5F_ACC_TRUNC);
     std::vector<char> wfnC(wfn.begin(),wfn.end()); wfnC.push_back(0); //don't forget null terminator
     fh5["wfn"]    = wfnC;

@@ -706,8 +706,8 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
     }
   }
 
-  for(int ii=0;ii<res._block.size();ii++){
-    for(int l=0;l<res.rank;l++){
+  for(size_t ii=0;ii<res._block.size();ii++){
+    for(unsigned l=0;l<res.rank;l++){
       assert(res._block[ii].lens[l]==res.block_index_qd[ii][l]);
     }
   }
@@ -1087,7 +1087,7 @@ T qtensor<T>::contract(qtensor<T>& A){
   uint_vec perm;
   //qtensor<T> B(A); B.dag();
   vector<qtensor_index> A_idx_set = A.idx_set;
-  for(int i=0;i<A.rank;i++) A_idx_set[i].dag();
+  for(unsigned i=0;i<A.rank;i++) A_idx_set[i].dag();
   //find_index_permutation(A.idx_set, idx_set, perm);
   //B.permute(perm);
   T res = 0;

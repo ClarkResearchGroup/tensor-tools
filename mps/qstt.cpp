@@ -167,7 +167,7 @@ qsTensorTrain<T, N>::qsTensorTrain(const qTensorTrain<T, N>& other){
     A.clear();
     //A = other.A;
     A.resize(other.A.size());
-    for(int i=0;i<A.size();i++)
+    for(size_t i=0;i<A.size();i++)
       A[i]= other.A[i];
     tensors_allocated = true;
   }
@@ -192,7 +192,7 @@ qsTensorTrain<T, N>::qsTensorTrain(qTensorTrain<T, N>&& other){
     A.clear();
     //A = std::move(other.A);
     A.resize(other.A.size());
-    for(int i=0;i<A.size();i++)
+    for(size_t i=0;i<A.size();i++)
       A[i] = other.A[i];
     tensors_allocated = true;
     other.tensors_allocated = false;
@@ -645,7 +645,7 @@ qsTensorTrain<T, N>& qsTensorTrain<T, N>::operator = (const qTensorTrain<T, N>& 
     center = other.center;
     A.clear();
     A.resize(other.A.size());
-    for(int i=0;i<A.size();i++)
+    for(size_t i=0;i<A.size();i++)
       A[i] = other.A[i];
     tensors_allocated = true;
   }
@@ -671,7 +671,7 @@ qsTensorTrain<T, N>& qsTensorTrain<T, N>::operator = (qTensorTrain<T, N>&& other
     A.clear();
     //A = std::move(other.A);
     A.resize(other.A.size());
-    for(int i=0;i<A.size();i++)
+    for(size_t i=0;i<A.size();i++)
       A[i] = other.A[i];
     tensors_allocated = true;
     other.tensors_allocated = false;
@@ -745,9 +745,9 @@ void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
   assert(allSame);
 
   if(wfn.size()==0) wfn=fn+"__T.bin";
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank==0){
+  int rankp;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rankp);
+  if(rankp==0){
     ezh5::File fh5 (fn+".h5", H5F_ACC_TRUNC);
     std::vector<char> wfnC(wfn.begin(),wfn.end()); wfnC.push_back(0); //don't forget null terminator
     fh5["wfn"]    = wfnC;

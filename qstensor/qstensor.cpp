@@ -5,8 +5,8 @@
 template<typename T>
 void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M){
  vector<int64_t> idx_sizes(idx_set.size(),0);//dense storage index sizes
- for(int i=0;i<idx_set.size();i++){
-   for(int j=0;j<idx_set[i].size();j++){
+ for(size_t i=0;i<idx_set.size();i++){
+   for(size_t j=0;j<idx_set[i].size();j++){
      idx_sizes[i]+=idx_set[i].qdim(j);
    }
   }
@@ -18,9 +18,9 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
  vector<int64_t> idx_sizes(A.rank,0);//dense storage index sizes
  vector<unordered_map<int,int64_t> > offsets(A.rank); //find corner of block in dense
 
- for(int i=0;i<A.idx_set.size();i++){
+ for(size_t i=0;i<A.idx_set.size();i++){
    int64_t offset =0;
-   for(int j=0;j<A.idx_set[i].size();j++){
+   for(size_t j=0;j<A.idx_set[i].size();j++){
      idx_sizes[i]+=A.idx_set[i].qdim(j);
      offsets[i][A.idx_set[i].qn(j)] = offset;
      offset+= A.idx_set[i].qdim(j);
@@ -30,12 +30,12 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
  M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
  //place data into M
  vector<int64_t> zeros(A.rank,0);
- for(int i=0;i<A._block.size();i++){
+ for(size_t i=0;i<A._block.size();i++){
    vector<int64_t> starts(A.rank);
    vector<int64_t> ends(A.rank);
-   for(int j=0;j<A.rank;j++){
+   for(unsigned j=0;j<A.rank;j++){
     starts[j] = offsets[j][A.block_index_qn[i][j]];
-    ends[j] = starts[j]+A.block_index_qd[i][j];
+    ends[j]   = starts[j]+A.block_index_qd[i][j];
    }
 
    M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
@@ -50,9 +50,9 @@ template void blockToSparse(const qstensor<double> &A, CTF::Tensor<double> &M);
 template<typename T>
 void getOffsets(qstensor<T> &A, vector<unordered_map<int,int64_t> >& blockOffsets){
  blockOffsets.resize(A.rank); //find corner of block in dense
- for(int i=0;i<A.idx_set.size();i++){
+ for(size_t i=0;i<A.idx_set.size();i++){
    int64_t offset =0;
-   for(int j=0;j<A.idx_set[i].size();j++){
+   for(size_t j=0;j<A.idx_set[i].size();j++){
      blockOffsets[i][A.idx_set[i].qn(j)] = offset;
      offset+= A.idx_set[i].qdim(j);
    }
@@ -411,14 +411,14 @@ void qstensor<T>::setRandom(){
   vector<unordered_map<int,int64_t> >offsets;
   getOffsets(*this,offsets);
   vector<int64_t> zeros(rank,0);
-  for(int i=0;i< block_index_qd.size();i++){
+  for(size_t i=0;i< block_index_qd.size();i++){
     CTF::Tensor<T> ran(rank,block_index_qd[i].data());
     ran.fill_random(0,1);
    vector<int64_t> starts(rank);
    vector<int64_t> ends(rank);
-   for(int j=0;j<rank;j++){
+   for(unsigned j=0;j<rank;j++){
     starts[j] = offsets[j][block_index_qn[i][j]];
-    ends[j] = starts[j]+block_index_qd[i][j];
+    ends[j]   = starts[j]+block_index_qd[i][j];
    }
    _T.slice(starts.data(),ends.data(),0.,ran,zeros.data(),ran.lens,1.);
 
@@ -1132,7 +1132,7 @@ T qstensor<T>::contract(qstensor<T>& A){
   //qstensor<T> B(A); B.dag();
   vector<qtensor_index> A_idx_set = A.idx_set;
   //dag the set
-  for(int i=0;i<A.rank;i++) A_idx_set[i].dag();
+  for(unsigned i=0;i<A.rank;i++) A_idx_set[i].dag();
 
   //find_index_permutation(B.idx_set, idx_set, perm);
   //B.permute(perm);
@@ -1390,7 +1390,7 @@ void qstensor<T>::print(unsigned print_level){
   pout<<"-------------------------------------"<<'\n';
   pout<<"(1) Tensor's rank = "<<rank<<'\n';
   pout<<"(2) Tensor's (# non-zero, % sparsity) = ("<<_T.nnz_tot<<","<<(double)_T.nnz_tot/(_T.get_tot_size(false))<<")\n";
-  pout<<"(3) Tensor's real edge lengths = ("; for(int l=0;l<rank;l++) pout<<_T.lens[l]<<","; pout<<")\n";
+  pout<<"(3) Tensor's real edge lengths = ("; for(unsigned l=0;l<rank;l++) pout<<_T.lens[l]<<","; pout<<")\n";
   pout<<"(4) Tensor's index (arrow, name, type, prime level), {(qn, qdim)}"<<'\n';
   for (size_t i = 0; i < rank; i++) {
     pout << "    ";

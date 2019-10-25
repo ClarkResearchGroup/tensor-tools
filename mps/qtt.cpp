@@ -636,9 +636,9 @@ template <typename T, unsigned N>
 void qTensorTrain<T, N>::save(std::string fn, std::string wfn){
   assert(tensors_allocated);
   if(wfn.size()==0) wfn=fn+"__T.bin";
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank==0){
+  int rankp;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rankp);
+  if(rankp==0){
     ezh5::File fh5 (fn+".h5", H5F_ACC_TRUNC);
     std::vector<char> wfnC(wfn.begin(),wfn.end()); wfnC.push_back(0); //don't forget null terminator
     fh5["wfn"]    = wfnC;
@@ -653,7 +653,7 @@ void qTensorTrain<T, N>::save(std::string fn, std::string wfn){
     for (size_t i = 0; i < length; i++){
       ezh5::Node nd = fh5["Tensor"+to_string(i)];
       nd["T"] = wfnC;
-      for(int l=0;l<A[i]._block.size();l++){
+      for(size_t l=0;l<A[i]._block.size();l++){
         nd["offset_"+to_string(l)] = offset;
         int64_t tot_size = 1;
         for(auto qd : A[i].block_index_qd[l]) tot_size*=qd;
@@ -671,7 +671,7 @@ void qTensorTrain<T, N>::save(std::string fn, std::string wfn){
   
   int64_t offset=0;
   for(size_t i=0; i<length; i++){
-    for(int l=0; l<A[i]._block.size(); l++){
+    for(size_t l=0; l<A[i]._block.size(); l++){
       A[i]._block[l].write_dense_to_file(file,offset);
       int64_t tot_size = 1;
       for(auto qd : A[i].block_index_qd[l]) tot_size*=qd;
@@ -707,7 +707,7 @@ void qTensorTrain<T, N>::load(std::string fn){
   for (size_t i = 0; i < length; i++){
     ezh5::Node nd = fh5["Tensor"+to_string(i)];
     A[i].load(nd);
-    for(int l=0;l<A[i]._block.size();l++){
+    for(size_t l=0;l<A[i]._block.size();l++){
       nd["offset_"+to_string(l)] >> offset;
       A[i]._block[l].read_dense_from_file(file,offset);
     }
