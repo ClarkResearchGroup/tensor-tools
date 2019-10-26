@@ -115,7 +115,7 @@ template qstensor< std::complex<double> > big_qstensor< std::complex<double> >::
 
 template <typename T>
 size_t big_qstensor<T>::size() const{
-  if(size_ == -1){
+  if(size_ == 0){
     size_ = 1;
     if(L!=nullptr){
       for(unsigned l=0; l< L->rank; l++){

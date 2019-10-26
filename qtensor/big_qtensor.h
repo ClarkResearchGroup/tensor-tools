@@ -30,7 +30,7 @@ public:
   big_qtensor(){
     L=nullptr;
     R=nullptr;
-    size_=-1;
+    size_=0;
   }
   ~big_qtensor(){}
 

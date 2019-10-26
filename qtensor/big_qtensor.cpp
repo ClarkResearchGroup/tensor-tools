@@ -78,7 +78,7 @@ template qtensor< std::complex<double> > big_qtensor< std::complex<double> >::di
 
 template <typename T>
 size_t big_qtensor<T>::size() const{
-  if(size_ == -1){
+  if(size_ == 0){
     size_ = 1;
     if(L!=nullptr){
       for(unsigned l=0; l< L->rank; l++){
