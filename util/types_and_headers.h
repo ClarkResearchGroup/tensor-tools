@@ -87,7 +87,7 @@ using std::complex;
 // If enabled, tensor transposition calls will be sent to HPTT driver.
 // If not enabled, tensor transposition will be sent to a not optimal function.
 #ifdef USE_HPTT
-#include <hptt.h>
+//#include <hptt.h>
 #endif
 //------------------------------------------------------------------------------
 

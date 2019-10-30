@@ -778,12 +778,12 @@ qtensor<T> qtensor<T>::operator + (qtensor<T>& A){
       idx_sizes[j] = A.block_index_qd[i][j];
     }
     unsigned res_idx = res.block_id_by_qn_str[res_qn_str];
-    auto plan = hptt::create_plan(
+    /*auto plan = hptt::create_plan(
       (int *)perm.data(), rank,
       alpha, A.block[i].data(), idx_sizes.data(), NULL,
       beta, res.block[res_idx].data(), NULL,
       hptt::ESTIMATE,numThreads);
-    plan->execute();
+    plan->execute();*/
   }
   return res;
 }
@@ -853,12 +853,12 @@ qtensor<T> qtensor<T>::operator - (qtensor<T>& A){
       idx_sizes[j] = A.block_index_qd[i][j];
     }
     unsigned res_idx = res.block_id_by_qn_str[res_qn_str];
-    auto plan = hptt::create_plan(
+    /*auto plan = hptt::create_plan(
       (int *)perm.data(), rank,
       alpha, A.block[i].data(), idx_sizes.data(), NULL,
       beta, res.block[res_idx].data(), NULL,
       hptt::ESTIMATE,numThreads);
-    plan->execute();
+    plan->execute();*/
   }
   return res;
 }
@@ -924,12 +924,12 @@ qtensor<T>& qtensor<T>::operator += (qtensor<T>& A){
       idx_sizes[j] = A.block_index_qd[i][j];
     }
     unsigned idx = block_id_by_qn_str[qn_str];
-    auto plan = hptt::create_plan(
+    /*auto plan = hptt::create_plan(
       (int *)perm.data(), rank,
       alpha, A.block[i].data(), idx_sizes.data(), NULL,
       beta, block[idx].data(), NULL,
       hptt::ESTIMATE,numThreads);
-    plan->execute();
+    plan->execute();*/
   }
   return *this;
 }
@@ -995,12 +995,12 @@ qtensor<T>& qtensor<T>::operator -= (qtensor<T>& A){
       idx_sizes[j] = A.block_index_qd[i][j];
     }
     unsigned idx = block_id_by_qn_str[qn_str];
-    auto plan = hptt::create_plan(
+    /*auto plan = hptt::create_plan(
       (int *)perm.data(), rank,
       alpha, A.block[i].data(), idx_sizes.data(), NULL,
       beta, block[idx].data(), NULL,
       hptt::ESTIMATE,numThreads);
-    plan->execute();
+    plan->execute();*/
   }
   return *this;
 }

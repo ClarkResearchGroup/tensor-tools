@@ -362,12 +362,12 @@ void dtensor<T>::permute(uint_vec& perm){
     if(p){
       numThreads = atoi(p);
     }
-    omp_set_num_threads(numThreads);
+    /*omp_set_num_threads(numThreads);
     // auto plan = hptt::create_plan((int *)perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::ESTIMATE,numThreads);
     auto plan = hptt::create_plan((int *)perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::PATIENT,numThreads);
     // auto plan = hptt::create_plan(perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::MEASURE,numThreads);
     // auto plan = hptt::create_plan(perm.data(),rank,alpha,A,idx_sizes,NULL,beta,B,NULL,hptt::PATIENT,numThreads);
-    plan->execute();
+    plan->execute();*/
     delete [] A;
   }
 }
