@@ -12,10 +12,10 @@
 Design of the templated qtensor class:
 
 (1) qtensor's underlying storage and algorithms are provided
-    by TBLIS.
-    TBLIS is a library and framework for performing tensor operations,
+    by CTF.
+    CTF is a library and framework for performing tensor operations,
     especially tensor contraction, using efficient native algorithms.
-    https://github.com/devinamatthews/tblis
+    https://github.com/cyclops-community/ctf/
 
 (2) When performing qtensor contraction, Einstein summation rule is assumed.
     Repeated indices will be summed over.
@@ -68,7 +68,7 @@ public:
   vector<qtensor_index> idx_set;
   vector<vector<T>> block; //TODO: remove!
   vector<CTF::Tensor<T> > _block;
-  vector< int_vec >  block_index_qn;
+  vector< qn_vec >  block_index_qn;
   vector< int_vec > block_index_qd;
   vector< uint_vec > block_index_qi;
   unordered_map< string, unsigned > block_id_by_qn_str;

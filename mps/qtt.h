@@ -30,8 +30,8 @@ public:
   unsigned phy_dim;        // dimension of each physical bond
   uint_vec bond_dims;       // dimensions of virtual bonds
   int center;              // canonicalization center
-  int totalQ;              // total abelian quantum number
-  vector<int> phy_qn;      // quantum numbers of physical bonds
+  QN_t totalQ;              // total abelian quantum number
+  vector<QN_t> phy_qn;      // quantum numbers of physical bonds
 
   //---------------------------------------------------------------------------
   // Data containers
@@ -44,10 +44,10 @@ public:
   //---------------------------------------------------------------------------
   // Constructors
   qTensorTrain();
-  qTensorTrain(abstract_sites* s, int Q = 0);
+  qTensorTrain(abstract_sites* s, QN_t Q = 0);
   qTensorTrain(abstract_sites* s, str_vec product_string);
-  qTensorTrain(unsigned L, unsigned pD, vector<int>& phyQN, int Q);
-  qTensorTrain(unsigned L, unsigned pD, vector<int>& phyQN, uint_vec product_state);
+  qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phyQN, QN_t Q);
+  qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phyQN, uint_vec product_state);
   qTensorTrain(const qTensorTrain<T, N>& other);
   qTensorTrain(qTensorTrain<T, N>&& other);
   // Destructor

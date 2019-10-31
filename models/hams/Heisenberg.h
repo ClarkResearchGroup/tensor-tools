@@ -182,7 +182,7 @@ public:
   ~Heisenberg(){}
 
   void addOperators(MPO<T>& A, unsigned site, unsigned r, unsigned c, string op, double val);
-  void addOperators(qMPO<T>& A, unsigned site, unsigned r, unsigned c, string op, double val, int Qi, int Qo);
+  void addOperators(qMPO<T>& A, unsigned site, unsigned r, unsigned c, string op, double val, QN_t Qi, QN_t Qo);
 
   void buildHam(MPO<T>&  H);
   void buildHam(AutoMPO& ampo, MPO<T>&  H);

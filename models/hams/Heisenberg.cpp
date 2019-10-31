@@ -5,10 +5,10 @@
 
 struct SiteQN{
     SiteTerm st;
-    int q;
+    QN_t q;
 
     SiteQN() {}
-    SiteQN(SiteTerm const& st_, int const& q_): st(st_),q(q_){}
+    SiteQN(SiteTerm const& st_, QN_t const& q_): st(st_),q(q_){}
 };
 
 string
@@ -116,7 +116,7 @@ template void Heisenberg< std::complex<double> >::addOperators(MPO< std::complex
 
 
 template <typename T>
-void Heisenberg<T>::addOperators(qMPO<T>& H, unsigned site, unsigned r, unsigned c, string op, double val, int Qi, int Qo){
+void Heisenberg<T>::addOperators(qMPO<T>& H, unsigned site, unsigned r, unsigned c, string op, double val, QN_t Qi, QN_t Qo){
   bool added = false;
   for (size_t k = 0; k < 2; k++) {
     for (size_t b = 0; b < 2; b++) {
@@ -160,8 +160,8 @@ void Heisenberg<T>::addOperators(qMPO<T>& H, unsigned site, unsigned r, unsigned
   //else perr<<"NOT Adding @"<<site<<" r="<<r<<" c="<<c<<" op="<<op<<" val="<<val<<" Qi="<<Qi<<" Qo="<<Qo<<endl;
   assert(added);
 }
-template void Heisenberg<double>::addOperators(qMPO<double>& H, unsigned site, unsigned r, unsigned c, string op, double val, int Qi, int Qo);
-template void Heisenberg< std::complex<double> >::addOperators(qMPO< std::complex<double> >& H, unsigned site, unsigned r, unsigned c, string op, double val, int Qi, int Qo);
+template void Heisenberg<double>::addOperators(qMPO<double>& H, unsigned site, unsigned r, unsigned c, string op, double val, QN_t Qi, QN_t Qo);
+template void Heisenberg< std::complex<double> >::addOperators(qMPO< std::complex<double> >& H, unsigned site, unsigned r, unsigned c, string op, double val, QN_t Qi, QN_t Qo);
 
 
 template <typename T>
@@ -206,7 +206,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   for(unsigned n=1;n<=N;++n){
     basis.at(n).emplace_back(HL,0);
   }
-  const auto Zero = 0; //QN type
+  const QN_t Zero = 0; //QN type
   
   //Fill up the basis array at each site with the unique operator types occuring on the site
   //unique including their coefficient
@@ -240,8 +240,8 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   for(unsigned n=0;n<=N;++n){
     auto& bn = basis.at(n);
     inqn.clear();
-    int currq = bn.front().q;
-    int currm = 0;
+    QN_t currq = bn.front().q;
+    unsigned currm = 0;
     int count = 0;
     for(auto& sq : bn){
       if(sq.q == currq){ ++currm; }
@@ -384,7 +384,7 @@ template void Heisenberg< std::complex<double> >::buildHam(qMPO< std::complex<do
 
   //vector<unordered_map<int,unsigned>> qnToMaxIdx(N+1);
   //vector<unordered_map<unsigned,unsigned>> rcToIdx(N+1);
-unsigned basisToIndex(int qni,unordered_map<int,unsigned>& qnToMaxIdx,
+unsigned basisToIndex(QN_t qni,unordered_map<QN_t,unsigned>& qnToMaxIdx,
                       unordered_map<unsigned,unsigned>& rcToIdx, unsigned i){
   if(qnToMaxIdx.count(qni)==0) qnToMaxIdx[qni] = 1;
   if(rcToIdx.count(i)==0){
@@ -472,7 +472,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
   for(unsigned n=1;n<=N;++n){
     basis.at(n).emplace_back(HL,0);
   }
-  const auto Zero = 0; //QN type
+  const QN_t Zero = 0; //QN type
   
   //Fill up the basis array at each site with the unique operator types occuring on the site
   //unique including their coefficient
@@ -506,8 +506,8 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
   for(unsigned n=0;n<=N;++n){
     auto& bn = basis.at(n);
     inqn.clear();
-    int currq = bn.front().q;
-    int currm = 0;
+    QN_t currq = bn.front().q;
+    unsigned currm = 0;
     int count = 0;
     for(auto& sq : bn){
       if(sq.q == currq){ ++currm; }
@@ -529,7 +529,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
     for(auto& st: ht.ops)
       ht_by_n.at(st.i+1).push_back(ht);
   }
-  vector<unordered_map<int,unsigned>> qnToMaxIdx(N+1);
+  vector<unordered_map<QN_t,unsigned>> qnToMaxIdx(N+1);
   vector<unordered_map<unsigned,unsigned>> rcToIdx(N+1);
   assert(ht_by_n[0].size()==0);
   for (size_t i = 0; i < H.length; i++) {

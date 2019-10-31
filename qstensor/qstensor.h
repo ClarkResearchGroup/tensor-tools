@@ -13,13 +13,15 @@
 Design of the templated qstensor class:
 
 (1) qstensor's underlying storage and algorithms are provided
-    by TBLIS.
-    TBLIS is a library and framework for performing tensor operations,
+    by CTF.
+    CTF is a library and framework for performing tensor operations,
     especially tensor contraction, using efficient native algorithms.
-    https://github.com/devinamatthews/tblis
+    https://github.com/cyclops-community/ctf/
 
 (2) When performing qstensor contraction, Einstein summation rule is assumed.
     Repeated indices will be summed over.
+
+(3) All qn blocks are stored in a giant CTF tensor. They default to being dense but are really sparse
 */
 
 
@@ -69,7 +71,7 @@ public:
   vector<vector<T>> block; //TODO: remove!
   vector<CTF::Tensor<T> > _block;
   CTF::Tensor<T> _T;
-  vector< int_vec >  block_index_qn;
+  vector< qn_vec >  block_index_qn;
   vector< int_vec > block_index_qd;
   vector< uint_vec > block_index_qi;
   unordered_map< string, unsigned > block_id_by_qn_str;
@@ -157,7 +159,7 @@ template<typename T>
 void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M);
 
 template<typename T>
-void getOffsets(qstensor<T> &A, vector<unordered_map<int,int64_t> >& blockOffsets);
+void getOffsets(qstensor<T> &A, vector<unordered_map<QN_t,int64_t> >& blockOffsets);
 
 /*template<typename T>
 double calcEntropy(qstensor<T>& S, double cutoff=1e-24){

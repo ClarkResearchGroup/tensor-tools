@@ -21,7 +21,7 @@ template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain();
 
 
 template <typename T, unsigned N>
-qsTensorTrain<T, N>::qsTensorTrain(abstract_sites* s, int Q){
+qsTensorTrain<T, N>::qsTensorTrain(abstract_sites* s, QN_t Q){
   _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
   tensors_allocated = false;
   setLength((*s).N());
@@ -34,10 +34,10 @@ qsTensorTrain<T, N>::qsTensorTrain(abstract_sites* s, int Q){
   allocateTensors();
   center = -1;
 }
-template qsTensorTrain<double, 1>::qsTensorTrain(abstract_sites* s, int Q);
-template qsTensorTrain<double, 2>::qsTensorTrain(abstract_sites* s, int Q);
-template qsTensorTrain<std::complex<double>, 1>::qsTensorTrain(abstract_sites* s, int Q);
-template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(abstract_sites* s, int Q);
+template qsTensorTrain<double, 1>::qsTensorTrain(abstract_sites* s, QN_t Q);
+template qsTensorTrain<double, 2>::qsTensorTrain(abstract_sites* s, QN_t Q);
+template qsTensorTrain<std::complex<double>, 1>::qsTensorTrain(abstract_sites* s, QN_t Q);
+template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(abstract_sites* s, QN_t Q);
 
 
 template <typename T, unsigned N>
@@ -66,7 +66,7 @@ template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(abstract_sites* s
 
 
 template <typename T, unsigned N>
-qsTensorTrain<T, N>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, int Q){
+qsTensorTrain<T, N>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t Q){
   _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
   tensors_allocated = false;
   setLength(L);
@@ -79,14 +79,14 @@ qsTensorTrain<T, N>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn,
   allocateTensors();
   center = -1;
 }
-template qsTensorTrain<double, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, int totalQ);
-template qsTensorTrain<double, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, int totalQ);
-template qsTensorTrain<std::complex<double>, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, int totalQ);
-template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, int totalQ);
+template qsTensorTrain<double, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t totalQ);
+template qsTensorTrain<double, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t totalQ);
+template qsTensorTrain<std::complex<double>, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t totalQ);
+template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t totalQ);
 
 
 template <typename T, unsigned N>
-qsTensorTrain<T, N>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, uint_vec product_state){
+qsTensorTrain<T, N>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state){
   _id = unsigned(1e9*thread_safe_random_double()+1e7*thread_safe_random_double()+1e5*thread_safe_random_double()+1e3*thread_safe_random_double());
   tensors_allocated = false;
   setLength(L);
@@ -103,10 +103,10 @@ qsTensorTrain<T, N>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn,
   allocateTensors(product_state.data());
   center = -1;
 }
-template qsTensorTrain<double, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, uint_vec product_state);
-template qsTensorTrain<double, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, uint_vec product_state);
-template qsTensorTrain<std::complex<double>, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, uint_vec product_state);
-template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<int>& phy_qn, uint_vec product_state);
+template qsTensorTrain<double, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state);
+template qsTensorTrain<double, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state);
+template qsTensorTrain<std::complex<double>, 1>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state);
+template qsTensorTrain<std::complex<double>, 2>::qsTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state);
 
 
 template <typename T, unsigned N>
@@ -243,19 +243,19 @@ void qsTensorTrain<T, N>::allocateTensors(unsigned* product_state){
     if(N==1){
       // MPS
       // Get legal Link QN
-      vector< set<int> > Link_QN(length+1);
+      vector< set<QN_t> > Link_QN(length+1);
       Link_QN[0].insert(0);
       Link_QN[length].insert(totalQ);
       for (size_t j = 1; j < length; j++) {
-        for (set<int>::iterator it=Link_QN[j-1].begin(); it!=Link_QN[j-1].end(); ++it) {
+        for (set<QN_t>::iterator  it=Link_QN[j-1].begin(); it!=Link_QN[j-1].end(); ++it) {
           for (size_t k = 0; k < phy_qn.size(); k++) {
             Link_QN[j].insert(*it + phy_qn[k]);
           }
         }
       }
       for (size_t j = length-1; j > 0; j--) {
-        vector<int> to_remove;
-        for (set<int>::iterator it=Link_QN[j].begin(); it!=Link_QN[j].end(); ++it) {
+        vector<QN_t> to_remove;
+        for (set<QN_t>::iterator  it=Link_QN[j].begin(); it!=Link_QN[j].end(); ++it) {
           bool valid = false;
           for (size_t k = 0; k < phy_qn.size(); k++) {
             if(Link_QN[j+1].find(*it + phy_qn[k]) != Link_QN[j+1].end()){
@@ -282,8 +282,8 @@ void qsTensorTrain<T, N>::allocateTensors(unsigned* product_state){
               {Link, Site, Link},
               {0,0,0});
         // Set QNs
-        vector<int> left_link_qn(Link_QN[i].begin(), Link_QN[i].end());
-        vector<int> right_link_qn(Link_QN[i+1].begin(), Link_QN[i+1].end());
+        vector<QN_t> left_link_qn(Link_QN[i].begin(), Link_QN[i].end());
+        vector<QN_t> right_link_qn(Link_QN[i+1].begin(), Link_QN[i+1].end());
         // Left Link
         for (size_t j = 0; j < left_link_qn.size(); j++) {
           Ai.addQNtoIndex(0, std::make_pair(left_link_qn[j], 1));

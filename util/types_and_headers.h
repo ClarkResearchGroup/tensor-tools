@@ -96,7 +96,8 @@ using std::complex;
 // Single Abelian quantum number
 // first: qn;    second: dimension
 //------------------------------------------------------------------------------
-typedef pair<int, unsigned> quantum_number;
+typedef int QN_t;
+typedef pair<QN_t, unsigned> quantum_number;
 //------------------------------------------------------------------------------
 // For sorting quantum numbers by qn
 inline bool qnCompare(const quantum_number& qn1, const quantum_number& qn2) {
@@ -178,6 +179,7 @@ typedef vector<int>                   int_vec;
 typedef vector<string>                str_vec;
 typedef vector<arrow_type>            arr_vec;
 typedef vector<index_type>            typ_vec;
+typedef vector<QN_t>                  qn_vec;
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------

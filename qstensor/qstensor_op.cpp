@@ -251,11 +251,11 @@ void svd(qstensor<T>& A,
     }
     A_block_id_by_qn_str[A_qn_str] = i;
   }
-  set<int> mid_Q_set;
-  unordered_map<int, set<uint_vec> > l_index_qi;
-  unordered_map<int, set<uint_vec> > r_index_qi;
+  set<QN_t> mid_Q_set;
+  unordered_map<QN_t, set<uint_vec> > l_index_qi;
+  unordered_map<QN_t, set<uint_vec> > r_index_qi;
   for (size_t i = 0; i < A.block_index_qn.size(); i++) {
-    int mid_QN = 0;
+    QN_t mid_QN = 0;
     uint_vec l_qi, r_qi;
     for (size_t j = 0; j < left.size(); j++) {
       if(left[j].arrow()==Inward){
@@ -273,14 +273,14 @@ void svd(qstensor<T>& A,
     r_index_qi[mid_QN].insert(r_qi);
   }
   // Set up the initial mid bond
-  unordered_map<int, str_vec>  l_qn_str_map;
-  unordered_map<int, str_vec>  r_qn_str_map;
-  unordered_map<int, int_vec> l_qn_sizes_map;
-  unordered_map<int, int_vec> r_qn_sizes_map;
-  vector<int> mid_Q(mid_Q_set.begin(), mid_Q_set.end());
+  unordered_map<QN_t, str_vec>  l_qn_str_map;
+  unordered_map<QN_t, str_vec>  r_qn_str_map;
+  unordered_map<QN_t, int_vec> l_qn_sizes_map;
+  unordered_map<QN_t, int_vec> r_qn_sizes_map;
+  vector<QN_t> mid_Q(mid_Q_set.begin(), mid_Q_set.end());
   uint_vec mid_QDim(mid_Q.size());
   for (size_t i = 0; i < mid_Q.size(); i++) {
-    int q = mid_Q[i];
+    QN_t q = mid_Q[i];
     const set<uint_vec>& l_qi_set = l_index_qi[q];
     const set<uint_vec>& r_qi_set = r_index_qi[q];
     unsigned row = 0;
@@ -338,12 +338,12 @@ void svd(qstensor<T>& A,
   vector<CTF::Matrix<T>> mV(mid_Q.size());
   vector<CTF::Vector<T>> mS(mid_Q.size());
 
-  vector<unordered_map<int,int64_t> > blockOffsets; //find corner of block in dense
+  vector<unordered_map<QN_t,int64_t> > blockOffsets; //find corner of block in dense
   getOffsets(A,blockOffsets);
  
   // SVD block by block
   for (size_t ii = 0; ii < mid_Q.size(); ii++) {
-    int q = mid_Q[ii];
+    QN_t q = mid_Q[ii];
     unsigned dim = mid_QDim[ii];
     unsigned row = 0;
     unsigned col = 0;
@@ -483,7 +483,7 @@ void svd(qstensor<T>& A,
   S._initted = true;
   unsigned mid_num = 0;
   for (size_t ii = 0; ii < mid_Q.size(); ii++) {
-    int q = mid_Q[ii];
+    QN_t q = mid_Q[ii];
     unsigned dim  = mid_QDim[ii];
     int ndim      = new_QDim[ii]; //cast to int to get rid of warnings
     if(ndim==0) continue;
@@ -491,8 +491,8 @@ void svd(qstensor<T>& A,
     for (auto i1 = l_qi_set.begin(); i1 != l_qi_set.end(); ++i1){
       const uint_vec& l_qi = *i1;
       uint_vec U_block_index_qi;
-      int_vec U_block_index_qd;
-      int_vec  U_block_index_qn;
+      int_vec  U_block_index_qd;
+      qn_vec   U_block_index_qn;
       int_vec  U_idx_sizes;
       unsigned U_block_size = 1;
       string   U_qn_str;
@@ -520,8 +520,8 @@ void svd(qstensor<T>& A,
     for (auto i1 = r_qi_set.begin(); i1 != r_qi_set.end(); ++i1){
       const uint_vec& r_qi = *i1;
       uint_vec V_block_index_qi;
-      int_vec V_block_index_qd;
-      int_vec  V_block_index_qn;
+      int_vec  V_block_index_qd;
+      qn_vec   V_block_index_qn;
       unsigned V_block_size = 1;
       string   V_qn_str;
       // first bond

@@ -16,7 +16,7 @@ public:
   ~qtensor_index(){}
 
   inline void addQN(quantum_number qn) {_qn.push_back(qn); _sorted=false; setTag();}
-  inline void addQN(vector<int> qn, uint_vec qdim) {
+  inline void addQN(vector<QN_t> qn, uint_vec qdim) {
     for (size_t i = 0; i < qn.size(); i++) {
       _qn.push_back(std::make_pair(qn[i], qdim[i]));
     }
@@ -48,7 +48,7 @@ public:
   inline index_type type()   const {return _type;}
   inline string tag()        const {return _arrow+" "+to_string(_level)+" "+_tag;}
   inline string tagNoArrow() const {return to_string(_level)+" "+_tag;}
-  inline int qn(unsigned i)  const {return _qn.at(i).first;}
+  inline QN_t qn(unsigned i)  const {return _qn.at(i).first;}
   inline unsigned qdim(unsigned i) const {return _qn.at(i).second;}
 
   inline void dag() {

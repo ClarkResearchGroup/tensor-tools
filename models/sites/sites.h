@@ -16,13 +16,13 @@ public:
 
   unsigned N() {return _N;}
   unsigned phy_dim() {return _phyDim;}
-  vector<int> phy_qn() {return _phyQN;}
+  vector<QN_t> phy_qn() {return _phyQN;}
 
 protected:
 
   unsigned _N;
   unsigned _phyDim;
-  vector<int> _phyQN;
+  vector<QN_t> _phyQN;
 };
 
 #endif

@@ -295,9 +295,9 @@ void qtensor<T>::initBlock(){
     for (size_t i = 0; i < n; i++) {
       uint_vec pos(rank);
       int_vec qds(rank);
-      int_vec  qns(rank);
+      vector<QN_t>  qns(rank);
       unsigned size = 1;
-      int totalQN = 0;
+      QN_t totalQN = 0;
       for (size_t j = 0; j < rank; j++) {
         pos[j] = unsigned(i/stride[j])%idx_set[j].size();
         qns[j] = idx_set[j].qn(pos[j]);
@@ -589,12 +589,12 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
   qtensor<T> res(res_index_set);
   res._initted = true;
   // get blocks info
-  set<int> mid_QN_set;
-  unordered_map< int, set<uint_vec> > left_index_qi;
-  unordered_map< int, set<uint_vec> > mid_index_qi;
-  unordered_map< int, set<uint_vec> > right_index_qi;
+  set<QN_t> mid_QN_set;
+  unordered_map< QN_t, set<uint_vec> > left_index_qi;
+  unordered_map< QN_t, set<uint_vec> > mid_index_qi;
+  unordered_map< QN_t, set<uint_vec> > right_index_qi;
   for (size_t i = 0; i < _block.size(); i++) {
-    int mid_QN = 0;
+    QN_t mid_QN = 0;
     uint_vec left_qi;
     for (size_t j = 0; j < rank-num_rep; j++) {
       left_qi.push_back(block_index_qi[i][A_perm[j]]);
@@ -608,7 +608,7 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
     left_index_qi[mid_QN].insert(left_qi);
   }
   for (size_t i = 0; i < other._block.size(); i++) {
-    int mid_QN = 0;
+    QN_t mid_QN = 0;
     uint_vec right_qi;
     for (size_t j = num_rep; j < other.rank; j++) {
       right_qi.push_back(other.block_index_qi[i][B_perm[j]]);
@@ -632,7 +632,7 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
   //perr<<indC << " "<<indA_L<< " "<<indB_R<<endl;
   // merge blocks
   for (auto i1 = mid_QN_set.begin(); i1 != mid_QN_set.end(); ++i1){
-    int q = *i1;
+    auto q = *i1;
     const set<uint_vec>& left_qi_set  = left_index_qi[q];
     const set<uint_vec>& right_qi_set = right_index_qi[q];
     const set<uint_vec>& mid_qi_set   = mid_index_qi[q];
@@ -642,11 +642,11 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
         const uint_vec& left_qi = *i3;
         uint_vec res_block_index_qi;
         int_vec res_block_index_qd;
-        int_vec  res_block_index_qn;
+        qn_vec   res_block_index_qn;
         unsigned res_block_size = 1;
         string   res_qn_str;
-        int_vec  A_block_qn(rank);
-        int_vec  B_block_qn(other.rank);
+        qn_vec   A_block_qn(rank);
+        qn_vec   B_block_qn(other.rank);
         int M=1,N=1;
         for (size_t i = 0; i < left_qi.size(); i++) {
           res_block_index_qi.push_back(left_qi[i]);
@@ -675,9 +675,9 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
         res.block_id_by_qn_str[res_qn_str] = res._block.size()-1;
         // sum over all blocks
         for (auto i4 = mid_qi_set.begin(); i4 != mid_qi_set.end(); ++i4){
-          const uint_vec& mid_qi = *i4;
-          int_vec A_block_qn_complete(A_block_qn);
-          int_vec B_block_qn_complete(B_block_qn);
+          const auto& mid_qi = *i4;
+          qn_vec A_block_qn_complete(A_block_qn);
+          qn_vec B_block_qn_complete(B_block_qn);
           string A_qn_str, B_qn_str;
           int K=1;
           for (size_t i = 0; i < num_rep; i++) {
@@ -1236,7 +1236,7 @@ qtensor<T> qtensor<T>::diagonal(){
     if(is_diag_block){
       const uint_vec& res_block_index_qi = left_qi;
       int_vec  res_block_index_qd;
-      int_vec  res_block_index_qn;
+      qn_vec    res_block_index_qn;
       unsigned res_block_size = 1;
       string   res_qn_str;
       for (size_t j = 0; j < left_index.size(); j++) {
@@ -1352,8 +1352,8 @@ void qtensor<T>::save(string fn){
   str_vec  idx_names;
   uint_vec idx_types;
   uint_vec idx_levels;
-  vector<int_vec>  idx_qn(rank);
-  vector<uint_vec> idx_qdim(rank);
+  vector<qn_vec>  idx_qn(rank);
+  vector<int_vec> idx_qdim(rank);
   for (size_t i = 0; i < rank; i++) {
     idx_arrows.push_back(idx_set[i].arrow());
     idx_names.push_back(idx_set[i].name());
@@ -1394,8 +1394,8 @@ void qtensor<T>::save(ezh5::Node& fh5W){
   str_vec  idx_names;
   uint_vec idx_types;
   uint_vec idx_levels;
-  vector<int_vec>  idx_qn(rank);
-  vector<uint_vec> idx_qdim(rank);
+  vector<qn_vec>  idx_qn(rank);
+  vector<int_vec> idx_qdim(rank);
   for (size_t i = 0; i < rank; i++) {
     idx_arrows.push_back(idx_set[i].arrow());
     idx_names.push_back(idx_set[i].name());
@@ -1453,7 +1453,7 @@ void qtensor<T>::load(string fn){
     idx_arrows.push_back(arrow_type(idx_arrows_int[i]));
     idx_types.push_back(index_type(idx_types_int[i]));
     idx_set.push_back(qtensor_index(idx_arrows[i],idx_names[i],idx_types[i],idx_levels[i]));
-    int_vec idx_qn;
+    qn_vec idx_qn;
     uint_vec idx_qdim;
     fh5R["idx_qn_"+to_string(i)] >> idx_qn;
     fh5R["idx_qdim_"+to_string(i)] >> idx_qdim;
@@ -1464,18 +1464,18 @@ void qtensor<T>::load(string fn){
   for (size_t i = 0; i < num_blocks; i++) {
     uint_vec qi_vec;
     int_vec qd_vec;
-    int_vec  qn_vec;
+    qn_vec  vec_qn;
     string   qn_str;
     fh5R["block_"+to_string(i)+"_qi"] >> qi_vec;
     for (size_t j = 0; j < rank; j++) {
-      qn_vec.push_back(idx_set[j].qn(qi_vec[j]));
+      vec_qn.push_back(idx_set[j].qn(qi_vec[j]));
       qd_vec.push_back(idx_set[j].qdim(qi_vec[j]));
-      qn_str += (to_string(qn_vec.back())+" ");
+      qn_str += (to_string(vec_qn.back())+" ");
     }
     A.block.push_back(vector<T>(1));
     A.block_index_qi.push_back(qi_vec);
     A.block_index_qd.push_back(qd_vec);
-    A.block_index_qn.push_back(qn_vec);
+    A.block_index_qn.push_back(vec_qn);
     A.block_id_by_qn_str[qn_str] = i;
     fh5R["block_"+to_string(i)] >> A.block.back();
   }
@@ -1508,7 +1508,7 @@ void qtensor<T>::load(ezh5::Node& fh5R){
     idx_arrows.push_back(arrow_type(idx_arrows_int[i]));
     idx_types.push_back(index_type(idx_types_int[i]));
     idx_set.push_back(qtensor_index(idx_arrows[i],idx_names[i],idx_types[i],idx_levels[i]));
-    int_vec idx_qn;
+    qn_vec   idx_qn;
     uint_vec idx_qdim;
     fh5R["idx_qn_"+to_string(i)] >> idx_qn;
     fh5R["idx_qdim_"+to_string(i)] >> idx_qdim;
@@ -1519,19 +1519,19 @@ void qtensor<T>::load(ezh5::Node& fh5R){
   for (size_t i = 0; i < num_blocks; i++) {
     uint_vec qi_vec;
     int_vec qd_vec;
-    int_vec  qn_vec;
+    qn_vec  vec_qn;
     string   qn_str;
     fh5R["block_"+to_string(i)+"_qi"] >> qi_vec;
     for (size_t j = 0; j < rank; j++) {
-      qn_vec.push_back(idx_set[j].qn(qi_vec[j]));
+      vec_qn.push_back(idx_set[j].qn(qi_vec[j]));
       qd_vec.push_back(idx_set[j].qdim(qi_vec[j]));
-      qn_str += (to_string(qn_vec.back())+" ");
+      qn_str += (to_string(vec_qn.back())+" ");
     }
     //A.block.push_back(vector<T>(1));
     A._block.emplace_back(rank,qd_vec.data());
     A.block_index_qi.push_back(qi_vec);
     A.block_index_qd.push_back(qd_vec);
-    A.block_index_qn.push_back(qn_vec);
+    A.block_index_qn.push_back(vec_qn);
     A.block_id_by_qn_str[qn_str] = i;
     //fh5R["block_"+to_string(i)] >> A.block.back();
   }
