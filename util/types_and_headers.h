@@ -96,7 +96,9 @@ using std::complex;
 // Single Abelian quantum number
 // first: qn;    second: dimension
 //------------------------------------------------------------------------------
-typedef int QN_t;
+#include "QN.h"
+//typedef int QN_t;
+typedef QN_t_1 QN_t;
 typedef pair<QN_t, unsigned> quantum_number;
 //------------------------------------------------------------------------------
 // For sorting quantum numbers by qn
