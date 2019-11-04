@@ -76,8 +76,8 @@ void Heisenberg<T>::addOperators(MPO<T>& H, unsigned site, unsigned r, unsigned 
     auto s1 = H.A[site].idx_set[0].size()*s0;
     auto s2 = H.A[site].idx_set[1].size()*s1;
     auto s3 = H.A[site].idx_set[2].size()*s2;
-    for (size_t k = 0; k < 2; k++) {
-      for (size_t b = 0; b < 2; b++) {
+    for (size_t k = 0; k < H.phy_dim; k++) {
+      for (size_t b = 0; b < H.phy_dim; b++) {
         if(site==0){
           // assert(k*s1 + b*s2 + s3*c < H.A[site].size);
 
@@ -118,8 +118,8 @@ template void Heisenberg< std::complex<double> >::addOperators(MPO< std::complex
 template <typename T>
 void Heisenberg<T>::addOperators(qMPO<T>& H, unsigned site, unsigned r, unsigned c, string op, double val, QN_t Qi, QN_t Qo){
   bool added = false;
-  for (size_t k = 0; k < 2; k++) {
-    for (size_t b = 0; b < 2; b++) {
+  for (size_t k = 0; k < H.phy_dim; k++) {
+    for (size_t b = 0; b < H.phy_dim; b++) {
       string qn_str;
       qn_str += (to_string(Qi)+" ");
       qn_str += (to_string(H.phy_qn[k])+" ");
@@ -156,8 +156,8 @@ void Heisenberg<T>::addOperators(qMPO<T>& H, unsigned site, unsigned r, unsigned
       }
     }
   }
-  //if(added) perr<<"Adding @"<<site<<" r="<<r<<" c="<<c<<" op="<<op<<" val="<<val<<" Qi="<<Qi<<" Qo="<<Qo<<endl;
-  //else perr<<"NOT Adding @"<<site<<" r="<<r<<" c="<<c<<" op="<<op<<" val="<<val<<" Qi="<<Qi<<" Qo="<<Qo<<endl;
+  //if(added) perr<<"Adding @"<<site<<" r="<<r<<" c="<<c<<" op="<<op<<" val="<<val<<" Qi="<<to_string(Qi)<<" Qo="<<to_string(Qo)<<endl;
+  //else perr<<"NOT Adding @"<<site<<" r="<<r<<" c="<<c<<" op="<<op<<" val="<<val<<" Qi="<<to_string(Qi)<<" Qo="<<to_string(Qo)<<endl;
   assert(added);
 }
 template void Heisenberg<double>::addOperators(qMPO<double>& H, unsigned site, unsigned r, unsigned c, string op, double val, QN_t Qi, QN_t Qo);

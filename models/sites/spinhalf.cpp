@@ -23,7 +23,7 @@ double spinhalf::d_bra_op_ket(unsigned bra, string op, unsigned ket){
     if(ket==Up && bra==Dn) return +1;
     return 0;
   }else{
-    std::cout << "(spinhalf class) Operator " << op << " is not supported!" << '\n';
+    perr << "(spinhalf class) Operator " << op << " is not supported!" << '\n';
     return 0;
   }
 }
@@ -52,7 +52,7 @@ std::complex<double> spinhalf::c_bra_op_ket(unsigned bra, string op, unsigned ke
     if(ket==Up && bra==Dn) return +1;
     return 0;
   }else{
-    std::cout << "(spinhalf class) Operator " << op << " is not supported!" << '\n';
+    perr << "(spinhalf class) Operator " << op << " is not supported!" << '\n';
     return 0;
   }
 }
@@ -66,7 +66,7 @@ uint_vec spinhalf::product_state(str_vec& st){
     }else if(s=="Dn"){
       ps.push_back(0);
     }else{
-      std::cout << "Input produst state string is incompatible with spinhalf sites!" << '\n';
+      perr << "Input produst state string is incompatible with spinhalf sites!" << '\n';
       abort();
     }
     ++m;
@@ -75,7 +75,7 @@ uint_vec spinhalf::product_state(str_vec& st){
   return ps;
 }
 
-int spinhalf::div(string op){
+QN_t spinhalf::div(string op){
   if(op=="Sz")
     return 0;
   if(op=="S+")

@@ -98,7 +98,8 @@ using std::complex;
 //------------------------------------------------------------------------------
 #include "QN.h"
 //typedef int QN_t;
-typedef QN_t_1 QN_t;
+//typedef QN_t_1 QN_t;
+typedef QN_t_2 QN_t;
 typedef pair<QN_t, unsigned> quantum_number;
 //------------------------------------------------------------------------------
 // For sorting quantum numbers by qn

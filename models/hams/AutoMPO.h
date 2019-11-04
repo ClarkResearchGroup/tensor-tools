@@ -6,7 +6,7 @@
 #define AUTOMPO_H
 
 #include <set>
-#include "../sites/spinhalf.h"
+#include "../sites/sites.h"
 
 
 class AutoMPO;
@@ -118,7 +118,7 @@ class AutoMPO
     public:
     using storage = std::set<HTerm,LessNoCoef>;
     private:
-    spinhalf sites_;
+    //abstract_sites sites_;
     storage terms_;
 
     enum State { New, Op };
@@ -168,12 +168,12 @@ class AutoMPO
 
     AutoMPO() { }
 
-    AutoMPO(spinhalf const& sites) 
-      : sites_(sites)
+    AutoMPO(abstract_sites const& sites) 
+      //: sites_(sites)
         { }
 
-    spinhalf const&
-    sites() const { return sites_; }
+    //abstract_sites const&
+    //sites() const { return sites_; }
 
     storage const&
     terms() const { return terms_; }

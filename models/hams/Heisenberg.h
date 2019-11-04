@@ -178,7 +178,7 @@ D. qtensor format
 template <typename T>
 class Heisenberg{
 public:
-  Heisenberg(spinhalf* s, double tE=0, double* dh=nullptr) {_s=s; _tE=tE; _dh=dh;}
+  Heisenberg(abstract_sites* s, double tE=0, double* dh=nullptr) {_s=s; _tE=tE; _dh=dh;}
   ~Heisenberg(){}
 
   void addOperators(MPO<T>& A, unsigned site, unsigned r, unsigned c, string op, double val);
@@ -192,7 +192,7 @@ public:
 private:
   double _tE;
   double* _dh;
-  spinhalf* _s;
+  abstract_sites* _s;
   vector< vector< vector<string> > > ops;
   vector< vector< vector<string> > > val;
 };

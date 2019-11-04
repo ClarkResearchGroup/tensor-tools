@@ -255,7 +255,7 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
       }
       // Set product state
       if(product_state!=nullptr){
-        for (size_t i = 0; i < length; i++) {
+        /*for (size_t i = 0; i < length; i++) {
           string ind = A[i].getIndices();
           for (size_t j = 0; j < A[i]._block.size(); j++) {
             if(A[i].block_index_qi[j][1] == product_state[i]){
@@ -263,7 +263,33 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
             }else{
               //A[i]._block[j][ind.c_str()] = 0;//std::numeric_limits<double>::epsilon(); //TODO: check for complex
             }
+          A[i].print(1);
           }
+        }*/
+        QN_t zero = 0; //last tensor has zero to make vector
+        QN_t last = 0; //left vector has 0 QN
+        for (size_t i = 0; i< length; ++i){
+          string ind = A[i].getIndices();
+          std::string qnstr = "";
+          // The rank 3 tensor is set as
+          //                |
+          //                in
+          //                |
+          //              ------
+          //     ---in---|      |--out--
+          //             |______|
+          //
+          // and we need the divergence to be zero, so
+          // left_link + physical = right_link
+          qnstr += to_string(last) + " ";
+          qnstr += to_string(phy_qn[product_state[i]]) + " ";
+          //solve for right link, which matches next left link
+          last  += phy_qn[product_state[i]];
+          qnstr += (i==length) ? to_string(zero) : to_string(last);
+          qnstr += " ";
+
+          auto Aid = A[i].block_id_by_qn_str.at(qnstr);
+          A[i]._block[Aid][ind.c_str()] = 1.;
         }
       }
     }
