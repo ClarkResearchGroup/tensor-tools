@@ -288,8 +288,8 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
           if(op!="HL" && op!="IL"){ addOperators(H, i, r, c, op, 1.0); }
         }
         if(cst == rst){ 
-          if(isFermionic(cst))  addOperators(H, i, r, c, "F", 1.0);;
-          else                  addOperators(H, i, r, c, "Id", 1.0);;
+          if(isFermionic(cst))  addOperators(H, i, r, c, "F", 1.0);
+          else                  addOperators(H, i, r, c, "Id", 1.0);
         }
         if(cst==HL){
           for(const auto& ht:  ht_by_n.at(i+1)){
