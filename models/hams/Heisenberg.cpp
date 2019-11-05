@@ -275,7 +275,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
   for (size_t i = 0; i < H.length; i++) {
     auto& bn1 = basis.at(i);
     auto& bn = basis.at(i+1);
-    unsigned c_max = (i==N-1)?1:bn.size(); //stupid itensor bug where the last tensor isn't a vector
+    unsigned c_max = (i==N-1)?1:bn.size(); //itensor bug/feature where the last tensor isn't a vector
     for(unsigned r_=0;r_<bn1.size();r_++){
       for(unsigned c_=0;c_<c_max;c_++){
         auto& rst = bn1.at(r_).st;
@@ -287,7 +287,10 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, MPO<T>&  H){
           auto op = startTerm(cst.op);
           if(op!="HL" && op!="IL"){ addOperators(H, i, r, c, op, 1.0); }
         }
-        if(cst == rst){ addOperators(H, i, r, c, "Id", 1.0); }
+        if(cst == rst){ 
+          if(isFermionic(cst))  addOperators(H, i, r, c, "F", 1.0);;
+          else                  addOperators(H, i, r, c, "Id", 1.0);;
+        }
         if(cst==HL){
           for(const auto& ht:  ht_by_n.at(i+1)){
             if(rst==ht.first() && ht.last().i==(i)){
@@ -564,7 +567,7 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
 
     auto& bn1 = basis.at(i);
     auto& bn = basis.at(i+1);
-    unsigned c_max = (i==N-1)?1:bn.size(); //stupid itensor bug where the last tensor isn't a vector
+    unsigned c_max = (i==N-1)?1:bn.size(); //itensor bug/feature where the last tensor isn't a vector
     for(unsigned r_ =0;r_<bn1.size();r_++){
       for(unsigned c_=0;c_<c_max;c_++){
         auto& rst = bn1.at(r_).st;
@@ -586,7 +589,8 @@ void Heisenberg<T>::buildHam(AutoMPO& ampo, qMPO<T>& H){
         if(cst == rst){
           unsigned thisR = basisToIndex(-qr,qnToMaxIdx.at(i),rcToIdx.at(i),r);
           unsigned thisC = basisToIndex(qc,qnToMaxIdx.at(i+1),rcToIdx.at(i+1),c);
-            addOperators(H, i, thisR, thisC, "Id", 1.0, qr, qc);
+            if(isFermionic(cst)) addOperators(H, i, thisR, thisC, "F", 1.0, qr, qc);
+            else                 addOperators(H, i, thisR, thisC, "Id", 1.0, qr, qc);
         }
         if(cst==HL){
           for(const auto& ht:  ht_by_n.at(i+1)){

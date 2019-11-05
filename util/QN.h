@@ -92,9 +92,11 @@ class QN_t_2 {
 
   friend std::ostream& operator<<(std::ostream &os, const QN_t_2 &A){
     os << "(";
+    std::string s = "";
    for(auto c: A.qn) 
-     os<< c <<",";
-    os<< ")";
+     s+= c+",";
+   s.back()=')';
+   os<<s;
     return os;
   }
 

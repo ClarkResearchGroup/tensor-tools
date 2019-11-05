@@ -44,7 +44,10 @@ triangularLattice(int Nx,
             }
         }
 
-    if(int(latt.size()) != Nbond) Error("Wrong number of bonds");
+    if(int(latt.size()) != Nbond) {
+      perr<<" Triangular lattice wrong number of bonds"<<endl;
+      assert(1==2);
+    }
 
     return latt;
     }

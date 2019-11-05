@@ -56,8 +56,8 @@ qTensorTrain<T, N>::qTensorTrain(abstract_sites* s, str_vec product_string){
   for (size_t i = 0; i < length; i++) {
     totalQ += phy_qn[product_state[i]];
   }
-  allocateTensors(product_state.data());
   center = -1;
+  allocateTensors(product_state.data());
 }
 template qTensorTrain<double, 1>::qTensorTrain(abstract_sites* s, str_vec product_string);
 template qTensorTrain<double, 2>::qTensorTrain(abstract_sites* s, str_vec product_string);
@@ -76,8 +76,8 @@ qTensorTrain<T, N>::qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, 
   }
   phy_qn = phy_qn;
   totalQ = Q;
-  allocateTensors();
   center = -1;
+  allocateTensors();
 }
 template qTensorTrain<double, 1>::qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t totalQ);
 template qTensorTrain<double, 2>::qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, QN_t totalQ);
@@ -100,8 +100,8 @@ qTensorTrain<T, N>::qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, 
   for (size_t i = 0; i < length; i++) {
     totalQ += phy_qn[product_state[i]];
   }
-  allocateTensors(product_state.data());
   center = -1;
+  allocateTensors(product_state.data());
 }
 template qTensorTrain<double, 1>::qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state);
 template qTensorTrain<double, 2>::qTensorTrain(unsigned L, unsigned pD, vector<QN_t>& phy_qn, uint_vec product_state);
@@ -266,8 +266,7 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
           A[i].print(1);
           }
         }*/
-        QN_t zero = 0; //last tensor has zero to make vector
-        QN_t last = 0; //left vector has 0 QN
+        QN_t last = 0; //left vector has 0QN ,right has total divergence
         for (size_t i = 0; i< length; ++i){
           string ind = A[i].getIndices();
           std::string qnstr = "";
@@ -276,7 +275,7 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
           //                in
           //                |
           //              ------
-          //     ---in---|      |--out--
+          //      ---in--|      |--out--
           //             |______|
           //
           // and we need the divergence to be zero, so
@@ -285,12 +284,13 @@ void qTensorTrain<T, N>::allocateTensors(unsigned* product_state){
           qnstr += to_string(phy_qn[product_state[i]]) + " ";
           //solve for right link, which matches next left link
           last  += phy_qn[product_state[i]];
-          qnstr += (i==length) ? to_string(zero) : to_string(last);
+          qnstr += to_string(last);
           qnstr += " ";
 
           auto Aid = A[i].block_id_by_qn_str.at(qnstr);
           A[i]._block[Aid][ind.c_str()] = 1.;
         }
+        center=length-1;
       }
     }
     if(N==2){
