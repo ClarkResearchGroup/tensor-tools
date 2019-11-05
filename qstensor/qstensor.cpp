@@ -1389,7 +1389,8 @@ template <typename T>
 void qstensor<T>::print(unsigned print_level){
   pout<<"-------------------------------------"<<'\n';
   pout<<"(1) Tensor's rank = "<<rank<<'\n';
-  pout<<"(2) Tensor's (# non-zero, % sparsity) = ("<<_T.nnz_tot<<","<<(double)_T.nnz_tot/(_T.get_tot_size(false))<<")\n";
+  if(_T.is_sparse) pout<<"(2) Tensor's (# non-zero, % sparsity) = ("<<_T.nnz_tot<<","<<(double)_T.nnz_tot/(_T.get_tot_size(false))<<")\n";
+  else             pout<<"(2) Tensor's (# non-zero, % sparsity) = ("<<_T.get_tot_size(false)<<","<<0<<")\n";
   pout<<"(3) Tensor's real edge lengths = ("; for(unsigned l=0;l<rank;l++) pout<<_T.lens[l]<<","; pout<<")\n";
   pout<<"(4) Tensor's index (arrow, name, type, prime level), {(qn, qdim)}"<<'\n';
   for (size_t i = 0; i < rank; i++) {
