@@ -512,6 +512,9 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
     qtensor<T> res(other);
     return res;
   }
+  CTF::Timer timer_tt("*_tt");
+  CTF::Timer timer_ctf("*_ctf");
+  timer_tt.start();
   //copy
   //qtensor<T> A(*this);
   //qtensor<T> B(other);
@@ -699,18 +702,22 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
             auto& C = res._block.back();
             auto A_L = _block[Ait->second][indA_L.c_str()];
             auto B_R = other._block[Bit->second][indB_R.c_str()];
+            timer_ctf.start();
             C[indC.c_str()] += A_L*B_R;
+            timer_ctf.stop();
           }
         }
       }
     }
   }
-
+#ifdef DEBUG
   for(size_t ii=0;ii<res._block.size();ii++){
     for(unsigned l=0;l<res.rank;l++){
       assert(res._block[ii].lens[l]==res.block_index_qd[ii][l]);
     }
   }
+#endif
+  timer_tt.stop();
   return res;
 }
 template qtensor<double> qtensor<double>::operator * (qtensor<double>& other);
@@ -1077,6 +1084,9 @@ template <typename T>
 T qtensor<T>::contract(qtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
+  CTF::Timer timer_tt("contract_tt");
+  CTF::Timer timer_ctf("contract_ctf");
+  timer_tt.start();
   /*if(_block.size() != A._block.size()){
     perr<<"mis match"<<endl;
     A.dag();
@@ -1100,8 +1110,11 @@ T qtensor<T>::contract(qtensor<T>& A){
     auto A_it = A.block_id_by_qn_str.find(qn_str);
     if(A_it == A.block_id_by_qn_str.end()) continue;
     unsigned A_idx = A_it->second;
+    timer_ctf.start();
     res += _block[this_idx][ind.c_str()]*A._block[A_idx][indA.c_str()];
+    timer_ctf.stop();
   }
+  timer_tt.stop();
   return res;
 }
 template double qtensor<double>::contract(qtensor<double>& A);
@@ -1115,6 +1128,9 @@ template <typename T>
 void qtensor<T>::add(qtensor<T>& A, T c){
   assert(A._initted && _initted);
   assert(A.rank == rank);
+  CTF::Timer timer_tt("add_tt");
+  CTF::Timer timer_ctf("add_ctf");
+  timer_tt.start();
   /*if(A._block.size()!=_block.size()){
     perr<<"add mismatch"<<endl;
     perr<<A._block.size()<< " "<<A.block_index_qn.size()
@@ -1132,7 +1148,9 @@ void qtensor<T>::add(qtensor<T>& A, T c){
       unsigned t_id = it->second;
       assert(A._block[A_id].get_tot_size(false) == _block[t_id].get_tot_size(false));
       assert(A._block[A_id].order == _block[t_id].order);
+      timer_ctf.start();
       _block[t_id][ind.c_str()] += cs[""]*A._block[A_id][indA.c_str()];
+      timer_ctf.stop();
     }
     else{
       //perr<<"add:"<<A_id<< " "<<_block.size()+1<<endl;
@@ -1145,6 +1163,7 @@ void qtensor<T>::add(qtensor<T>& A, T c){
       block_id_by_qn_str[qn_str] = _block.size()-1;
     }
   }
+  timer_tt.stop();
 }
 template void qtensor<double>::add(qtensor<double>& A, double c);
 template void qtensor< std::complex<double> >::add(qtensor< std::complex<double> >& A, std::complex<double> c);
@@ -1154,6 +1173,9 @@ template <typename T>
 T qtensor<T>::inner_product(qtensor<T>& A){
   assert(A._initted && _initted);
   assert(A.rank == rank);
+  CTF::Timer timer_tt("inner_prod_tt");
+  CTF::Timer timer_ctf("inner_prod_ctf");
+  timer_tt.start();
   unordered_map<string,char> charMap;
   auto ind  =   getIndices(charMap);
   auto indA = A.getIndices(charMap);
@@ -1164,9 +1186,12 @@ T qtensor<T>::inner_product(qtensor<T>& A){
     if(A.block_id_by_qn_str.find(qn_str)!=A.block_id_by_qn_str.end()){
       unsigned A_id = A.block_id_by_qn_str.at(qn_str);
       assert(A._block[A_id].get_tot_size(false) == _block[t_id].get_tot_size(false));
+      timer_ctf.start();
       res += CTF::Function<double,T,T>([](T l, T r){ return std::real(cconj(l)*r);})(_block[t_id][ind.c_str()],A._block[A_id][indA.c_str()]);
+      timer_ctf.stop();
     }
   }
+  timer_tt.stop();
   return res;
 }
 template double qtensor<double>::inner_product(qtensor<double>& A);

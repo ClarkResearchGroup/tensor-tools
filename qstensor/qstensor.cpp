@@ -605,6 +605,9 @@ qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
     qstensor<T> res(other);
     return res;
   }
+  CTF::Timer timer_tt("*_tt");
+  CTF::Timer timer_ctf("*_CTF");
+  timer_tt.start();
   //copy
   //qstensor<T> A(*this);
   //qstensor<T> B(other);
@@ -706,7 +709,9 @@ qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
   string indB_R = other.getIndices(charMap);
   string indC   = res.getIndices(charMap);
   idxToSparse(res_index_set, res._T);
+  timer_ctf.start();
   res._T[indC.c_str()] = _T[indA_L.c_str()]*other._T[indB_R.c_str()];
+  timer_ctf.stop();
   // merge blocks
   for (auto i1 = mid_QN_set.begin(); i1 != mid_QN_set.end(); ++i1){
     int q = *i1;
@@ -759,6 +764,7 @@ qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
       assert(res._block[ii].lens[l]==res.block_index_qd[ii][l]);
     }
   }*/
+  timer_tt.stop();
   return res;
 }
 template qstensor<double> qstensor<double>::operator * (qstensor<double>& other);
@@ -1127,6 +1133,9 @@ template <typename T>
 T qstensor<T>::contract(qstensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
+  CTF::Timer timer_tt("contract_tt");
+  CTF::Timer timer_ctf("contract_ctf");
+  timer_tt.start();
   uint_vec perm;
   //TODO: more effecient dag (copy vectors only)
   //qstensor<T> B(A); B.dag();
@@ -1140,7 +1149,10 @@ T qstensor<T>::contract(qstensor<T>& A){
   unordered_map<string,char> charMap;
   string indA = indicesToChar(A_idx_set,charMap);//B.getIndices(charMap);
   string ind = getIndices(charMap);
+  timer_ctf.start();
   res=_T[ind.c_str()]*A._T[indA.c_str()];
+  timer_ctf.stop();
+  timer_tt.stop();
   return res;
 }
 template double qstensor<double>::contract(qstensor<double>& A);
@@ -1154,12 +1166,17 @@ template <typename T>
 void qstensor<T>::add(qstensor<T>& A, T c){
   assert(A._initted && _initted);
   assert(A.rank == rank);
+  CTF::Timer timer_tt("add_tt");
+  CTF::Timer timer_ctf("add_CTF");
+  timer_tt.start();
   //assert(A.block_index_qn.size() == block_index_qn.size()); //assumed but not necessary
   unordered_map<string,char> charMap;
   auto ind = getIndices(charMap);
   auto indA    = A.getIndices(charMap);
   CTF::Scalar<T> cs(c);
+  timer_ctf.start();
   _T[ind.c_str()] += cs[""]*A._T[indA.c_str()];
+  timer_ctf.stop();
   /*for (auto i = block_id_by_qn_str.begin(); i != block_id_by_qn_str.end(); ++i){
     string qn_str = i->first;
     unsigned t_id = i->second;
@@ -1181,6 +1198,7 @@ void qstensor<T>::add(qstensor<T>& A, T c){
       block_id_by_qn_str[qn_str] = block_index_qn.size();
     }
   }
+  timer_tt.stop();
 }
 template void qstensor<double>::add(qstensor<double>& A, double c);
 template void qstensor< std::complex<double> >::add(qstensor< std::complex<double> >& A, std::complex<double> c);
@@ -1190,11 +1208,17 @@ template <>
 double qstensor<double>::inner_product(qstensor<double>& A){
   assert(A._initted && _initted);
   assert(A.rank == rank);
+  CTF::Timer timer_tt("inner_prod_tt");
+  CTF::Timer timer_ctf("inner_prod_ctf");
+  timer_tt.start();
   unordered_map<string,char> charMap;
   auto ind  =   getIndices(charMap);
   auto indA = A.getIndices(charMap);
   double res = 0;
+  timer_ctf.start();
   res += _T[ind.c_str()]*A._T[indA.c_str()];
+  timer_ctf.stop();
+  timer_tt.stop();
   return res;
 }
 template<> 

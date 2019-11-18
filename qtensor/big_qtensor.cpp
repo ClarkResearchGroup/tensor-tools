@@ -5,6 +5,8 @@
 
 template <typename T>
 qtensor<T> big_qtensor<T>::product(qtensor<T>& v){
+  CTF::Timer t("q_product");
+  t.start();
   // contract pattern:
   // L-v-mid-R
   qtensor<T> res;
@@ -19,6 +21,7 @@ qtensor<T> big_qtensor<T>::product(qtensor<T>& v){
   if(R!=nullptr) res = std::move(res*(*R));*/
 
   res.prime(-1);
+  t.stop();
   return res;
 }
 template qtensor<double> big_qtensor<double>::product(qtensor<double>& v);
