@@ -776,7 +776,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, unsigned start, unsigned stop, int num_sweeps, 
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(unsigned i = start; i < stop-1; i++) // direction change happens at the last site of any sweep
+      for(unsigned i = start; i < stop; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = stop-(i-start);
@@ -945,7 +945,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, unsigned start, unsigned stop, int num_sweeps
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(unsigned i = start; i < stop-1; i++) // direction change happens at the last site of any sweep
+      for(unsigned i = start; i < stop; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = stop-(i-start);
