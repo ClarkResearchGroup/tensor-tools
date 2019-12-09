@@ -5,6 +5,7 @@
 #include "../mps/mps_all.h"
 
 #include "../models/sites/spinhalf.h"
+#include "../models/sites/electron.h"
 #include "../models/hams/Heisenberg.h"
 
 #include "../algos/dmrg/dmrg.h"
@@ -14,13 +15,14 @@
 #include "../models/hams/AutoMPO.h"
 
 #include "../models/lattice/square.h"
+#include "../models/lattice/triangular.h"
 
 #include <ctf.hpp>
 #include <sys/stat.h>
 using namespace std;
 inline bool check_existence(const string& name);
 
-#include <Eigen/Dense>
+//#include <Eigen/Dense>
 #include "hdf5.h"
 
 filebuf fbuf;
@@ -28,15 +30,114 @@ ostream perr(&fbuf);
 filebuf fbufo;
 ostream pout(&fbufo);
 
-typedef pair<int, unsigned> quantum_number;
+template <typename T, template <typename,unsigned> class TensorType>
+void fixTensors(TensorType<T,1>& psi,TensorType<T,2>& H){
+  uint_vec perm;
+  string Link_name_pref = "ID"+to_string(psi._id)+"Link";
+  string Site_name_pref = "Site";
+  for(unsigned l=0;l<psi.length;l++){
+    string left_link_name  = Link_name_pref+to_string(l);
+    string right_link_name = Link_name_pref+to_string(l+1);
+    string site_name       = Site_name_pref+to_string(l);
+    vector<qtensor_index> inds(3);
+    for(auto& ix : psi.A[l].idx_set){
+      if(ix.name()==left_link_name) inds[0] = ix;
+      else if(ix.name()==site_name) inds[1] = ix;
+      else if(ix.name()==right_link_name) inds[2] = ix;
+    }
+    find_index_permutation(psi.A[l].idx_set,inds, perm);
+    psi.A[l].permute(perm);
+  }
+  //check if we need to dagger H
+  string site_name = Site_name_pref+to_string(0);
+  auto& psiSet = psi.A[0].idx_set;
+  auto& HSet   = H.A[0].idx_set;
+  auto it  = find_if(psiSet.begin(), psiSet.end(), [&](qtensor_index& qi){ return qi.name()==site_name;});
+  auto itH = find_if(HSet.begin(),   HSet.end(),   [&](qtensor_index& qi){ return (qi.name()==site_name) && (qi.level()==0);});
+  assert(it!=psiSet.end() && itH != HSet.end());
+  if( it->arrow() == itH->arrow()){
+    for(auto& Ai: H.A) Ai.dag();
+  }
+
+}
+
 int main(int argc, char **argv)
 {
   MPI_Init(&argc, &argv);
   {
-    auto Nx=4;
-    auto Ny=4;
-    auto N =Nx*Ny;
-    spinhalf sites(N);
+    CTF::World world(argc,argv);
+    if (world.rank == 0){
+      perr.rdbuf(cerr.rdbuf());
+      pout.rdbuf(cout.rdbuf());
+      perr.precision(12);
+      pout.precision(12);
+    }
+    if(argc==1) {
+      perr<<"Error: Need filename!"<<endl;
+      assert(1==2);
+    }
+    string inputName = string(argv[1]);
+    ifstream in;
+    in.open(inputName);
+    assert(in);
+    string line; stringstream linest;
+
+    /*
+     *              input file format
+     * type
+     * Nx Ny
+     * J1 J2
+     * fname
+     * prefix
+     * nsweeps
+     * maxm maxm maxm
+     * cutoff cutoff cutoff
+     * restart restart restart
+     *
+     */
+
+    string type; getline(in,type);
+    getline(in,line); linest.clear(); linest.str(line);
+    int Nx,Ny;
+    linest >> Nx >> Ny;
+    auto N = Nx*Ny;
+    double J1,J2;
+    getline(in,line); linest.clear(); linest.str(line); 
+    perr << "J1 line=" << line << endl;
+    linest >> J1 >> J2;
+    string fname="";  
+    getline(in,line); if(!line.empty()) fname=line;
+    string pref=""; 
+    getline(in,line); if(!line.empty()) pref=line; 
+    int nsweeps = 0; 
+    getline(in,line); linest.clear(); linest.str(line);
+    linest >> nsweeps; 
+
+    vector<int> maxm;
+    vector<double> cutoff;
+    vector<int> max_restart;
+    getline(in,line); linest.clear(); linest.str(line);
+    while(getline(linest,line,' ')){
+      maxm.push_back(std::stoi(line));
+    }
+    getline(in,line); linest.clear(); linest.str(line);
+    while(getline(linest,line,' ')){
+      cutoff.push_back(std::stof(line));
+    }
+    getline(in,line); linest.clear(); linest.str(line);
+    while(getline(linest,line,' ')){
+      max_restart.push_back(std::stoi(line));
+    }
+    in.close();
+
+    if(world.rank==0)
+      printf("type=%s N=(%i,%i) J1=%f J2=%f\nfile=%s prefix=%s\nnsweeps=%i \n",
+          type.c_str(),Nx,Ny,J1,J2,fname.c_str(),pref.c_str(),nsweeps);
+    perr<<"maxm:";        for(auto m: maxm)        perr<<m<<" "; perr<<"\n";
+    perr<<"cutoff:";      for(auto c: cutoff)      perr<<c<<" "; perr<<"\n";
+    perr<<"max_restart:"; for(auto r: max_restart) perr<<r<<" "; perr<<"\n";
+    //spinhalf sites(N);
+    electron sites(N);
     str_vec ps;
     for (size_t i = 0; i < sites.N(); i++) {
       if(i%2==0)
@@ -45,167 +146,120 @@ int main(int argc, char **argv)
         ps.push_back("Up");
     }
 
-    CTF::World world(argc,argv);
-    if (world.rank == 0){
-      perr.rdbuf(cerr.rdbuf());
-      pout.rdbuf(cout.rdbuf());
-      perr.precision(8);
-      pout.precision(8);
+    AutoMPO ampo(sites);
+    bool yperiodic = true;
+    auto lattice = triangularLattice(Nx,Ny,yperiodic);
+    auto t = 1.0;
+    auto U = J2;
+
+    for(auto bnd : lattice){
+      //hopping terms in the 1DEG
+      ampo+=-t,"Cdagup",bnd.s1-1,"Cup",bnd.s2-1;
+      ampo+=-t,"Cdagdn",bnd.s1-1,"Cdn",bnd.s2-1;
+      ampo+=-t,"Cdagup",bnd.s2-1,"Cup",bnd.s1-1;
+      ampo+=-t,"Cdagdn",bnd.s2-1,"Cdn",bnd.s1-1;
     }
-    for(int r=0;r==0;r++){
-      pout << "\n" << "Test qMPS DMRG." << '\n';
-      qMPS< double > psiq(&sites,ps);
-      //psiq.setRandom();
-      psiq.rc();
-
-      /*AutoMPO ampo(sites);
-      for(int i=0;i<(int)N-1;i++){
-        ampo+=0.5,"S+",i,"S-",i+1;
-        ampo+=0.5,"S-",i,"S+",i+1;
-        ampo+=    "Sz",i,"Sz",i+1;
-      }
-      for(int i=0;i<(int)N-3;i++){
-        ampo+=0.5,"S+",i,"S-",i+3;
-        ampo+=0.5,"S-",i,"S+",i+3;
-        ampo+=    "Sz",i,"Sz",i+3;
-        }
-        for(int i=0;i<(int)N-2;i++){
-        ampo+=-0.5,"S+",i,"S-",i+2;
-        ampo+=-0.5,"S-",i,"S+",i+2;
-        ampo+=-1.0,"Sz",i,"Sz",i+2;
-        }
-        for(int i=0;i<(int)N;i++)
-        ampo+= -0.1,"Sz",i;
-        ampo+=0.2,"Sz",1;*/
-      
-      bool yperiodic=true;
-      //auto lattice = squareLattice(Nx,Ny,yperiodic);
-      auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
-
-      auto J1 = 1.0;
-      auto J2 = 0.5;
-
-      AutoMPO ampo(sites);
-      for(auto bnd: lattice){
-        if(bnd.type=="1"){
-          ampo+=J1/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
-          ampo+=J1/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
-          ampo+=J1  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
-        }
-        if(bnd.type=="2"){
-          ampo+=J2/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
-          ampo+=J2/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
-          ampo+=J2  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
-        }
-      }
-
-      qMPO< double > Hq;
-      Heisenberg< double > HB(&sites);
-      HB.buildHam(ampo,Hq);
-      auto numq   = psiHphi(psiq,Hq,psiq);
-      auto denomq = psiphi(psiq,psiq);
-      perr<<"Initial overlap "<<numq/denomq<<" "<<numq<<" "<<denomq <<endl;
-
-      int nsweeps_q = 4;
-      std::vector<int> maxm_q = {50,80,100,150,150,200,200,200};
-      std::vector<double> cutoff_q = {1E-6,1E-8,1E-10,1E-12,1E-12,1E-12,1E-12,1E-12};
-      std::vector<int> max_restart_q = {2};
-      dmrg(psiq, Hq, nsweeps_q, maxm_q, cutoff_q,max_restart_q);
-
-      psiq.print();
-    }
-
     //-------------------------
-    {
-      perr << "\n" << "Test MPS DMRG." << '\n';
-      MPS< double > psi(&sites,2);
-      psi.setRandom();
-      psi.normalize();
-      /*AutoMPO ampo(sites);
-        for(int i=0;i<(int)N-1;i++){
-        ampo+=0.5,"S+",i,"S-",i+1;
-        ampo+=0.5,"S-",i,"S+",i+1;
-        ampo+=    "Sz",i,"Sz",i+1;
-        }
-      for(int i=0;i<(int)N-3;i++){
-      ampo+=0.5,"S+",i,"S-",i+3;
-      ampo+=0.5,"S-",i,"S+",i+3;
-      ampo+=    "Sz",i,"Sz",i+3;
-      }
-      for(int i=0;i<(int)N-2;i++){
-      ampo+=-0.5,"S+",i,"S-",i+2;
-      ampo+=-0.5,"S-",i,"S+",i+2;
-      ampo+=-1.0,"Sz",i,"Sz",i+2;
-      }
-      for(int i=0;i<(int)N;i++)
-      ampo+= -0.1,"Sz",i;
-      ampo+=0.2,"Sz",1;*/
+    for(int i=0;i<N;i++)
+      ampo+=U,"Nupdn",i;
 
-      bool yperiodic=true;
-      //auto lattice = squareLattice(Nx,Ny,yperiodic);
-      auto lattice = squareNextNeighbor(Nx,Ny,yperiodic);
-
-      auto J1 = 1.0;
-      auto J2 = 0.5;
-
-      AutoMPO ampo(sites);
-      for(auto bnd: lattice){
-        if(bnd.type=="1"){
-          ampo+=J1/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
-          ampo+=J1/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
-          ampo+=J1  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
-        }
-        if(bnd.type=="2"){
-          ampo+=J2/2,"S+",bnd.s1-1,"S-",bnd.s2-1;
-          ampo+=J2/2,"S-",bnd.s1-1,"S+",bnd.s2-1;
-          ampo+=J2  ,"Sz",bnd.s1-1,"Sz",bnd.s2-1;
-        }
-      }
-
+    if(type=="d"){
+      pout << "\n" << "Test MPS Fermionic DMRG" << '\n';
+      
+      MPS<double> psi(&sites,ps);
+      psi.load(fname); //TODO: fix pref
+      psi.print();
       MPO< double > H;
       Heisenberg< double > HB(&sites);
       HB.buildHam(ampo,H);
-      //HB.buildHam(H);
-      string postfix = to_string(Nx)+"x"+to_string(Ny)+"_"+to_string(J1)+"_"+to_string(J2);
-      auto sp = "psi_"+postfix;
-      if(check_existence(sp+".h5")){
-        psi.load(sp+".h5");
-        pout<<"Read psi"<<endl;
-      }
-      auto num   = psiHphi(psi,H,psi);
-      auto denom = psiphi(psi,psi);
-      perr<<"Initial overlap "<<num/denom<<" "<<num<<" "<<denom <<endl;
-      bool RUN = 1;
-      int nsweeps = 4;
-      std::vector<int> maxm = {50,80,100,150,150,200,200,200};
-      std::vector<double> cutoff = {1E-6,1E-8,1E-10,1E-12,1E-12,1E-12,1E-12,1E-12};
-      std::vector<int> max_restart = {2};
-      //TODO: noise
-      if(RUN){
-        auto finalEnergy = dmrg(psi, H, nsweeps, maxm, cutoff,max_restart);
-        if(world.rank==0) psi.print();
-        pout << "Final Energy = "<<finalEnergy << '\n';
-        psi.save(sp);
-        pout <<"Saved!"<<endl;
-      }
-      else{
-        MPS<double> psi2;
-        psi2.load(sp+".h5");
-        auto fe = psiHphi(psi2,H,psi2);
-        perr<<"Loaded E ="<<fe<<endl;
-        //do measurements
+      dmrg(psi, H, nsweeps, maxm, cutoff, max_restart);
+      psi.print();
+
+    }
+    if(type=="q"){
+      pout << "\n" << "Test qMPS Fermionic DMRG" << '\n';
+      
+      qMPS< double > psi(&sites,ps);
+      bool yperiodic=true;
+      auto lattice = triangularLattice(Nx,Ny,yperiodic);
+
+      auto t = 1.0;
+      auto U = J2;
+
+      AutoMPO ampo(sites);
+      for(auto bnd : lattice){
+        //hopping terms in the 1DEG
+        ampo+=-t,"Cdagup",bnd.s1-1,"Cup",bnd.s2-1;
+        ampo+=-t,"Cdagdn",bnd.s1-1,"Cdn",bnd.s2-1;
+        ampo+=-t,"Cdagup",bnd.s2-1,"Cup",bnd.s1-1;
+        ampo+=-t,"Cdagdn",bnd.s2-1,"Cdn",bnd.s1-1;
       }
       //-------------------------
+      for(int i=0;i<N;i++)
+        ampo+=U,"Nupdn",i;
 
-      /*auto prenorm = psi.A[2].norm();
-        pout << " A[2] norm = "<<prenorm<<endl;
-        psi.A[2].save("test.h5");
+      string postfix = to_string(Nx)+"x"+to_string(Ny)+"_U"+to_string(U);
+      auto sp = "psi_"+postfix;
+      qMPO< double > H;
+      Heisenberg< double > HB(&sites);
+      perr<<"making H"<<endl;
+      HB.buildHam(ampo,H);
 
+      psi.load(fname,pref);
+      psi.print();
 
-        dtensor<double> newA2;
-        newA2.load("test.h5");
-        auto postnorm = newA2.norm();
-        pout << "post A[2] norm ="<<postnorm<<endl;*/
+      fixTensors(psi,H);
+
+      dmrg(psi, H, nsweeps, maxm, cutoff, max_restart);
+
+    }
+    if(type=="qs"){
+      pout << "\n" << "Test qsMPS Fermionic DMRG" << '\n';
+      
+      qsMPS<double> psi(&sites,ps);
+      psi.load(fname,pref);
+      psi.print();
+      qMPO< double > H;
+      Heisenberg< double > HB(&sites);
+      HB.buildHam(ampo,H);
+      qsMPO< double > Hq = H;
+
+      fixTensors(psi,Hq);
+
+      dmrg(psi, Hq, nsweeps, maxm, cutoff, max_restart);
+
+      psi.print();
+      for(int l=0;l<N;l++){
+        auto& Al = psi.A[l];
+        perr<<Al._T.nnz_tot<<","<<(double)Al._T.nnz_tot/(Al._T.get_tot_size(false))<<endl;
+        for(size_t i=0;i<Al.block_index_qd.size();i++)
+          perr<<"   ("<<Al.block_index_qd[i][0]<<","
+              << Al.block_index_qd[i][1]<<","<<Al.block_index_qd[i][2]<<")\n";
+      }
+    }
+    if(type=="qToqs"){
+      pout << "\n" << "Test q to qsMPS Fermionic DMRG" << '\n';
+      
+      qMPS<double> psi(&sites);
+      psi.load(fname,pref);
+      psi.print();
+      qsMPS<double> psiq = psi;
+      psiq.print();
+      qMPO< double > H;
+      Heisenberg< double > HB(&sites);
+      HB.buildHam(ampo,H);
+      qsMPO< double > Hq = H;
+     
+      fixTensors(psiq,Hq);
+      
+      psiq.print();
+      for(int l=0;l<N;l++){
+        auto& Al = psiq.A[l];
+        perr<<Al._T.nnz_tot<<","<<(double)Al._T.nnz_tot/(Al._T.get_tot_size(false))<<endl;
+        for(size_t i=0;i<Al.block_index_qd.size();i++)
+          perr<<"   ("<<Al.block_index_qd[i][0]<<","
+              << Al.block_index_qd[i][1]<<","<<Al.block_index_qd[i][2]<<")\n";
+      }
     }
   }
   MPI_Finalize();
