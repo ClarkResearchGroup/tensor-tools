@@ -236,17 +236,18 @@ double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_r
       //perr<<"L="<<lambda<<endl;
       x = v[0]; x*=M[0];//x*=evals[0];
       q = va[0]; q*=M[0];//q*=evals[0];
-      for(int k=1;k<ii;k++){
+      for(int k=1;k<=ii;k++){
         x.add(v[k],M[k]);
         q.add(va[k],M[k]);
       }
       //Step B of Davidson (1975)
       //Calculate residual q
       q.add(x,-lambda);
-      /*if(std::real(M[0]) < 0){
+      //this tries to stabilize the sign of a wave function
+      if(std::real(M[0]) < 0.){
         x *= -1.;
         q *= -1.;
-      }*/
+      }
     }
     //Step C of Davidson (1975)
     //Check convergence

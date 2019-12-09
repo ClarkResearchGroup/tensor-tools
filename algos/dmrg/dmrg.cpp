@@ -550,7 +550,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, int max_bd, double cutoff, char m
     t.Start();
     perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
     direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-    for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
+    for(int i = 0; i < L-1; i++) // direction change happens at the last site of any sweep
     {
       if(direction==MoveFromLeft)  site = i;
       if(direction==MoveFromRight) site = L-1-i;
@@ -609,7 +609,7 @@ T dmrg(MPS<T>& psi, MPO<T>& H, int num_sweeps, const std::vector<int>& max_bd, c
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
+      for(int i = 0; i < L-1; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = L-1-i;
@@ -662,7 +662,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, int max_bd, double cutoff, char
     t.Start();
     perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
     direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-    for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
+    for(int i = 0; i < L-1; i++) // direction change happens at the last site of any sweep
     {
       if(direction==MoveFromLeft)  site = i;
       if(direction==MoveFromRight) site = L-1-i;
@@ -885,7 +885,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, const std::vector<int>& max_b
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
+      for(int i = 0; i < L-1; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = L-1-i;
