@@ -240,25 +240,33 @@ int main(int argc, char **argv)
     if(type=="qToqs"){
       pout << "\n" << "Test q to qsMPS Fermionic DMRG" << '\n';
       
+      qMPO< double > H;
+      Heisenberg< double > HB(&sites);
+      HB.buildHam(ampo,H);
+      H.load("H_36_1.h5");
+      H.print();
+      qsMPO< double > Hq = H;
+
       qMPS<double> psi(&sites);
       psi.load(fname,pref);
       psi.print();
       qsMPS<double> psiq = psi;
       psiq.print();
-      qMPO< double > H;
-      Heisenberg< double > HB(&sites);
-      HB.buildHam(ampo,H);
-      qsMPO< double > Hq = H;
+
      
       fixTensors(psiq,Hq);
       
+      dmrg(psiq, Hq, nsweeps, maxm, cutoff, max_restart);
+
       psiq.print();
       for(int l=0;l<N;l++){
         auto& Al = psiq.A[l];
         perr<<Al._T.nnz_tot<<","<<(double)Al._T.nnz_tot/(Al._T.get_tot_size(false))<<endl;
+        perr<<"   ";
         for(size_t i=0;i<Al.block_index_qd.size();i++)
-          perr<<"   ("<<Al.block_index_qd[i][0]<<","
-              << Al.block_index_qd[i][1]<<","<<Al.block_index_qd[i][2]<<")\n";
+          perr<<"("<<Al.block_index_qd[i][0]<<","
+              << Al.block_index_qd[i][1]<<","<<Al.block_index_qd[i][2]<<") ";
+        perr<<'\n';
       }
     }
   }
