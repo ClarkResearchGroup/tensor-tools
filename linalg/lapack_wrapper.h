@@ -3,7 +3,7 @@
 
 #include "../util/types_and_headers.h"
 
-// extern "C" void dgemm_(char*,cmakehar*,int*,int*,int*,double*,double*,int*,double*,int*,double*,double*,int*);
+ extern "C" void dgemm_(char*,char*,int*,int*,int*,double*,double*,int*,double*,int*,double*,double*,int*);
 extern "C" void dgeqrf_(int*, int*, double*, int*, double*, double*, int*, int*);
 extern "C" void dorgqr_(int*, int*, int*, double*, int*, double*, double*, int*, int*);
 extern "C" void dgesvd_(char*, char*, int*, int*, double*, int*, double*, double*, int*, double*, int*, double*, int*, int*);

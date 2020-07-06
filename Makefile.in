@@ -43,7 +43,7 @@ TBLIS_INC = -I/usr/local/include -I/usr/local/include/tblis
 TBLIS_LIB = -L/usr/local/lib -ltblis
 
 HPTT_INC = -DUSE_HPTT -I/home/xiongjie/CodeDoc/libraries/hptt/src
-HPTT_LIB = -DUSE_HPTT -L/home/xiongjie/CodeDoc/libraries/hptt/lib -Wl,-rpath=/home/xiongjie/CodeDoc/libraries/hptt/lib -lhptt
+HPTT_LIB = -DUSE_HPTT -L/home/xiongjie/CodeDoc/libraries/hptt/lib -Wl,-rpath=/home/xiongjie/CodeDoc/libraries/hptt/lib -lhptt # -latomic -ltci #later versions of tblis need this
 
 EIGEN_INC = -I /home/xiongjie/CodeDoc/libraries/eigen-eigen-26667be4f70b
 
