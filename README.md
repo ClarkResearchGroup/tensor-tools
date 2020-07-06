@@ -1,5 +1,11 @@
 # tensor-tools
 
+
+-----------------
+
+Note, this branch contains code ported from [ITensor](https://github.com/ITensor/ITensor/), specifically the `exactApplyMPO` and `errorMPOProd` functions.
+See [EXTERNAL.md](EXTERNAL.md) for license notice
+
 -----------------
 Dependency
 ```C++

@@ -1097,5 +1097,282 @@ void mult(qMPO<T>& A, qMPS<T>& B, qMPS<T>& res, int max_iter, double cutoff, int
 template void mult(qMPO<double>& A, qMPS<double>& B, qMPS<double>& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 template void mult(qMPO< std::complex<double> >& A, qMPS< std::complex<double> >& B, qMPS< std::complex<double> >& res, int max_iter, double cutoff, int max_bd, double tol, bool verbose);
 
+//Below functions are based off of ITensor code
+//////////////////////////////////////////////////////////////////////
+//returns  error,newStart
+std::tuple<double,int> determineCutoff(double* evals,int size,int maxm,
+                                          double cutoff, bool absCutoff=false, bool rescale=true){
+  if(maxm<0) maxm = size;
+  //Note: evals is sorted smallest->largest
+
+  //if all zeros
+  if(size==1)            return std::make_tuple(0.,0.);
+  //for convenience make negatives zero
+  for(int i=0;i<size;i++){
+    if(evals[i]>=0.) break;
+    evals[i] = 0.;
+  }
+  if(evals[size-1]==0.0) return std::make_tuple(0.,0.);
+  double error = 0.0;
+  int n=0;
+  //determine error from just maxm truncation
+  while ( size-n > maxm){ error += evals[n++]; }
+  
+  if(absCutoff)
+    while(evals[n] < cutoff) { error += evals[n++]; }
+  else{
+    double scale = 1.0;
+    if(rescale){ //normalize error
+      scale = 0.0;
+      for(int i=0;i<size;i++) scale+=evals[i];
+    }
+   while(error+evals[n] < cutoff*scale && n<size){
+    error += evals[n++];
+   }
+  error /= scale; 
+  }
+  return std::make_tuple(error,n);
+
+} 
+template<typename T>
+void addIndex(dtensor<T>& A, string name){
+  /*A.idx_set.emplace_back(1,name,Link);
+  ++A.rank;*/
+  dtensor<T> contractor({ {1,name,Link}});
+  contractor.setOne();
+  A = std::move(contractor*A);
+  /*auto tmp_set = A.idx_set;
+  tmp_set.emplace_back(1,name,Link);
+  A = std::move(dtensor<T>(*/
+
+}
+
+template void addIndex(dtensor<double>& A, string name);
+template void addIndex(dtensor<complex<double>>& A, string name);
+
+template<typename T>
+void removeIndex(dtensor<T>& A, string name){
+  /*for(int l=0;l<A.rank;l++){
+    if(A.idx_set[l].name()==name){
+      assert(A.idx_set[l].size()==1); //only for dangling
+      A.idx_set.erase(A.idx_set.begin()+l);
+      break;
+    }
+  }
+  --A.rank;*/
+  dtensor<T> contractor({ {1,name,Link}});
+  contractor.setOne();
+  A = std::move(A*contractor);
+}
+template void removeIndex(dtensor<double>& A, string name);
+template void removeIndex(dtensor<complex<double>>& A, string name);
+
+template<typename T>
+MPS<T> exactApplyMPO(MPO<T> & K, MPS<T> & psi,double cutoff,int maxm, bool verbose){
+  //TODO: allow const multiply
+  assert(K.length==psi.length);
+  //TODO: check that K and psi have the same sites
+  int L = K.length;
+  //HACK, remove dangling indices
+  removeIndex(psi.A[0],"ID"+to_string(psi._id)+"Link0");
+  removeIndex(psi.A[L-1],"ID"+to_string(psi._id)+"Link"+to_string(L));
+  removeIndex(K.A[0],"ID"+to_string(K._id)+"Link0");
+  removeIndex(K.A[L-1],"ID"+to_string(K._id)+"Link"+to_string(L));
+  MPS<T> res=psi;
+  //build environment tensors
+  auto E = std::vector<dtensor<T> >(L);
+  {
+    MPS<T> psic = psi;
+    MPO<T> Kc   = K;
+    for(int j=0;j<L;j++){
+      if(j==0){
+        /*
+         * auto ci = commonIndex(psi.A(1),psi.A(2),linkType);
+         *psic.Aref(j) = dag(mapprime(psi.A(j),siteType,0,2,ci,0,plev));
+         *ci = commonIndex(Kc.A(1),Kc.A(2),linkType);
+         *Kc.Aref(j) = dag(mapprime(K.A(j),siteType,0,2,ci,0,plev));*/
+        //find link index
+        std::vector<dtensor_index> commonBonds;
+        index_sets_intersection(psi.A[0].idx_set, psi.A[1].idx_set, commonBonds);
+        assert(commonBonds.size()==1);
+        psic.A[j].mapPrime(0,2,Site);
+        psic.A[j].mapPrime(commonBonds,0,1717);
+
+        index_sets_intersection(Kc.A[0].idx_set, Kc.A[1].idx_set, commonBonds);
+        assert(commonBonds.size()==1);
+        Kc.A[j].mapPrime(0,2,Site);
+        Kc.A[j].mapPrime(commonBonds,0,1717);
+      
+      }
+      else{
+        psic.A[j].mapPrime(0,2,Site);
+        psic.A[j].mapPrime(0,1717,Link);
+        Kc.A[j].mapPrime(0,2,Site);
+        Kc.A[j].mapPrime(0,1717,Link);
+      }
+    }
+    E[0] = std::move(psi.A[0]*K.A[0]*Kc.A[0]*psic.A[0]);
+    for(int j=1;j<L-1;j++){
+      E[j] = std::move(E[j-1]*psi.A[j]*K.A[j]*Kc.A[j]*psic.A[j]);
+    }
+  }
+  if(verbose) std::cerr<<"made Enviro"<<std::endl;
+  //done making enviro
+  auto O = std::move(psi.A[L-1]*K.A[L-1]);
+  O.noPrime(Site);
+  
+  //auto Otemp = O;
+  //Otemp.prime(1717);
+  //auto rho = std::move(E[L-2]* O * Otemp);
+  auto rho = std::move(E[L-2]*O);
+       O.prime(1717);
+       rho = std::move(rho*O);
+       O.prime(-1717);
+  //cerr<<rho.norm()<<" "<<rho.contract(rho)<<endl;
+  //DIAG will destroy rho and replace with eigenvectors
+  //but we need to init TBLIS so we keep rho around
+  int matrixSize = 1;
+  for(auto it = rho.idx_set.begin();it!=rho.idx_set.end();++it){
+      if(it->level()==0) matrixSize *= it->size();
+  }
+  double* evals     = new double [matrixSize];
+  double error; int newStart;
+  DIAGD(matrixSize, rho._T.data(), evals);
+  //for(int l=0;l<matrixSize;l++){ cerr<<evals[l]<<" ";} cerr<<endl;
+  std::tie(error,newStart) = determineCutoff(evals,matrixSize,maxm,cutoff);
+  //cerr<<"Err: "<<error<< " "<<newStart<<endl;
+  delete[] evals;
+  unsigned newm = 1;
+  auto it = rho.idx_set.begin();
+  while (it != rho.idx_set.end()){  
+    if(it->level() !=0 ){
+      newm *= it->size();
+      it = rho.idx_set.erase(it);
+    }
+    else{ ++it; }
+  }
+  newm -= newStart;
+  rho.idx_set.emplace_back(newm,"a"+to_string(L-1),Link);
+  res.bond_dims[L-1] = newm;
+  //res.A[L-1] = std::move(dtensor<double>(rho.idx_set,rho._T.data()+(matrixSize*newStart)));
+  res.A[L-1].resize(rho.idx_set);
+  std::copy(rho._T.data()+(matrixSize*newStart),rho._T.data()+(matrixSize*matrixSize),res.A[L-1]._T.data());
+  //cerr<<L-1<< " "<<res.A[L-1].norm()<<" "<<res.A[L-1].contract(res.A[L-1])<<endl;
+  assert(res.A[L-1].rank==2);
+  O = std::move(O*res.A[L-1]*psi.A[L-2]*K.A[L-2]);
+  /*O = std::move(O*res.A[L-1]);
+  O = std::move(O*psi.A[L-2]);
+  O = std::move(O*K.A[L-2]);*/
+  O.noPrime(Site);
+  
+  for(int j = L-2; j > 0; --j){
+    //Otemp = O; Otemp.prime(1717);
+    //rho = std::move(E[j-1]*O*Otemp);
+    rho = std::move(E[j-1]*O);
+    O.prime(1717);
+    rho = std::move(rho*O);
+    O.prime(-1717);
+    //cerr<<j<< " "<<rho.norm()<<" "<<rho.contract(rho)<<endl;
+    //cerr<<j<<endl;
+    //if(j>L/2) rho.print(0);
+    
+    matrixSize = 1;
+    for(auto it = rho.idx_set.begin();it!=rho.idx_set.end();++it){
+      if(it->level()==0) matrixSize *= it->size();
+    }
+    evals     = new double [matrixSize];
+    DIAGD(matrixSize, rho._T.data(), evals);
+    std::tie(error,newStart) = determineCutoff(evals,matrixSize,maxm,cutoff);
+    if(verbose) std::cerr<<j<<" Err: "<<error<< " "<<newStart<<std::endl;
+    delete[] evals;
+    //convert indices from primed to new link
+    newm = 1;
+    auto it = rho.idx_set.begin();
+    while (it != rho.idx_set.end()){  
+      if(it->level() !=0){
+        newm *= it->size();
+        it = rho.idx_set.erase(it);
+      }
+      else{ ++it; }
+    }
+    newm -=newStart;
+    rho.idx_set.emplace_back(newm,"a"+to_string(j),Link);
+    rho.rank = rho.idx_set.size();
+    res.bond_dims[j] = newm;
+    //res.A[j] = std::move(dtensor<double>(rho.idx_set,
+    //                                     rho._T.data()+(matrixSize*newStart) ));
+
+    res.A[j].resize(rho.idx_set); 
+    std::copy(rho._T.data()+(matrixSize*newStart),rho._T.data()+(matrixSize*matrixSize),res.A[j]._T.data());
+    //cerr<<j<< " "<<res.A[j].norm()<<" "<<res.A[j].contract(res.A[j])<<endl;
+    //if(j>L/2) res.A[j].print();
+
+    O = std::move(O*res.A[j]*psi.A[j-1]*K.A[j-1]);
+    /*O = std::move(O*res.A[j]);
+    O = std::move(O*psi.A[j-1]);
+    O = std::move(O*K.A[j-1]);*/
+    O.noPrime(Site);
+  }
+
+  //O /= O.norm();
+  res.A[0] = std::move(O);
+  res.center = 0;
+  //rename things because this is annoying
+  for(int j=0;j<L;j++){
+    auto& this_idx = res.A[j].idx_set;
+    auto it = this_idx.begin();
+    while (it!=this_idx.end()){
+      if(it->name()=="a"+to_string(j)){
+        it->rename("ID"+to_string(res._id)+"Link"+to_string(j));
+      }
+      if(it->name()=="a"+to_string(j+1)){
+        it->rename("ID"+to_string(res._id)+"Link"+to_string(j+1));
+      }
+      ++it;
+    }
+  }
+  //HACK
+  addIndex(psi.A[0],"ID"+to_string(psi._id)+"Link0");
+  addIndex(psi.A[L-1],"ID"+to_string(psi._id)+"Link"+to_string(L));
+  addIndex(res.A[0],"ID"+to_string(res._id)+"Link0");
+  addIndex(res.A[L-1],"ID"+to_string(res._id)+"Link"+to_string(L));
+  addIndex(K.A[0],"ID"+to_string(K._id)+"Link0");
+  addIndex(K.A[L-1],"ID"+to_string(K._id)+"Link"+to_string(L));
+  /*for(int j=0;j<L;j++){
+    uint_vec perm;
+    vector<dtensor_index> new_idx_set = res.A[j].idx_set;
+    std::sort(new_idx_set.begin(),new_idx_set.end());
+    find_index_permutation(res.A[j].idx_set, new_idx_set, perm);
+    res.A[j].permute(perm);
+  }*/
+  if(verbose){
+    std::cerr<<"Res:"<<std::endl;
+    res.print(1);
+    std::cerr<<"!!"<<std::endl;
+  }
+  return res;
+}
+MPS<double> exactApplyMPO(MPO<double> & K, MPS<double> & psi,double cutoff,int maxm, bool verbose);
+//MPS<complex<double>> exactApplyMPO(MPO<complex<double>> & K, MPS<complex<double>> & psi,double cutoff,int maxm, bool verbose){
+
+  
+template <typename T>  
+T errorMPOProd(MPS<T> & psi2, MPO<T> & K, MPS<T> & psi1){
+  T err = overlap(psi2,psi2);
+  err += -2.*std::real(overlap(psi2,K,psi1));
+  //create K\dagger
+  MPO<T> Kd = K;
+  for(unsigned j=0;j<K.length;j++){
+    //swap 0,1, on sites
+    Kd.A[j].mapPrime(0,3,Site);
+    Kd.A[j].mapPrime(1,0,Site);
+    Kd.A[j].mapPrime(3,1,Site);
+  }
+  err /= overlap(psi1,Kd,K,psi1);
+  err = std::sqrt(abs(1.0+err));//abs needed for underflow*/
+  return err;
+}
+template double errorMPOProd(MPS<double> & psi2, MPO<double> & K, MPS<double> & psi1);
+
 
 #endif
