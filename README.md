@@ -1,8 +1,10 @@
-# tensor-tools parallel
+<img src="https://github.com/ClarkResearchGroup/tensor-tools/raw/parallel/logo2.png" width="250px" align="right" alt="tensor-tools logo" />  
 
-<img src="https://github.com/ClarkResearchGroup/tensor-tools/raw/parallel/logo2.png" width="250px" alt="tensor-tools logo" />  
+# tensor-tools parallel 
 
 -----------------
+
+
 ### What is it?
 
 The parallel verison of `tensor-tools` is a parallel tensor-network library currently customized for performing DMRG (with quantum numbers) in parallel. The parallelization is done via MPI over nodes, using [CTF tensors](https://github.com/cyclops-community/ctf/). It is particularly powerful for spin-systems or those without conserved U(1) symmetries.  
