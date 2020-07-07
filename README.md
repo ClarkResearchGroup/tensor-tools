@@ -8,6 +8,7 @@ Dependency
 //------------------------------------------------------------------------------
 // By Devin Matthews, et al.
 // https://github.com/devinamatthews/tblis
+//          **Make sure to use v1.1.2**
 // Intro:
 // TBLIS is a library and framework for performing tensor operations,
 // especially tensor contraction, using efficient native algorithms.
