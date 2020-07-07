@@ -1,5 +1,7 @@
 # tensor-tools parallel
 
+<img src="https://raw.githubusercontent.com/ClarkResearchGroup/tensor-tools/parallel/logo2.png" width="250px" alt="tensor-tools logo" />  
+
 -----------------
 ### What is it?
 
