@@ -1,24 +1,7 @@
-# tensor-tools parallel
+# tensor-tools
 
 -----------------
-### What is it?
-
-The parallel verison of tensor tools is a parallel tensor-network library currently customized for performing DMRG (with quantum numbers) in parallel. The parallelization is done via MPI over nodes.  It uses CTF (link).   It is particularly powerful for spin-systems.  Not only can it reach bond-dimensions which are inaccessible serially, but (if we extrapolate what a serial code could do on a big-enough machine) it achieves a 10x speedup at no extra cost in node-hours.  See (link arxiv paper). 
-
------------------
-
-### Authors
-
-The parallel version of tensor-tools was developed by Ryan Levy under the guidance of Bryan Clark with CTF and other help from Edgar Solomonik.  It is built on top of the serial version of tensor-tools (see the serial branch) which was written (circa 2017) by Xiongjie Yu (under the guidance of Clark);  tensor-tools serial now also has additional contributions/bug-fixes from Ryan Levy.
-
------------------
-
-### External Code
-The auto MPO code is directly taken from itensor (i.e. the files are copied).  Some of the general tensor-tools interface was inspired by itensor.  
-
-
------------------
-### Dependency
+Dependency
 ```C++
 //------------------------------------------------------------------------------
 // External library 1 -- TBLIS -- necessary
