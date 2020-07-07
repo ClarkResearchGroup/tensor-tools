@@ -1,3 +1,21 @@
+/*
+ * Copyright 2020 Ryan Levy, Xiongjie Yu, and Bryan K. Clark
+ * Portions copyright 2018 The Simons Foundation, Inc., with modifications
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 #ifndef DENSE_TENSOR_BASED_DAVIDSON_SOLVER
 #define DENSE_TENSOR_BASED_DAVIDSON_SOLVER
 
@@ -333,107 +351,5 @@ template double tensor_davidsonIT(big_qtensor<double>& A, qtensor<double>& x, in
 template double tensor_davidsonIT(big_qtensor< std::complex<double> >& A, qtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
 template double tensor_davidsonIT(big_qstensor<double>& A, qstensor<double>& x, int m, int max_restart, double tol, char mode);
 template double tensor_davidsonIT(big_qstensor< std::complex<double> >& A, qstensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
-
-template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
-double tensor_lanczosMPT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode){
-  assert(m>=1 && max_restart>=1 && tol>0);
-  // this implements Lanczos partially according to wikipedia, 
-  // with stopping criteria based on MPT via Ian McCulloch
-  int min_iter = 1;
-  auto w = x;
-  auto beta = w.norm();
-  w *= 1./beta;
-
-  TensorType<T>* v  = new TensorType<T> [m+1];
-  TensorType<T>* va = new TensorType<T> [m+1];
-  
-  double* M         = new double [(m+1)*(m+1)]; //T matrix
-  double* Mnext     = new double [(m+1)*(m+1)]; //DIAG destroys M->evecs
-  double* evals     = new double [(m+1)];
-  double* evecs     = new double [(m+1)*(m+1)];
-  double lambda     = 0; //eventual answer
-  TensorType<T> u,r;
-  for(int i=0;i<(m+1)*(m+1);i++){ //M will be tri-diagonal
-    M[i]     = 0;
-    Mnext[i] = 0;
-  }
-
-  v[0]  = std::move(w);
-  w     = std::move(A.product(v[0]));
-  va[0] = w;
-  M[0]  = std::real(va[0].inner_product(v[0]));
-  w.add(v[0],-M[0]);
-
-  beta = w.norm();
-  if(beta<tol){
-    x = v[0];
-    lambda = M[0];
-    goto done;
-  }
-  for(int i=1;i<m;i++){
-    M[i-1 + i*(i+1)]     = beta;
-    M[i   + (i-1)*(i+1)] = beta;
-    w *=1./beta;
-    v[i] = std::move(w);
-    w = std::move(A.product(v[i]));
-    va[i] = w;
-    w.add(v[i-1],-beta); //this order differs from wikipedia, but other sources agree
-    M[i+i*(i+1)] =std::real(v[i].inner_product(w));
-    w.add(v[i],-M[i+i*(i+1)]);
-    beta = w.norm();
-    if (beta < tol){
-      DIAG(i+1,M,evals);
-      x = v[0]; x*=M[0];
-      for(int k=1;k<=i;k++)
-        x.add(v[k], M[k]);
-      lambda = evals[0];
-      goto done;
-    }
-    for(int j=0;j<i+1;j++){
-      for(int k=j;k<i+1;k++){
-        Mnext[k+j*(i+2)] = M[k+j*(i+1)];
-        Mnext[j+k*(i+2)] = M[j+k*(i+1)];
-      }
-    }
-    DIAG(i+1,M,evals);
-    lambda = evals[0];
-    double spectralDiameter = evals[i]-evals[0];
-    u = v[0]; u*=M[0];
-    for(int k=1;k<=i;k++)
-      u.add(v[k], M[k]);
-    //residual r = Hu - E0*u
-    r = u; r*=-lambda;
-    for(int k=0;k<i;k++)
-      r.add(va[k],M[k]);
-    double rnorm = r.norm();
-    if (rnorm < std::abs(tol*spectralDiameter) && i+1 >= min_iter){
-      x = u;
-      goto done;
-    }
-    
-    if(i==m-1){
-      x = u;
-      goto done;
-    }
-    swap(M,Mnext);
-  }
-
-
-done:
-  delete [] v;
-  delete [] va;
-  delete [] evals;
-  delete [] M;
-  delete [] Mnext;
-  
-  return lambda;
-
-}
-template double tensor_lanczosMPT(big_dtensor<double>& A, dtensor<double>& x, int m, int max_restart, double tol, char mode);
-template double tensor_lanczosMPT(big_dtensor< std::complex<double> >& A, dtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
-template double tensor_lanczosMPT(big_qtensor<double>& A, qtensor<double>& x, int m, int max_restart, double tol, char mode);
-template double tensor_lanczosMPT(big_qtensor< std::complex<double> >& A, qtensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
-template double tensor_lanczosMPT(big_qstensor<double>& A, qstensor<double>& x, int m, int max_restart, double tol, char mode);
-template double tensor_lanczosMPT(big_qstensor< std::complex<double> >& A, qstensor< std::complex<double> >& x, int m, int max_restart, double tol, char mode);
 
 #endif
