@@ -1,51 +1,51 @@
-# CC = icpc
-# CC_FLAGS = -O2 -qopenmp -qoverride-limits -xhost -DNDEBUG -std=c++11 -W
-#
-# LAPACK_INC = -DMKL_Complex16="std::complex<double>"
-# LAPACK_LIB = -mkl=parallel
-#
-# HDF5_INC = -DUSE_EZH5 -I/usr/local/opt/hdf5/include
-# HDF5_LIB = -L/usr/local/opt/hdf5/lib -lhdf5
-#
-# TBLIS_INC = -DUSE_TBLIS -I/usr/local/include -I/usr/local/include/tblis
-# TBLIS_LIB = -L/usr/local/lib -ltblis
-#
-# HPTT_INC = -DUSE_HPTT -I/Volumes/CoolStuff/MyLibrary/hptt/src
-# HPTT_LIB = -L/Volumes/CoolStuff/MyLibrary/hptt/lib -lhptt
-
-
-# CC = g++-7
-# CC_FLAGS = -O2 -g -march=native -fopenmp -ffast-math -std=c++11 -W
-#
-# LAPACK_INC = -framework Accelerate
-# LAPACK_LIB = -framework Accelerate
-#
-# HDF5_INC = -DUSE_EZH5 -I/usr/local/opt/hdf5/include
-# HDF5_LIB = -L/usr/local/opt/hdf5/lib -lhdf5
-#
-# TBLIS_INC = -DUSE_TBLIS -I/usr/local/include -I/usr/local/include/tblis
-# TBLIS_LIB = -L/usr/local/lib -ltblis
-#
-# HPTT_INC = -DUSE_HPTT -I/Volumes/CoolStuff/MyLibrary/hptt/src
-# HPTT_LIB = -L/Volumes/CoolStuff/MyLibrary/hptt/lib -lhptt
-
-
-CC = g++
-CC_FLAGS = -O2 -DNDEBUG -march=native -fopenmp -ffast-math -std=c++11 -W
-
-LAPACK_INC = -I/usr/include/openblas
-LAPACK_LIB = -lpthread -L/usr/lib/openblas-base -lopenblas
+CC = mpiicpc
+CC_FLAGS = -O2 -qopenmp -std=c++11 -W -g
 
 HDF5_INC = -I/usr/lib/x86_64-linux-gnu/hdf5/serial/include
 HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -lhdf5
 
-TBLIS_INC = -I/usr/local/include -I/usr/local/include/tblis
-TBLIS_LIB = -L/usr/local/lib -ltblis
+HPTT_INC = -DUSE_HPTT -I${HOME}/software/ctf/hptt/include
+HPTT_LIB = -DUSE_HPTT -L${HOME}/software/ctf/hptt/lib -Wl,-rpath=${HOME}/software/ctf/hptt/lib -lhptt
 
-HPTT_INC = -DUSE_HPTT -I/home/xiongjie/CodeDoc/libraries/hptt/src
-HPTT_LIB = -DUSE_HPTT -L/home/xiongjie/CodeDoc/libraries/hptt/lib -Wl,-rpath=/home/xiongjie/CodeDoc/libraries/hptt/lib -lhptt
+EIGEN_INC = -I ${HOME}/software/eigen-3.3.7
 
-EIGEN_INC = -I /home/xiongjie/CodeDoc/libraries/eigen-eigen-26667be4f70b
+CTF_INC = -I${HOME}/software/ctf/include
+CTF_LIB =  -L${HOME}/software/ctf/lib -lctf -lmkl_scalapack_lp64 -Wl,--start-group -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_lp64  -Wl,--end-group -lpthread -lm
+
+# 																												Blue waters with gcc, SciLib
+# CC = CC
+# CC_FLAGS = -O2 -fopenmp -std=c++11 -W -g -DNDEBUG 
+# 
+# # CTF should be handling LAPACK
+# #LAPACK_INC = 
+# #LAPACK_LIB = 
+# 
+# HPTT_INC = -DUSE_HPTT -I${HOME}/bin/ctf/hptt/include
+# HPTT_LIB = -DUSE_HPTT -L${HOME}/bin/ctf/hptt/lib -Wl,-rpath=${HOME}/bin/ctf/hptt/lib -lhptt
+# 
+# EIGEN_INC = -I ${HOME}/bin/eigen-eigen-b9cd8366d4e8
+# 
+# CTF_INC = -I${HOME}/ctf/include 
+# CTF_LIB =  -L${HOME}/ctf/lib -lctf
+
+# 																															Stampede2
+# CC = mpicxx 
+# CC_FLAGS = -O2 -fopenmp -std=c++11 -W -g -DNDEBUG 
+# 
+# # CTF should be handling LAPACK
+# #LAPACK_INC = 
+# #LAPACK_LIB = 
+# 
+# HDF5_INC = -I${TACC_HDF5_INC}
+# HDF5_LIB = -Wl,-rpath,${TACC_HDF5_LIB} -L${TACC_HDF5_LIB} -lhdf5 -lz
+# 
+# HPTT_INC = -DUSE_HPTT -I${HOME}/software/ctf/hptt/include
+# HPTT_LIB = -DUSE_HPTT -L${HOME}/software/ctf/hptt/lib -Wl,-rpath=${HOME}/software/ctf/hptt/lib -lhptt
+# 
+# EIGEN_INC = -I${HOME}/software/eigen-eigen-323c052e1731 
+# 
+# CTF_INC = -I${HOME}/software/ctf/include 
+# CTF_LIB =  -L${MKLROOT}/lib/intel64/ -lmkl_scalapack_lp64 -Wl,--start-group -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_lp64  -Wl,--end-group -lpthread -lm -L${HOME}/software/ctf_nomem/lib -lctf 
 
 
 # File names
@@ -55,11 +55,11 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 # Main target
 $(EXEC): $(OBJECTS)
-	$(CC) $(OBJECTS) $(CC_FLAGS) $(TBLIS_LIB) $(HPTT_LIB) $(LAPACK_LIB) $(HDF5_LIB) -o $(EXEC)
+	$(CC) $(OBJECTS) $(CC_FLAGS) $(CTF_LIB) $(HPTT_LIB) $(LAPACK_LIB) $(HDF5_LIB) -o $(EXEC)
 
 # To obtain object files
 %.o: %.cpp
-	$(CC) -c $(CC_FLAGS) $(TBLIS_INC) $(HPTT_INC) $(LAPACK_INC) $(HDF5_INC) $(EIGEN_INC) $< -o $@
+	$(CC) -c $(CC_FLAGS) $(CTF_INC) $(HPTT_INC) $(LAPACK_INC) $(HDF5_INC) $(EIGEN_INC) $< -o $@
 
 # To remove generated files
 clean:
