@@ -788,10 +788,10 @@ void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
   for(size_t i = 0; i < length; i++){
     if(A[i]._T.is_sparse && std::is_same<double, T>::value){
       /*auto Atemp = A[i]._T; Atemp.densify();
-      Atemp.write_dense_to_file(file,offset);*/
+      Atemp.write_dense_to_file(file,offset);
+      offset+= Atemp.get_tot_size(false)*sizeof(T);*/
       std::string tname = fn+"Tensor_"+to_string(i)+".txt";
       A[i]._T.write_sparse_to_file(tname.c_str());
-      offset+= Atemp.get_tot_size(false)*sizeof(T);
     }
     else{
       A[i]._T.write_dense_to_file(file,offset);

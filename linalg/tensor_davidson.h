@@ -52,8 +52,5 @@ double tensor_davidson(BigTensorType<T>& A, TensorType<T>& x, int m, int max_res
 //recreated ITensor version
 template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
 double tensor_davidsonIT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode='S');
-//lanczos from wikipedia/matrrix product toolkit
-template <typename T, template <typename> class BigTensorType, template <typename> class TensorType>
-double tensor_lanczosMPT(BigTensorType<T>& A, TensorType<T>& x, int m, int max_restart, double tol, char mode='S');
 
 #endif
