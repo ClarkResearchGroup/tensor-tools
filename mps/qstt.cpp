@@ -786,9 +786,11 @@ void qsTensorTrain<T, N>::save(std::string fn, std::string wfn){
   MPI_File_open(MPI_COMM_WORLD, wfn.c_str(),  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
   int64_t offset=0;
   for(size_t i = 0; i < length; i++){
-    if(A[i]._T.is_sparse){
-      auto Atemp = A[i]._T; Atemp.densify();
-      Atemp.write_dense_to_file(file,offset);
+    if(A[i]._T.is_sparse && std::is_same<double, T>::value){
+      /*auto Atemp = A[i]._T; Atemp.densify();
+      Atemp.write_dense_to_file(file,offset);*/
+      std::string tname = fn+"Tensor_"+to_string(i)+".txt";
+      A[i]._T.write_sparse_to_file(tname.c_str());
       offset+= Atemp.get_tot_size(false)*sizeof(T);
     }
     else{

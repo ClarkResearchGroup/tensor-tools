@@ -10,12 +10,12 @@ void idxToSparse(vector<qtensor_index> &idx_set, CTF::Tensor<T> &M){
      idx_sizes[i]+=idx_set[i].qdim(j);
    }
   }
- //M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
- M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
+ M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
+ //M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
 }
 template<typename T,template <typename> class TensorType >
 void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
- vector<int64_t> idx_sizes(A.rank,0);//dense storage index sizes
+  vector<int64_t> idx_sizes(A.rank,0);//dense storage index sizes
  vector<unordered_map<QN_t,int64_t> > offsets(A.rank); //find corner of block in dense
 
  for(size_t i=0;i<A.idx_set.size();i++){
@@ -28,20 +28,55 @@ void blockToSparse(const TensorType<T> &A, CTF::Tensor<T> &M){
   }
  //M = CTF::Tensor<>(idx_sizes.size(),true,idx_sizes.data());
  M = CTF::Tensor<>(idx_sizes.size(),idx_sizes.data());
+ int64_t np;
+ int64_t * indices;
+ T * data;
+ vector<int64_t> all_indices;
+ vector<T> all_data;
  //place data into M
- vector<int64_t> zeros(A.rank,0);
- for(size_t i=0;i<A._block.size();i++){
-   vector<int64_t> starts(A.rank);
-   vector<int64_t> ends(A.rank);
-   for(unsigned j=0;j<A.rank;j++){
-    starts[j] = offsets[j][A.block_index_qn[i][j]];
-    ends[j]   = starts[j]+A.block_index_qd[i][j];
-   }
+ //vector<int64_t> zeros(A.rank,0);
+ //for(size_t i=0;i<A._block.size();i++){
+ //  vector<int64_t> starts(A.rank);
+ //  vector<int64_t> ends(A.rank);
+ //  for(unsigned j=0;j<A.rank;j++){
+ //   starts[j] = offsets[j][A.block_index_qn[i][j]];
+ //   ends[j]   = starts[j]+A.block_index_qd[i][j];
+ //  }
 
-   M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
+ //  //M.slice(starts.data(),ends.data(),0.,A._block[i],zeros.data(),A._block[i].lens,1.);
+ //}
+ vector<int64_t> indexOffsets(A.rank);//tells us how to compute global index
+ indexOffsets[0] = 1;
+ for(unsigned i=1;i<A.rank;i++){
+  indexOffsets[i]=idx_sizes[i-1]*indexOffsets[i-1];
  }
+ for(size_t i=0;i<A._block.size();i++){
+   vector<int64_t> indexOffsetsBlock(A.rank);//tells us how to compute global index
+   indexOffsetsBlock[0] = 1;
+   for(unsigned ii=1;ii<A.rank;ii++){
+     indexOffsetsBlock[ii]=A._block[i].lens[ii-1]*indexOffsetsBlock[ii-1];
+   }
+   //get data already on this rank
+   A._block[i].get_local_data(&np,&indices,&data);
+   for(int64_t p=0;p<np;p++){
+     int64_t currIdx = indices[p];
+     int64_t newIdx = 0;
+     for(int64_t ii=A.rank-1;ii>=0;--ii){ //compute new index based on old
+      int64_t thisIndVal = currIdx/indexOffsetsBlock[ii];
+           newIdx+=(offsets[ii][A.block_index_qn[i][ii]]+thisIndVal)*indexOffsets[ii];
+      currIdx-=thisIndVal*indexOffsetsBlock[ii];
+     }
+    all_indices.push_back(newIdx);
+    all_data.push_back(data[p]);
+   }
+   delete [] data;
+   free(indices);
+ }
+ //write local rank data to new tensor
+ int64_t total_np = all_indices.size();
+ M.write(total_np,all_indices.data(),all_data.data());
  M.sparsify();
-}
+ }
 template void blockToSparse(const qtensor<double> &A,  CTF::Tensor<double> &M);
 template void blockToSparse(const qstensor<complex<double> > &A, CTF::Tensor<complex<double> > &M);
 template void blockToSparse(const qtensor<complex<double> > &A,  CTF::Tensor<complex<double> > &M);
@@ -701,12 +736,12 @@ qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
     right_index_qi[mid_QN].insert(right_qi);
     mid_index_qi[mid_QN].insert(mid_qi);
   }
-  unordered_map<string,char> charMap;
+  /*unordered_map<string,char> charMap;
   string indA_L = getIndices(charMap);
   string indB_R = other.getIndices(charMap);
   string indC   = res.getIndices(charMap);
   idxToSparse(res_index_set, res._T);
-  res._T[indC.c_str()] = _T[indA_L.c_str()]*other._T[indB_R.c_str()];
+  res._T[indC.c_str()] = _T[indA_L.c_str()]*other._T[indB_R.c_str()];*/
   // merge blocks
   for (auto i1 = mid_QN_set.begin(); i1 != mid_QN_set.end(); ++i1){
     auto q = *i1;
@@ -753,7 +788,28 @@ qstensor<T> qstensor<T>::operator * (qstensor<T>& other){
       }
     }
   }
+  unordered_map<string,char> charMap;
+  string indA_L = getIndices(charMap);
+  string indB_R = other.getIndices(charMap);
+  string indC   = res.getIndices(charMap);
+  idxToSparse(res_index_set, res._T);
+  //res._T[indC.c_str()] = _T[indA_L.c_str()]*other._T[indB_R.c_str()];
+  double alpha = 1.;
+  auto con = CTF_int::contraction(&_T,indA_L.c_str(),&(other._T),indB_R.c_str(),(char*)&alpha,&(res._T),indC.c_str(),NULL);
+  double nnz = 0;
+  for(auto& blockd : res.block_index_qd){
+    double thisSize = 1;
+    for(auto di: blockd) thisSize*=di;
+    nnz+=thisSize;
+  }
+  double tot_size = res._T.get_tot_size(false);
+  double f_predict = nnz/tot_size;
+  //perr<<"Predicted nnz ="<<nnz<<" "<<f_predict<<endl;
+  con.set_output_nnz_frac(f_predict);
+  con.execute();
 
+  //perr<<"Actual nnz ="<<res._T.nnz_tot<<" "<<(double)res._T.nnz_tot/(tot_size)<<endl;
+  
   /*for(int ii=0;ii<res._block.size();ii++){
     for(int l=0;l<res.rank;l++){
       assert(res._block[ii].lens[l]==res.block_index_qd[ii][l]);

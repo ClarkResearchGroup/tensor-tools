@@ -425,7 +425,9 @@ void qtensor<T>::permute(uint_vec& perm){
     }
   }
   if (perm_needed){
-    perr<<"perm"<<endl;
+#ifndef NDEBUG
+    perr<<"permute"<<endl;
+#endif
     qtensor<T> A(*this);
     for (size_t i = 0; i < rank; i++) {
       A.idx_set[i] = idx_set[perm[i]];

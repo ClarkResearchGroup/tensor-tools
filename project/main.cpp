@@ -225,6 +225,7 @@ int main(int argc, char **argv)
       psi.load(fname,pref);
       psi.print();
 
+      assert(H._id != psi._id);
       fixTensors(psi,H);
 
       dmrg(psi, H, nsweeps, maxm, cutoff, max_restart);
@@ -241,6 +242,7 @@ int main(int argc, char **argv)
       HB.buildHam(ampo,H);
       qsMPO< double > Hq = H;
 
+      assert(H._id != psi._id);
       fixTensors(psi,Hq);
 
       dmrg(psi, Hq, nsweeps, maxm, cutoff, max_restart);
@@ -271,6 +273,7 @@ int main(int argc, char **argv)
       psiq.print();
 
      
+      assert(H._id != psi._id);
       fixTensors(psiq,Hq);
       
       dmrg(psiq, Hq, nsweeps, maxm, cutoff, max_restart);

@@ -326,7 +326,7 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
     }
     svd_bond(x,psi.A[site],psi.A[site+1],mid,S,MoveFromLeft,cutoff,max_bd);
     unsigned S_size = 0;
-    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    for(auto& block: S._block) S_size+= block.get_tot_size(false);
     psi.bond_dims[site+1] = S_size;
     psi.center = site+1;
     // EE
@@ -360,7 +360,7 @@ void updateSite(qMPS<T>& psi, qMPO<T>& H, std::vector< qtensor<T> >& TR, std::ve
     }
     svd_bond(x,psi.A[site-1],psi.A[site],mid,S,MoveFromRight,cutoff,max_bd);
     unsigned S_size = 0;
-    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    for(auto& block: S._block) S_size+= block.get_tot_size(false);
     psi.bond_dims[site] = S_size;
     psi.center = site - 1;
     // EE
@@ -377,8 +377,8 @@ template <typename T>
 void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std::vector< qstensor<T> >& TL, const unsigned& site, T& energy, int& direction, int max_bd, double cutoff, char mode, int search_space_size, int max_restart, Timer &diag){
   if(direction==MoveFromLeft){
     //change sparsity of current sites
-    TL[site]._T.densify();
-    TR[site+1]._T.densify();
+    //TL[site]._T.densify();
+    //TR[site+1]._T.densify();
     
     // Set up big_dtensor for two site optimization
     big_qstensor<T> A;
@@ -409,7 +409,7 @@ void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std:
     }
     svd_bond(x,psi.A[site],psi.A[site+1],mid,S,MoveFromLeft,cutoff,max_bd);
     unsigned S_size = 0;
-    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    for(auto& block: S._block) S_size+= block.get_tot_size(false);
     psi.bond_dims[site+1] = S_size;
     psi.center = site+1;
     // EE
@@ -419,8 +419,8 @@ void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std:
     }
   }else{
     //change sparsity of current sites
-    TL[site-1]._T.densify();
-    TR[site]._T.densify();
+    //TL[site-1]._T.densify();
+    //TR[site]._T.densify();
 
     // Set up big_dtensor for two site optimization
     big_qstensor<T> A;
@@ -450,7 +450,7 @@ void updateSite(qsMPS<T>& psi, qsMPO<T>& H, std::vector< qstensor<T> >& TR, std:
     }
     svd_bond(x,psi.A[site-1],psi.A[site],mid,S,MoveFromRight,cutoff,max_bd);
     unsigned S_size = 0;
-    for(auto block: S._block) S_size+= block.get_tot_size(false);
+    for(auto& block: S._block) S_size+= block.get_tot_size(false);
     psi.bond_dims[site] = S_size;
     psi.center = site - 1;
     // EE
