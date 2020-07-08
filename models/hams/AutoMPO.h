@@ -35,11 +35,6 @@ using Real = double;
 // Although the tau argument is of Complex type, passing a Real
 // tau (Real is auto convertible to Complex) will 
 // result in a real-valued MPO.
-//
-// Arguments recognized:
-// o "Approx":
-//   - (Default) "ZW1" - Zaletel et al. "W1" approximation
-//
 
 struct SiteTerm
     {

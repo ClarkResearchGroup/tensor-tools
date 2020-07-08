@@ -23,6 +23,6 @@ The list of modified files that include such work are:
 - `models`
   - `hams/AutoMPO.cpp`
   - `hams/Heisenberg.cpp`
-    - `buildHam(AutoMPO& ampo, MPO<T>&  H)`
+    - `buildHam(AutoMPO& ampo, MPO<T>&  H)`, `buildHam(AutoMPO& ampo, qMPO<T>& H)`
   - `lattice`
     - `latticebond.h`,`triangular.h`,`square.h`
