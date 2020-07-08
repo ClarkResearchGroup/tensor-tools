@@ -735,7 +735,7 @@ T dmrg(qMPS<T>& psi, qMPO<T>& H, int num_sweeps, const std::vector<int>& max_bd,
       t.Start();
       perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
       direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-      for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
+      for(int i = 0; i < L-1; i++) // direction change happens at the last site of any sweep
       {
         if(direction==MoveFromLeft)  site = i;
         if(direction==MoveFromRight) site = L-1-i;
@@ -845,7 +845,7 @@ T dmrg(qsMPS<T>& psi, qsMPO<T>& H, int num_sweeps, int max_bd, double cutoff, ch
     t.Start();
     perr<<l/2<<((l%2==0)? "_L" : "_R")<<"\t ";
     direction = ((l%2==0)? MoveFromLeft : MoveFromRight); // determine the direction
-    for(int i = 0; i < L-2; i++) // direction change happens at the last site of any sweep
+    for(int i = 0; i < L-1; i++) // direction change happens at the last site of any sweep
     {
       if(direction==MoveFromLeft)  site = i;
       if(direction==MoveFromRight) site = L-1-i;
