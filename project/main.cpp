@@ -181,20 +181,20 @@ int main(int argc, char **argv)
       ampo+=U,"Nupdn",i;
 
     if(type=="d"){
-      pout << "\n" << "Test MPS Fermionic DMRG" << '\n';
+      pout << "\n" << "Dense MPS DMRG (Linear Heisenberg)" << '\n';
       
       MPS<double> psi(&sites,ps);
-      psi.load(fname); //TODO: fix pref
+      //psi.load(fname); //TODO: fix pref
       psi.print();
       MPO< double > H;
       Heisenberg< double > HB(&sites);
-      HB.buildHam(ampo,H);
+      HB.buildHam(H);
       dmrg(psi, H, nsweeps, maxm, cutoff, max_restart);
       psi.print();
 
     }
     if(type=="q"){
-      pout << "\n" << "Test qMPS Fermionic DMRG" << '\n';
+      pout << "\n" << "qMPS Fermionic DMRG" << '\n';
       
       qMPS< double > psi(&sites,ps);
       bool yperiodic=true;
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 
     }
     if(type=="qs"){
-      pout << "\n" << "Test qsMPS Fermionic DMRG" << '\n';
+      pout << "\n" << "qsMPS Fermionic DMRG" << '\n';
       
       qsMPS<double> psi(&sites,ps);
       psi.load(fname,pref);
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
       }
     }
     if(type=="qToqs"){
-      pout << "\n" << "Test q to qsMPS Fermionic DMRG" << '\n';
+      pout << "\n" << "q to qsMPS Fermionic DMRG" << '\n';
       
       qMPO< double > H;
       Heisenberg< double > HB(&sites);
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
       dmrg(psiq, Hq, nsweeps, maxm, cutoff, max_restart);
 
       psiq.print();
-      for(int l=0;l<N;l++){
+      /*for(int l=0;l<N;l++){
         auto& Al = psiq.A[l];
         perr<<Al._T.nnz_tot<<","<<(double)Al._T.nnz_tot/(Al._T.get_tot_size(false))<<endl;
         perr<<"   ";
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
           perr<<"("<<Al.block_index_qd[i][0]<<","
               << Al.block_index_qd[i][1]<<","<<Al.block_index_qd[i][2]<<") ";
         perr<<'\n';
-      }
+      }*/
     }
   }
   MPI_Finalize();
