@@ -648,7 +648,7 @@ qtensor<T> qtensor<T>::operator * (qtensor<T>& other){
   string indA_L = getIndices(charMap);
   string indB_R = other.getIndices(charMap);
   string indC   = res.getIndices(charMap);
-  //perr<<indC << " "<<indA_L<< " "<<indB_R<<endl;
+
   // merge blocks
   for (auto i1 = mid_QN_set.begin(); i1 != mid_QN_set.end(); ++i1){
     auto q = *i1;
@@ -1096,13 +1096,7 @@ template <typename T>
 T qtensor<T>::contract(qtensor<T>& A){
   assert(_initted && A._initted);
   assert(rank>0 && A.rank>0);
-  /*if(_block.size() != A._block.size()){
-    perr<<"mis match"<<endl;
-    A.dag();
-   auto vtemp = (*this)*A; 
-   A.dag();
-   return vtemp.norm();
-  }*/
+
   uint_vec perm;
   //qtensor<T> B(A); B.dag();
   vector<qtensor_index> A_idx_set = A.idx_set;
@@ -1134,11 +1128,7 @@ template <typename T>
 void qtensor<T>::add(qtensor<T>& A, T c){
   assert(A._initted && _initted);
   assert(A.rank == rank);
-  /*if(A._block.size()!=_block.size()){
-    perr<<"add mismatch"<<endl;
-    perr<<A._block.size()<< " "<<A.block_index_qn.size()
-        << " "<<_block.size()<< " "<<block_index_qn.size()<<endl;
-  }*/
+
   unordered_map<string,char> charMap;
   auto ind     = getIndices(charMap);
   auto indA    = A.getIndices(charMap);
@@ -1154,7 +1144,6 @@ void qtensor<T>::add(qtensor<T>& A, T c){
       _block[t_id][ind.c_str()] += cs[""]*A._block[A_id][indA.c_str()];
     }
     else{
-      //perr<<"add:"<<A_id<< " "<<_block.size()+1<<endl;
       block_index_qn.push_back(A.block_index_qn[A_id]);
       block_index_qd.push_back(A.block_index_qd[A_id]);
       block_index_qi.push_back(A.block_index_qi[A_id]);
@@ -1275,25 +1264,6 @@ qtensor<T> qtensor<T>::diagonal(){
       for (size_t j = 0; j < res.rank; j++) {
         stride.push_back(res_block_index_qd[j] * stride[j]);
       }
-      //#pragma omp parallel for default(shared)
-      /*for (size_t j = 0; j < res_block_size; j++) {
-        uint_vec res_idx(res.rank);
-        uint_vec this_idx(rank);
-        for (size_t k = 0; k < res.rank; k++) {
-          res_idx[k] = unsigned(j/stride[k])%res_block_index_qd[k];
-          int i1 = idx_pair[k].first;
-          int i2 = idx_pair[k].second;
-          this_idx[i1] = res_idx[k];
-          this_idx[i2] = res_idx[k];
-        }
-        unsigned idx = 0;
-        for (size_t k = 0; k < rank; k++) {
-          idx += this_idx[k] * t_stride[k];
-        }
-        perr<< rank<< " "<<res_block_index_qd.size()<< " "<<res_block_size<< " "<<_block[i].get_tot_size(false)<<endl;
-        //assert(1==2);
-        //res.block.back().at(j) = block[i].at(idx);
-      }*/
       res._block.back()[indNew.c_str()] = _block[i][indOrig.c_str()];
     }
   }

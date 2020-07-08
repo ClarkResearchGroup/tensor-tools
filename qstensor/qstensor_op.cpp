@@ -570,21 +570,17 @@ void svd(qstensor<T>& A,
     }*/
     int c_row = 0;
     int c_col = 0;
-    //perr<<"U slice"<<endl;
+
     for (size_t i = 0; i < l_qn_str_map[q].size(); i++) {
       string U_qn_str = l_qn_str_map[q][i] + to_string(q) + " ";
       unsigned U_block = U.block_id_by_qn_str[U_qn_str];
       int    tot_size = U._block[U_block].get_tot_size(false);
       vector<int> start = {c_row,c_col};
       vector<int> end   = {c_row+(tot_size-1)%l_qn_sizes_map[q][i]+1, c_col+tot_size/l_qn_sizes_map[q][i]};
-      //perr<< "  $("<<row<<","<<col<<") "<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
-      //U._block[U_block] = (_U.slice(start.data(),end.data()));
-      //U._block[U_block] = (U._block[U_block].reshape(U.rank,U.block_index_qd[U_block].data()));
+
       U._block[U_block].slice(offU.data(),U.block_index_qd[U_block].data(),0.,_U,start.data(),end.data(),1.);
       c_row += l_qn_sizes_map[q][i];
     }
-    //perr<<endl;
-    //perr<<"V slice"<<endl;
     // copy data from mU to atensor V
     c_col=0;
     c_row=0;
@@ -594,15 +590,12 @@ void svd(qstensor<T>& A,
       int    tot_size = V._block[V_block].get_tot_size(false);
       vector<int> start = {c_row,c_col};
       vector<int> end   = {c_row+(tot_size-1)%ndim+1, c_col+(tot_size)/ndim};
-      //perr<< " %("<<row<<","<<col<<") "<<i<<" "<<start[0]<<","<<start[1]<<" "<<end[0]<<","<<end[1]<<" "<<tot_size<<endl;
-      //V._block[V_block] = (_V.slice(start.data(),end.data()));
-      //V._block[V_block] = (V._block[V_block].reshape(V.rank,V.block_index_qd[V_block].data()));
+
       V._block[V_block].slice(offV.data(),V.block_index_qd[V_block].data(),0.,_V,start.data(),end.data(),1.);
       c_col += r_qn_sizes_map[q][i];
     }
-    //perr<<endl;
 
-  }//end midQ loop*/
+  }//end midQ loop
 
 #ifndef NDEBUG
   for(unsigned ii=0;ii<mid_num;ii++){

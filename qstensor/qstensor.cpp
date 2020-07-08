@@ -882,12 +882,6 @@ qstensor<T> qstensor<T>::operator + (qstensor<T>& A){
       idx_sizes[j] = A.block_index_qd[i][j];
     }
     unsigned res_idx = res.block_id_by_qn_str[res_qn_str];
-    /*auto plan = hptt::create_plan(
-      (int *)perm.data(), rank,
-      alpha, A.block[i].data(), idx_sizes.data(), NULL,
-      beta, res.block[res_idx].data(), NULL,
-      hptt::ESTIMATE,numThreads);
-    plan->execute();*/
   }
   return res;
 }
@@ -1028,12 +1022,6 @@ qstensor<T>& qstensor<T>::operator += (qstensor<T>& A){
       idx_sizes[j] = A.block_index_qd[i][j];
     }
     unsigned idx = block_id_by_qn_str[qn_str];
-    /*auto plan = hptt::create_plan(
-      (int *)perm.data(), rank,
-      alpha, A.block[i].data(), idx_sizes.data(), NULL,
-      beta, block[idx].data(), NULL,
-      hptt::ESTIMATE,numThreads);
-    plan->execute();*/
   }
   return *this;
 }
@@ -1118,9 +1106,6 @@ qstensor<T>& qstensor<T>::operator *= (const T c){
   assert(_initted);
   CTF::Scalar<T> cs(c);
   auto ind = getIndices();
-  /*for (size_t i = 0; i < _block.size(); i++) {
-    _block[i][ind.c_str()]*=cs[""];
-  }*/
   _T[ind.c_str()]*=cs[""];
   return *this;
 }
@@ -1134,9 +1119,6 @@ qstensor<T>& qstensor<T>::operator /= (const T c){
   auto invC = 1./c;
   CTF::Scalar<T> cs(invC);
   string indA = getIndices();
-  /*for (size_t i = 0; i < _block.size(); i++) {
-    _block[i][indA.c_str()]*=cs[""];
-  }*/
   _T[indA.c_str()]*=cs[""];
   return *this;
 }
@@ -1214,18 +1196,10 @@ void qstensor<T>::add(qstensor<T>& A, T c){
   unordered_map<string,char> charMap;
   auto ind = getIndices(charMap);
   auto indA    = A.getIndices(charMap);
+
   CTF::Scalar<T> cs(c);
   _T[ind.c_str()] += cs[""]*A._T[indA.c_str()];
-  /*for (auto i = block_id_by_qn_str.begin(); i != block_id_by_qn_str.end(); ++i){
-    string qn_str = i->first;
-    unsigned t_id = i->second;
-    if(A.block_id_by_qn_str.find(qn_str)!=A.block_id_by_qn_str.end()){
-      unsigned A_id = A.block_id_by_qn_str.at(qn_str);
-      assert(A._block[A_id].get_tot_size(false) == _block[t_id].get_tot_size(false));
-      assert(A._block[A_id].order == _block[t_id].order);
-      _block[t_id][ind.c_str()] += cs[""]*A._block[A_id][indA.c_str()];
-    }
-  }*/
+  
   for (auto i = A.block_id_by_qn_str.begin(); i != A.block_id_by_qn_str.end(); ++i){
     string qn_str = i->first;
     unsigned A_id = i->second;
