@@ -32,5 +32,5 @@ Conversion to and from ITensor files is fully supported for v2 and v3.1.x (to be
 -----------------
 
 ### External Code
-We utilize both the AutoMPO system from [ITensor](https://github.com/ITensor/ITensor/) and some of their lattice code, to have better interoperability between the two.
+We utilize both the AutoMPO system from [ITensor](https://github.com/ITensor/ITensor/) and some of their lattice code, to have better interoperability between the two. See [EXTERNAL.md](EXTERNAL.md) for more
 Some of the general tensor-tools interface/API was also inspired by ITensor.  

@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Ryan Levy, Xiongjie Yu, and Bryan K. Clark
+ * Portions originally copyright 2018 The Simons Foundation, Inc., 
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
