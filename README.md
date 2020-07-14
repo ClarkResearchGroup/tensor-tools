@@ -6,7 +6,7 @@
 ### What is it?
 
 The parallel verison of `tensor-tools` is a parallel tensor-network library currently customized for performing DMRG (with quantum numbers) in parallel. The parallelization is done via MPI over nodes, using [CTF tensors](https://github.com/cyclops-community/ctf/). It is particularly powerful for spin-systems or those without conserved U(1) symmetries.  
-Not only can it reach bond-dimensions which are inaccessible serially, but (if we extrapolate what a serial code could do on a big-enough machine) it achieves a 10x speedup at no extra cost in node-hours.  See (link arxiv paper). 
+Not only can it reach bond-dimensions which are inaccessible serially, but (if we extrapolate what a serial code could do on a big-enough machine) it achieves a 10x speedup at no extra cost in node-hours.  See [arxiv:2007.05540](https://arxiv.org/abs/2007.05540).  
 
 ### Authors
 
