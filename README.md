@@ -13,7 +13,7 @@ Not only can it reach bond-dimensions which are inaccessible serially, but (if w
 The parallel version of tensor-tools was developed by [Ryan Levy](https://ryanlevy.github.io/) under the guidance of [Bryan Clark](http://clark.physics.illinois.edu/) with CTF and other help from [Edgar Solomonik](http://solomonik.cs.illinois.edu/).  It is built on top of the [serial version of tensor-tools](https://github.com/ClarkResearchGroup/tensor-tools/tree/serial) which was written (circa 2017) by Xiongjie Yu (under the guidance of Clark); the serial code now also has additional contributions/bug-fixes from Ryan Levy.
 
 
-## Installation
+## Installation and Running
 
 Requirements:
 - [CTF](https://github.com/cyclops-community/ctf/)
@@ -22,8 +22,11 @@ Requirements:
   - If using sparse tensors, intel MKL is strongly suggested
 - HDF5 
 - [Eigen3](http://eigen.tuxfamily.org/index.php?title=Main_Page)
+- C++11 support (GCC 6.3.0/8.2.0, Intel 18.0.2/18.0.3.222 compilers tested)
 
+After installing the required libraries, simply make a copy of `Makefile.in` and adjust the variables to their pointed location. Examples of a linux system, Blue Waters, and Stampede2 are provided. Then build (`make -j`) which will create an executable `run` based on the `project/main.cpp` file. 
 
+To execute, launch with MPI using `mpirun -n [# of procs] run [inputFile]` and follow CTF good practice such as `export OMP_NUM_THREADS=1` and `CTF_PPN=[# of procs/node]`.  
 
 ## Conversion
 
