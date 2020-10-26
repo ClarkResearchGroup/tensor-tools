@@ -1204,7 +1204,7 @@ void svd(qtensor<T>& A,
   auto indV = indicesToChar(V_idx_set,charMap);
   auto indS = string(1,charMap[mid.tagNoArrow()]);
 
-  uint_vec new_QDim(mid_QDim.size());
+  uint_vec new_QDim(mid_QDim.size(),0);
   vector<CTF::Matrix<T>> mU(mid_Q.size());
   vector<CTF::Matrix<T>> mV(mid_Q.size());
   vector<CTF::Vector<T>> mS(mid_Q.size());
@@ -1437,7 +1437,7 @@ void svd(qtensor<T>& A,
 
   }//end midQ loop
 #ifndef NDEBUG
-  for(size_t ii=0;ii<mid_Q.size();ii++){
+  for(size_t ii=0;ii<mid_num;ii++){
     assert(U.rank==U._block[ii].order);
     for(unsigned l=0;l<U.rank;l++){
       assert(U._block[ii].lens[l]==U.block_index_qd[ii][l]);
